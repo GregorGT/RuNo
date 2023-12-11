@@ -42,6 +42,7 @@ function App() {
                                           <div className="text2">Header</div>
                                       </div>
                                   </div>
+
                               </div>
                           </div>
                       </div>
@@ -134,24 +135,47 @@ function App() {
                       <div onClick={(e) => {
                           //e.preventDefault();
                           greet();
-                          }}>
+                      }}>
                           This is a test.
                       </div>
-                      <h1 >
+                      <h1>
                           This is a test.
                       </h1>
 
-                          <div>1</div><div>Testing it 1</div><br/>
-                          <div>2</div><div className="Testing1">Testing it 2</div><br/>
-                          <div>2</div><div className="Testing2">Testing it 2</div><br/>
+                      <div>1</div>
+                      <div>Testing it 1</div>
+                      <br/>
+                      <div>2</div>
+                      <div className="Testing1">Testing it 2</div>
+                      <br/>
+                      <div>2</div>
+                      <div className="Testing2">Testing it 2</div>
+                      <br/>
 
+                      <table>
+                          <tr>
+                              <th>Person 1</th>
+                              <th>Person 2</th>
+                              <th>Person 3</th>
+                          </tr>
+                          <tr>
+                              <td>Emil</td>
+                              <td>Tobias</td>
+                              <td>Linus</td>
+                          </tr>
+                          <tr>
+                              <td>16</td>
+                              <td>14</td>
+                              <td>10</td>
+                          </tr>
+                      </table>
                   </div>
               </div>
               <div className="header">
                   <div className="title-bar">
                       <div className="parts-title-bar-icon-title-group">
                           <div className="icon-and-title">
-                              <div className="text-container">
+                          <div className="text-container">
                                   <div className="text11">OpenSource</div>
                               </div>
                           </div>

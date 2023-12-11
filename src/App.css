@@ -5,3 +5,7 @@
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafb);
 }
+
+table, th, td {
+  border:1px solid black;
+}
