@@ -14,12 +14,12 @@ Easiest to use and most versatile data processing and data view application.
 to get the npm package manager <br>
 https://nodejs.org/en<br>
 
-2.) Install Yarn
+2.) Install Yarn<br>
 npm install --global yarn<br>
 Check the installation on Windows via<br>
 yarn --version<br>
 
-3.) Get GIT and clone the repository
+3.) Get GIT and clone the repository<br>
 
 # Running & Compilation
 
