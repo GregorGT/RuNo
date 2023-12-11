@@ -10,23 +10,23 @@ Easiest to use and most versatile data processing and data view application.
 # Installation
 
 ## On Windows
-1.) Install NodeJS 
-to get the npm package manager 
-https://nodejs.org/en
+1.) Install NodeJS <br>
+to get the npm package manager <br>
+https://nodejs.org/en<br>
 
 2.) Install Yarn
-npm install --global yarn
-Check the installation on Windows via
-yarn --version
+npm install --global yarn<br>
+Check the installation on Windows via<br>
+yarn --version<br>
 
-3.) Get GET and clone the repository
+3.) Get GIT and clone the repository
 
 # Running & Compilation
 
 ## On Windows
-Open a bash command line window.
-Goto to the cloned repository:
-1.) Type: 
-Yarn
-2.) Type:
+Open a bash command line window.<br>
+Goto to the cloned repository:<br>
+1.) Type: <br>
+Yarn<br>
+2.) Type:<br>
 Yarn tauri dev
