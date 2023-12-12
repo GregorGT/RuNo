@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -11,6 +12,12 @@ function App() {
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
     setGreetMsg(await invoke("greet", { name }));
+  }
+
+async  function template_message_box_call() {
+        // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
+     // setGreetMsg(await invoke("greet", { "name1" }));
+      await invoke("template_message_box_call", { });
   }
 
   return (
@@ -134,9 +141,9 @@ function App() {
                   <div className="content6">
                       <div onClick={(e) => {
                           //e.preventDefault();
-                          greet();
+                          template_message_box_call();
                       }}>
-                          This is a test.
+                          This is a test click.
                       </div>
                       <h1>
                           This is a test.

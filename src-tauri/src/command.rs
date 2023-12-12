@@ -4,11 +4,23 @@ use crate::models::{
     NewGistResponse, Repository, URL,
 };
 
+extern crate msgbox;
+
+use msgbox::IconType;
+
 #[tauri::command]
 pub fn get_public_gists() -> APIResult<Vec<Gist>> {
     let response = make_get_request(URL::WithBaseUrl("gists"), None)?;
     let response: Vec<Gist> = serde_json::from_str(&response).unwrap();
     Ok(response)
+}
+
+#[tauri::command]
+pub fn template_message_box_call() -> String {
+    msgbox::create("Hello Title", "Hello World!", IconType::Info);
+   // let &response = "done";
+   // Ok( response )
+    format!("Hello, {}! You've been greeted from Rust!", "Testing")
 }
 
 #[tauri::command]
