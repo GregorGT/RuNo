@@ -10,6 +10,7 @@ use command::{
     get_public_repositories,
     get_repositories_for_authenticated_user,
     get_users_associated_with_repository,
+    template_message_box_call,
 };
 
 mod api;
@@ -28,7 +29,8 @@ fn main() {
                 get_gists_for_authenticated_user,
                 get_gist_content,
                 get_users_associated_with_repository,
-                get_commits_to_repository
+                get_commits_to_repository,
+                template_message_box_call
             ]
         )
         .run(tauri::generate_context!())
