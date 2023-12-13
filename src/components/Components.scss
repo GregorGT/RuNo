@@ -36,7 +36,7 @@
     display: flex;
     align-items: center;
     background-color: var(--black-100);
-    border: 2px solid var(--black-300);
+    border: 1px solid var(--black-300);
     padding: 20px;
 
     .add {
@@ -100,3 +100,13 @@
     }
   }
 }
+
+.tab {
+  width: 50%;
+  .top-space {
+    width: 100%;
+    height: 92px;
+    border-bottom: 1px solid var(--black-300);
+  }
+}
+

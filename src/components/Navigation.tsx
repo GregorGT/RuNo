@@ -2,6 +2,8 @@ import './Components.scss'
 
 export default function Tabs() {
   return (
-    <div>This is Tab page.</div>
+    <div className='tab'>
+      <div className='top-space' />
+    </div>
   )
 }
