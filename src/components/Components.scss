@@ -88,6 +88,10 @@
         height: 18px;
       }
     }
+    .ant-checkbox-checked .ant-checkbox-inner {
+      background-color: var(--primary-800, #2a8080);
+      border-color: var(--primary-800, #2a8080);
+    }
 
     .ant-radio,
     .ant-checkbox {
