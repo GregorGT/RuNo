@@ -29,14 +29,14 @@
 }
 
 .entries {
-  padding: 20px;
   min-width: 50%;
   font-size: 30px;
-  background-color: var(--black-100);
 
   &-header {
     display: flex;
     align-items: center;
+    background-color: var(--black-100);
+    padding: 20px;
 
     .add {
       background-color: #2a8080;
@@ -46,30 +46,52 @@
       font-size: 20px;
       margin-left: auto;
     }
-    .ant-checkbox-wrapper {
-      margin-right: 20px;
-      .ant-radio-inner {
-        width: 30px;
-        height: 30px;
-        &::after {
-          width: 18px;
-          height: 18px;
-        }
+  }
+  .boxes {
+    max-height: calc(100vh - 220px);
+    overflow-y: scroll;
+    .item {
+      display: flex;
+      align-items: center;
+      flex-direction: row;
+      padding: 20px;
+      color: var(--black-500);
+      font-size: 20px;
+      .box {
+        display: flex;
+        flex-direction: column;
+        border: 2px solid var(--black-300);
+        border-radius: 8px;
+        padding: 20px;
+        width: 100%;
+        min-height: 200px;
       }
-  
-      .ant-checkbox-inner {
-        width: 30px;
-        height: 30px;
-        &::after {
-          width: 12px;
-          height: 18px;
-        }
+    }
+  }
+  .ant-checkbox-wrapper {
+    margin-right: 20px;
+    box-shadow: 1px 0px 5px 0px var(--black-300);
+    .ant-radio-inner {
+      width: 30px;
+      height: 30px;
+      &::after {
+        width: 18px;
+        height: 18px;
       }
-  
-      .ant-radio,
-      .ant-checkbox {
-        font-size: 30px;
+    }
+
+    .ant-checkbox-inner {
+      width: 30px;
+      height: 30px;
+      &::after {
+        width: 12px;
+        height: 18px;
       }
+    }
+
+    .ant-radio,
+    .ant-checkbox {
+      font-size: 30px;
     }
   }
 }
