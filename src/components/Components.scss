@@ -27,3 +27,48 @@
     color: white;
   }
 }
+
+.entries {
+  padding: 20px;
+  min-width: 50%;
+  font-size: 30px;
+
+  &-header {
+    display: flex;
+    align-items: center;
+
+    .add {
+      background-color: #2a8080;
+      color: white;
+      width: 200px;
+      height: 50px;
+      font-size: 20px;
+      margin-left: auto;
+    }
+    .ant-checkbox-wrapper {
+      margin-right: 20px;
+      .ant-radio-inner {
+        width: 30px;
+        height: 30px;
+        &::after {
+          width: 18px;
+          height: 18px;
+        }
+      }
+  
+      .ant-checkbox-inner {
+        width: 30px;
+        height: 30px;
+        &::after {
+          width: 12px;
+          height: 18px;
+        }
+      }
+  
+      .ant-radio,
+      .ant-checkbox {
+        font-size: 30px;
+      }
+    }
+  }
+}
