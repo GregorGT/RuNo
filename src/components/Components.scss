@@ -1,0 +1,109 @@
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--primary-700-main, #004c40);
+  font-size: 18px;
+  color: white;
+  width: 100%;
+  height: 50px;
+  .icons {
+    display: flex;
+    justify-content: space-between;
+    width: 100px;
+  }
+}
+
+.dropdowns {
+  display: flex;
+  align-items: center;
+  background: var(--primary-800, #2a8080);
+  height: 80px;
+  padding: 10px;
+  span {
+    cursor: pointer;
+    padding: 20px;
+    color: white;
+  }
+}
+
+.entries {
+  min-width: 50%;
+  font-size: 30px;
+
+  &-header {
+    display: flex;
+    align-items: center;
+    background-color: var(--black-100);
+    border: 1px solid var(--black-300);
+    padding: 20px;
+    input {
+      width: 25px;
+      height: 25px;
+      margin-right: 20px;
+      &:checked {
+        background-color: black;
+      }
+    }
+
+    .add {
+      background-color: #2a8080;
+      color: white;
+      border-radius: 5px;
+      border: 0;
+      width: 200px;
+      height: 50px;
+      font-size: 20px;
+      margin-left: auto;
+    }
+  }
+  .boxes {
+    max-height: calc(100vh - 222px);
+    overflow-y: scroll;
+    .item {
+      display: flex;
+      align-items: center;
+      flex-direction: row;
+      padding: 20px;
+      color: var(--black-500);
+      font-size: 20px;
+      input {
+        width: 25px;
+        height: 25px;
+        margin-right: 20px;
+      }
+      .box {
+        display: flex;
+        flex-direction: column;
+        border: 2px solid var(--black-300);
+        border-radius: 8px;
+        padding: 20px;
+        width: 100%;
+        min-height: 200px;
+      }
+    }
+  }
+  .ant-checkbox-wrapper {
+    margin-right: 20px;
+    box-shadow: 1px 0px 5px 0px var(--black-300);
+    .ant-radio-inner {
+      width: 30px;
+      height: 30px;
+      &::after {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+.tab {
+  width: 50%;
+  .top-space {
+    width: 100%;
+    height: 92px;
+    border-bottom: 1px solid var(--black-300);
+  }
+}
+
