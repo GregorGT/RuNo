@@ -1,7 +1,7 @@
 import Header from "./components/Header";
 import Dropdowns from "./components/Dropdowns";
 import Entries from "./components/Entries";
-import Tabs from "./components/Tabs";
+import TabComponent from "./components/TabComponent";
 import "./App.scss";
 
 function App() {
@@ -11,7 +11,7 @@ function App() {
             <Dropdowns />
             <div className="content">
                 <Entries />
-                <Tabs />
+                <TabComponent />
             </div>
         </div>
     );
