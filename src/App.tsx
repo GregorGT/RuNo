@@ -1,7 +1,7 @@
 import Header from "./components/Header";
 import Dropdowns from "./components/Dropdowns";
 import Entries from "./components/Entries";
-import Tabs from "./components/Navigation";
+import Tabs from "./components/Tabs";
 import "./App.scss";
 
 function App() {
