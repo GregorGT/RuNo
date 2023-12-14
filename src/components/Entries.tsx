@@ -21,9 +21,9 @@ export default function Entries() {
         <button className='add'>Add an entry</button>
       </div>
       <div className='boxes'>
-      {boxes?.map(item => 
+      {/* {boxes?.map(item => 
         <Boxes name={item.name} date={item.date} />
-      )}
+      )} */}
       </div>
     </div>
   )
