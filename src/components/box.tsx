@@ -1,4 +1,3 @@
-import { Checkbox } from 'antd'
 import './Components.scss'
 
 interface BoxProps {
@@ -8,7 +7,7 @@ interface BoxProps {
 export default function Box(props: BoxProps) {
   return (
     <div className='item'>
-      <Checkbox />
+      <input type="checkbox" />
       <div className='box'>
         <span>{props.name}</span>
         <span>{props.date}</span>

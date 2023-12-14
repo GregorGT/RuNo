@@ -1,4 +1,3 @@
-import { Button, Checkbox } from 'antd'
 import './Components.scss'
 import Boxes from './box'
 
@@ -17,9 +16,9 @@ export default function Entries() {
   return (
     <div className='entries'>
       <div className='entries-header'>
-        <Checkbox />
+        <input type='checkbox' />
         <span>ENTRIES</span>
-        <Button className='add'>Add an entry</Button>
+        <button className='add'>Add an entry</button>
       </div>
       <div className='boxes'>
       {boxes?.map(item => 

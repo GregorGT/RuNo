@@ -38,10 +38,20 @@
     background-color: var(--black-100);
     border: 1px solid var(--black-300);
     padding: 20px;
+    input {
+      width: 25px;
+      height: 25px;
+      margin-right: 20px;
+      &:checked {
+        background-color: black;
+      }
+    }
 
     .add {
       background-color: #2a8080;
       color: white;
+      border-radius: 5px;
+      border: 0;
       width: 200px;
       height: 50px;
       font-size: 20px;
@@ -58,6 +68,11 @@
       padding: 20px;
       color: var(--black-500);
       font-size: 20px;
+      input {
+        width: 25px;
+        height: 25px;
+        margin-right: 20px;
+      }
       .box {
         display: flex;
         flex-direction: column;
@@ -79,24 +94,6 @@
         width: 18px;
         height: 18px;
       }
-    }
-
-    .ant-checkbox-inner {
-      width: 30px;
-      height: 30px;
-      &::after {
-        width: 12px;
-        height: 18px;
-      }
-    }
-    .ant-checkbox-checked .ant-checkbox-inner {
-      background-color: var(--primary-800, #2a8080);
-      border-color: var(--primary-800, #2a8080);
-    }
-
-    .ant-radio,
-    .ant-checkbox {
-      font-size: 30px;
     }
   }
 }
