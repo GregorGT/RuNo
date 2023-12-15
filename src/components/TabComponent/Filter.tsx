@@ -15,8 +15,9 @@ const Filter = () => {
           <span className="or">Or</span>
           <div className="flex-1">
             <div className="flex items-center">
-              <span className="modified">Date modified ={`>`} 07/11/2023</span>
+              <input className="modified" disabled value="Date modified => 07/11/2023" />
               <input
+                className="radio-input"
                 checked={isChecked}
                 type="radio"
                 value="option1"
@@ -24,8 +25,9 @@ const Filter = () => {
               />
             </div>
             <div className="flex items-center">
-              <span className="modified">Date modified ={`>`} 07/11/2023</span>
+              <input className="modified" disabled value="Date modified => 09/11/2023" />
               <input
+                className="radio-input"
                 checked={!isChecked}
                 type="radio"
                 value="option2"

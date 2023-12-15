@@ -147,15 +147,28 @@
             width: 150px;
             padding: 10px 11px 10px 11px;
           }
-          input {
+          .radio-input {
             width: 30px;
             height: 30px;
+            margin-left: 20px;
+            /* Style for unchecked radio input */
+            background-color: green;
+            border: 1px solid green;
+            padding: 5px;
+          
+            /* Style for checked radio input */
+            &:checked {
+              background-color: green;
+              border: 1px solid green;
+              padding: 5px;
+            }
           }
           .modified {
             flex: 1;
             background-color: white;
             padding: 15px 20px 15px 20px;
             border-radius: 5px;
+            border: none;
             width: 100%;
             margin: 10px;
           }
