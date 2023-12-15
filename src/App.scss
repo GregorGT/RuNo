@@ -5,15 +5,31 @@
   
   input[type=radio] {
     accent-color: var(--primary-700-main, #004c40);
- }
-  
- input[type=checkbox] {
-   accent-color: var(--primary-700-main, #004c40);
-}
+  }
+
+  input[type=checkbox] {
+    accent-color: var(--primary-700-main, #004c40);
+  }
 
   .content {
     display: flex;
     flex-direction: row;
+  }
+
+  .radio-input {
+    width: 30px;
+    height: 30px;
+    margin-left: 20px;
+  }
+
+  .modified {
+    flex: 1;
+    background-color: white;
+    padding: 15px 20px 15px 20px;
+    border-radius: 5px;
+    border: none;
+    width: 100%;
+    margin: 10px;
   }
 
   .add-btn {
@@ -27,12 +43,18 @@
     height: 50px;
     margin-left: auto;
   }
+  .w-1 {
+    width: 100px;
+  }
 
   .cursor-pointer {
     cursor: pointer;
   }
   .flex {
     display: flex;
+  }
+  .flex-0 {
+    flex: 0;
   }
   .flex-1 {
     flex: 1;
