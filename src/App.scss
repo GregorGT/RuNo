@@ -8,7 +8,35 @@
     flex-direction: row;
   }
 
+  .add-btn {
+    background-color: var(--primary-700-main, #004c40);
+    border-radius: 5px;
+    border: 0;
+    color: white;
+    font-size: 24px;
+    font-weight: 400;
+    width: 200px;
+    height: 50px;
+    margin-left: auto;
+  }
+
   .cursor-pointer {
     cursor: pointer;
+  }
+  .flex {
+    display: flex;
+  }
+  .flex-1 {
+    flex: 1;
+  }
+  .flex-col {
+    display: flex;
+    flex-direction: column;
+  }
+  .items-center {
+    align-items: center;
+  }
+  .justify-center {
+    justify-content: center;
   }
 }

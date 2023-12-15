@@ -4,7 +4,7 @@ import './Components.scss'
 export default function Header() {
   return (
     <div className="header px-3">
-      <span>OpenSource</span>
+      <span className="mx-3">OpenSource</span>
       <div className="icons">
         <MinusCircleOutlined className="cursor-pointer" />
         <PlusCircleOutlined className="cursor-pointer" />

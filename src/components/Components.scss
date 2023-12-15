@@ -4,14 +4,16 @@
   align-items: center;
   justify-content: space-between;
   background: var(--primary-700-main, #004c40);
-  font-size: 18px;
   color: white;
+  font-size: 18px;
+  font-weight: 400;
   width: 100%;
   height: 50px;
   .icons {
     display: flex;
     justify-content: space-between;
     width: 100px;
+    margin-right: 20px;
   }
 }
 
@@ -21,6 +23,7 @@
   background: var(--primary-800, #2a8080);
   height: 80px;
   padding: 10px;
+  font-size: 25px;
   span {
     cursor: pointer;
     padding: 20px;
@@ -30,7 +33,7 @@
 
 .entries {
   min-width: 40%;
-  font-size: 30px;
+  font-size: 40px;
   border-right: 2px solid var(--black-300);
   min-height: calc(100vh - 130px);
 
@@ -47,17 +50,6 @@
       &:checked {
         background-color: black;
       }
-    }
-
-    .add {
-      background-color: #2a8080;
-      color: white;
-      border-radius: 5px;
-      border: 0;
-      width: 200px;
-      height: 50px;
-      font-size: 20px;
-      margin-left: auto;
     }
   }
   .boxes {
@@ -104,7 +96,7 @@
   flex: 1;
   .top-space {
     width: 100%;
-    height: 92px;
+    height: 102px;
     border-bottom: 1px solid var(--black-300);
   }
   .tab-component {
@@ -117,24 +109,63 @@
       padding: 3px;
       margin-bottom: 20px;
       .header-button {
-        border-radius: 30px;
-        margin-right: 20px;
-        padding-right: 10px;
-        padding-left: 10px;
-        padding-top: 5px;
-        padding-bottom: 5px;
         border: 1px solid var(--black-300);
+        border-radius: 30px;
+        font-size: 25px;
+        margin-right: 20px;
+        padding: 5px 20px 5px 20px;
         &.active {
-          background-color: #2a8080;
+          background-color: var(--primary-700-main, #004c40);
           color: white;
         }
       }
     }
     .filter {
+      display: flex;
+      flex-direction: column;
       .scope {
         font-size: 30px;
+        font-weight: 400;
+        margin-bottom: 30px;
         span {
           margin-right: 20px;
+        }
+      }
+      &-content {
+        display: flex;
+        flex-direction: column;
+        background: var(--black-50, #f9f9f9);
+        padding: 30px;
+        .filters {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          .or {
+            background: white;
+            border-radius: 5px;
+            width: 150px;
+            padding: 10px 11px 10px 11px;
+          }
+          input {
+            width: 30px;
+            height: 30px;
+          }
+          .modified {
+            flex: 1;
+            background-color: white;
+            padding: 15px 20px 15px 20px;
+            border-radius: 5px;
+            width: 100%;
+            margin: 10px;
+          }
+        }
+        .add-filter {
+          display: flex;
+          justify-content: center;
+          color: var(--primary-700-main, #004c40);
+          font-weight: 500;
+          margin: 20px;
         }
       }
     }
