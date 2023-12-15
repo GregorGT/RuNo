@@ -100,12 +100,33 @@
   }
 }
 
-.tab {
+.right-side {
   flex: 1;
   .top-space {
     width: 100%;
     height: 92px;
     border-bottom: 1px solid var(--black-300);
+  }
+  .tab-component {
+    padding: 20px;
+    .nav-tabs {
+      border: none;
+    }
+    .buttons {
+      display: flex;
+      padding: 3px;
+      .header-button {
+        border-radius: 30px;
+        margin-right: 20px;
+        padding-right: 10px;
+        padding-left: 10px;
+        border: 1px solid var(--black-300);
+        &.active {
+          background-color: #2a8080;
+          color: white;
+        }
+      }
+    }
   }
 }
 
