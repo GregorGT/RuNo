@@ -8,7 +8,7 @@ import Value from './Value';
 import '../Components.scss'
 
 export default function TabComponent() {
-  const [activeTab, setActiveTab] = useState('home')
+  const [activeTab, setActiveTab] = useState('filter')
   const Contents = [
     {eventKey: 'filter', content: <Filter />},
     {eventKey: 'sorting', content: <Sorting />},
@@ -28,7 +28,6 @@ export default function TabComponent() {
         </div>
         <Tabs
           activeKey={activeTab}
-          defaultActiveKey='home'
           className="mb-3"
         >
           {Contents.map(item => 
