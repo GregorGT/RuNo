@@ -115,11 +115,14 @@
     .buttons {
       display: flex;
       padding: 3px;
+      margin-bottom: 20px;
       .header-button {
         border-radius: 30px;
         margin-right: 20px;
         padding-right: 10px;
         padding-left: 10px;
+        padding-top: 5px;
+        padding-bottom: 5px;
         border: 1px solid var(--black-300);
         &.active {
           background-color: #2a8080;
