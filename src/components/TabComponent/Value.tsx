@@ -6,8 +6,8 @@ const Value = () => {
       <div>Value</div>
       <div className="editor">-</div>
       <div className="flex justify-between">
-        <button className="apply-single">Apply single</button>
-        <button className="apply-filtered">Apply filtered</button>
+        <button className="apply-single mt-3">Apply single</button>
+        <button className="apply-filtered mt-3">Apply filtered</button>
       </div>
     </div>
   )

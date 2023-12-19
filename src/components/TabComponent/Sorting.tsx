@@ -33,7 +33,7 @@ const Sorting = () => {
           Add Option
         </div>
       </div>
-      <button className='add-btn mx-auto my-5'>Add sort group</button>
+      <button className='add-btn mx-auto my-3'>Add sort group</button>
     </div>
   )
 }

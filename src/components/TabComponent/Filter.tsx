@@ -41,7 +41,7 @@ const Filter = () => {
           Add filter
         </div>
       </div>
-      <button className='add-btn mx-auto my-5'>Add filter groups</button>
+      <button className='add-btn mx-auto my-3'>Add filter groups</button>
     </div>
   )
 }

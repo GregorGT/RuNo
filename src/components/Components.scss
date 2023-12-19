@@ -205,7 +205,37 @@
         padding-left: 20px;
         border-radius: 5px;
         margin-top: 10px;
-        margin-bottom: 30px;
+      }
+    }
+    .header-tab {
+      display: flex;
+      flex-direction: column;
+      background: var(--black-50, #f9f9f9);
+      padding: 30px;
+      
+      .code-snippet {
+        display: flex;
+        background: var(--white, #ffffff);
+        border: 1px solid var(--black-200, #ececec);
+        border-radius: 4px;
+        .sidebar {
+          display: flex;
+          flex-direction: column;
+          background: var(--black-100, #f4f4f4);
+          border: 1px solid var(--black-200, #ececec);
+          color: var(--black-400, #bababa);
+          text-align: left;
+          font-size: 20px;
+          font-family: "Inter-SemiBold", sans-serif;
+          padding: 30px;
+        }
+        .code {
+          display: flex;
+          flex-direction: column;
+          padding: 30px;
+          flex: 1;
+          position: relative;
+        }
       }
     }
   }
