@@ -1,6 +1,15 @@
 const Value = () => {
   return (
-    <>this is Value page.</>
+    <div className="value">
+      <div>Formula</div>
+      <div className="editor">Entry: Sum( Modification Date)</div>
+      <div>Value</div>
+      <div className="editor">-</div>
+      <div className="flex justify-between">
+        <button className="apply-single">Apply single</button>
+        <button className="apply-filtered">Apply filtered</button>
+      </div>
+    </div>
   )
 }
 

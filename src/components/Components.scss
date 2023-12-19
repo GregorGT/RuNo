@@ -170,6 +170,44 @@
         margin: 20px;
       }
     }
+
+    .value {
+      display: flex;
+      flex-direction: column;
+      background: var(--black-50, #f9f9f9);
+      padding: 30px;
+
+      .apply-single {
+        background-color: white;
+        border-radius: 5px;
+        border: 0;
+        color: black;
+        font-size: 24px;
+        font-weight: 400;
+        width: 200px;
+        height: 50px;
+      }
+      .apply-filtered {
+        background-color: var(--primary-700-main, #004c40);
+        border-radius: 5px;
+        border: 0;
+        color: white;
+        font-size: 24px;
+        font-weight: 400;
+        width: 200px;
+        height: 50px;
+      }
+      .editor {
+        background-color: white;
+        height: 150px;
+        width: 100%;
+        padding-top: 10px;
+        padding-left: 20px;
+        border-radius: 5px;
+        margin-top: 10px;
+        margin-bottom: 30px;
+      }
+    }
   }
 }
 
