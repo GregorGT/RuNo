@@ -2,41 +2,42 @@ import { PlusSquareOutlined } from "@ant-design/icons"
 import { useState } from "react"
 
 const Filter = () => {
-  const [isChecked, setIsChecked] = useState(true)
+  const [isCheckedA, setIsCheckedA] = useState(false)
+  const [isCheckedB, setIsCheckedB] = useState(false)
   return (
     <div className="filter">
       <div className="scope">
         <span>Formula scope:</span>
-        <span>Global [X]</span>
-        <span>Filtered [ ]</span>
+        <span>Global [{}]</span>
+        <span>Filtered [{}]</span>
       </div>
       <div className="filter-content">
         <div className="filters">
           <span className="or">Or</span>
           <div className="flex-1">
             <div className="flex items-center">
-              <input className="modified" disabled value="Date modified => 07/11/2023" />
+              <input className="modified" defaultValue="Date modified => 07/11/2023" />
               <input
                 className="radio-input"
-                checked={isChecked}
-                type="radio"
+                checked={isCheckedA}
+                type="checkbox"
                 value="option1"
-                onChange={() => setIsChecked(true)}
+                onClick={() => setIsCheckedA(!isCheckedA)}
               />
             </div>
             <div className="flex items-center">
-              <input className="modified" disabled value="Date modified => 09/11/2023" />
+              <input className="modified" defaultValue="Date modified => 09/11/2023" />
               <input
                 className="radio-input"
-                checked={!isChecked}
-                type="radio"
+                checked={isCheckedB}
+                type="checkbox"
                 value="option2"
-                onChange={() => setIsChecked(false)}
+                onClick={() => setIsCheckedB(!isCheckedB)}
               />
             </div>
           </div>
         </div>
-        <div className="add-filter">
+        <div className="add-filter cursor-pointer">
           <PlusSquareOutlined className="mx-2" />
           Add filter
         </div>

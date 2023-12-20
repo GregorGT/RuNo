@@ -2,7 +2,8 @@ import { PlusSquareOutlined } from "@ant-design/icons"
 import { useState } from "react"
 
 const Sorting = () => {
-  const [isChecked, setIsChecked] = useState(true)
+  const [isCheckedA, setIsCheckedA] = useState(false)
+  const [isCheckedB, setIsCheckedB] = useState(false)
   return (
     <div className="flex-col">
       <div className="sorting">
@@ -11,10 +12,10 @@ const Sorting = () => {
           <input className="modified" disabled value="Date modified => 07/11/2023" />
           <input
             className="radio-input"
-            checked={isChecked}
-            type="radio"
+            checked={isCheckedA}
+            type="checkbox"
             value="option1"
-            onChange={() => setIsChecked(true)}
+            onClick={() => setIsCheckedA(!isCheckedA)}
           />
         </div>
         <div className="flex items-center">
@@ -22,13 +23,13 @@ const Sorting = () => {
           <input className="modified" disabled value="Date modified" />
           <input
             className="radio-input"
-            checked={!isChecked}
-            type="radio"
+            checked={isCheckedB}
+            type="checkbox"
             value="option2"
-            onChange={() => setIsChecked(false)}
+            onClick={() => setIsCheckedB(!isCheckedB)}
           />
         </div>
-        <div className="add-option">
+        <div className="add-option cursor-pointer">
           <PlusSquareOutlined className="mx-2" />
           Add Option
         </div>
