@@ -4,14 +4,16 @@
   align-items: center;
   justify-content: space-between;
   background: var(--primary-700-main, #004c40);
-  font-size: 18px;
   color: white;
+  font-size: 18px;
+  font-weight: 400;
   width: 100%;
   height: 50px;
   .icons {
     display: flex;
     justify-content: space-between;
     width: 100px;
+    margin-right: 20px;
   }
 }
 
@@ -21,6 +23,7 @@
   background: var(--primary-800, #2a8080);
   height: 80px;
   padding: 10px;
+  font-size: 25px;
   span {
     cursor: pointer;
     padding: 20px;
@@ -29,8 +32,10 @@
 }
 
 .entries {
-  min-width: 50%;
-  font-size: 30px;
+  min-width: 40%;
+  font-size: 40px;
+  border-right: 2px solid var(--black-300);
+  min-height: calc(100vh - 130px);
 
   &-header {
     display: flex;
@@ -45,17 +50,6 @@
       &:checked {
         background-color: black;
       }
-    }
-
-    .add {
-      background-color: #2a8080;
-      color: white;
-      border-radius: 5px;
-      border: 0;
-      width: 200px;
-      height: 50px;
-      font-size: 20px;
-      margin-left: auto;
     }
   }
   .boxes {
@@ -98,12 +92,152 @@
   }
 }
 
-.tab {
-  width: 50%;
+.right-side {
+  flex: 1;
   .top-space {
     width: 100%;
-    height: 92px;
+    height: 102px;
     border-bottom: 1px solid var(--black-300);
+  }
+  .tab-component {
+    padding: 20px;
+    .nav-tabs {
+      border: none;
+    }
+    .buttons {
+      display: flex;
+      padding: 3px;
+      margin-bottom: 20px;
+      .header-button {
+        border: 1px solid var(--black-300);
+        border-radius: 30px;
+        font-size: 25px;
+        margin-right: 20px;
+        padding: 5px 20px 5px 20px;
+        &.active {
+          background-color: var(--primary-700-main, #004c40);
+          color: white;
+        }
+      }
+    }
+    .filter {
+      display: flex;
+      flex-direction: column;
+      .scope {
+        font-size: 30px;
+        font-weight: 400;
+        margin-bottom: 30px;
+        span {
+          margin-right: 20px;
+        }
+      }
+      &-content {
+        display: flex;
+        flex-direction: column;
+        background: var(--black-50, #f9f9f9);
+        padding: 30px;
+        .filters {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          .or {
+            background: white;
+            border-radius: 5px;
+            width: 150px;
+            padding: 10px 11px 10px 11px;
+          }
+        }
+        .add-filter {
+          display: flex;
+          justify-content: center;
+          color: var(--primary-700-main, #004c40);
+          font-weight: 500;
+          margin: 20px;
+        }
+      }
+    }
+    .sorting {
+      display: flex;
+      flex-direction: column;
+      background: var(--black-50, #f9f9f9);
+      padding: 30px;
+      .add-option {
+        display: flex;
+        justify-content: center;
+        color: var(--primary-700-main, #004c40);
+        font-weight: 500;
+        margin: 20px;
+      }
+    }
+
+    .value {
+      display: flex;
+      flex-direction: column;
+      background: var(--black-50, #f9f9f9);
+      padding: 30px;
+
+      .apply-single {
+        background-color: white;
+        border-radius: 5px;
+        border: 0;
+        color: black;
+        font-size: 24px;
+        font-weight: 400;
+        width: 200px;
+        height: 50px;
+      }
+      .apply-filtered {
+        background-color: var(--primary-700-main, #004c40);
+        border-radius: 5px;
+        border: 0;
+        color: white;
+        font-size: 24px;
+        font-weight: 400;
+        width: 200px;
+        height: 50px;
+      }
+      .editor {
+        background-color: white;
+        height: 150px;
+        width: 100%;
+        padding-top: 10px;
+        padding-left: 20px;
+        border-radius: 5px;
+        margin-top: 10px;
+      }
+    }
+    .header-tab {
+      display: flex;
+      flex-direction: column;
+      background: var(--black-50, #f9f9f9);
+      padding: 30px;
+      
+      .code-snippet {
+        display: flex;
+        background: var(--white, #ffffff);
+        border: 1px solid var(--black-200, #ececec);
+        border-radius: 4px;
+        .sidebar {
+          display: flex;
+          flex-direction: column;
+          background: var(--black-100, #f4f4f4);
+          border: 1px solid var(--black-200, #ececec);
+          color: var(--black-400, #bababa);
+          text-align: left;
+          font-size: 20px;
+          font-family: "Inter-SemiBold", sans-serif;
+          padding: 30px;
+        }
+        .code {
+          display: flex;
+          flex-direction: column;
+          padding: 30px;
+          flex: 1;
+          position: relative;
+        }
+      }
+    }
   }
 }
 
