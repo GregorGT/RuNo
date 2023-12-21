@@ -54,6 +54,28 @@
       }
     }
   }
+  .contextContainer {
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    .rightClick {
+      z-index: 12;
+      position: fixed;
+      background: rgb(250, 250, 250);
+      border: 1px solid var(--black-300);
+      border-radius: 5px;
+    }
+    .menuElement {
+      color: #222222;
+      cursor: pointer;
+      padding: 20px;
+      font-size: 20px;
+      &:hover {
+        color: #fff;
+        background: #3f4847;
+      }
+    }
+  }
   .boxes {
     max-height: calc(100vh - 222px);
     overflow-y: scroll;
@@ -133,6 +155,19 @@
         margin-bottom: 30px;
         span {
           margin-right: 20px;
+        }
+        .filter-combobox {
+          width: 100px !important;
+          border: 2px solid var(--black-300);
+          border-radius: 5px;
+          position: relative;
+          .ant-select-selection-item {
+            margin: 0px !important;
+          }
+          .ant-select-arrow {
+            right: 0 !important;
+            margin-right: 0 !important;
+          }
         }
       }
       &-content {
