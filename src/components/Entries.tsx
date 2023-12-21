@@ -1,3 +1,4 @@
+import { Resizable } from 'react-resizable-element'
 import './Components.scss'
 import Boxes from './box'
 
@@ -14,7 +15,7 @@ export default function Entries() {
   ]
 
   return (
-    <div className='entries'>
+    <Resizable direction="right" className='entries'>
       <div className='entries-header'>
         <input type='checkbox' />
         <span>ENTRIES</span>
@@ -25,6 +26,6 @@ export default function Entries() {
         <Boxes name={item.name} date={item.date} />
       )} */}
       </div>
-    </div>
+    </Resizable>
   )
 }
