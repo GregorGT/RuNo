@@ -14,7 +14,7 @@ const Filter = () => {
         <div className="flex items-center mx-3">
           Global
           <input
-            className="radio-input"
+            className="radio-input w-20"
             type="checkbox"
             value="option1"
           />
@@ -22,7 +22,7 @@ const Filter = () => {
         <div className="flex items-center">
           Filtered
           <input
-            className="radio-input"
+            className="radio-input w-20"
             type="checkbox"
             value="option1"
           />
