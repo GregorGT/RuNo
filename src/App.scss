@@ -10,6 +10,26 @@
   input[type=checkbox] {
     accent-color: var(--primary-700-main, #004c40);
   }
+  .ant-select-focused .ant-select-selector,
+  .ant-select-selector:focus,
+  .ant-select-selector:active,
+  .ant-select-open .ant-select-selector {
+    border-color: var(--primary-700-main, #004c40) !important;
+    box-shadow: none !important;
+  }
+  .ant-select-selector:hover {
+    border-color: var(--primary-700-main, #004c40) !important;
+  }
+  .ant-select-selector {
+    border: none !important;
+  }
+
+  .ant-select-open {
+    border-color: var(--primary-700-main, #004c40) !important;
+  }
+  .ant-select-selection-item {
+    font-size: 20px !important;
+  }
 
   .content {
     display: flex;

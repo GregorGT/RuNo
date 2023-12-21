@@ -1,9 +1,12 @@
 import { PlusSquareOutlined } from "@ant-design/icons"
+import { Select } from "antd"
 import { useState } from "react"
 
 const Filter = () => {
   const [isCheckedA, setIsCheckedA] = useState(false)
   const [isCheckedB, setIsCheckedB] = useState(false)
+  // const [option, setOption] = useState('Or')
+
   return (
     <div className="filter">
       <div className="scope">
@@ -13,7 +16,16 @@ const Filter = () => {
       </div>
       <div className="filter-content">
         <div className="filters">
-          <span className="or">Or</span>
+        <Select
+          className="or"
+          defaultValue="Or"
+          style={{ width: 120 }}
+          // onChange={(e) =>setOption(e)}
+          options={[
+            { value: 'or', label: 'OR' },
+            { value: 'and', label: 'AND' },
+          ]}
+         />
           <div className="flex-1">
             <div className="flex items-center">
               <input className="modified" defaultValue="Date modified => 07/11/2023" />

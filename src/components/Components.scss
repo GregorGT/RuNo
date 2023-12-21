@@ -147,8 +147,9 @@
           .or {
             background: white;
             border-radius: 5px;
-            width: 150px;
-            padding: 10px 11px 10px 11px;
+            width: 150px !important;
+            height: 50px;
+            border: none !important;
           }
         }
         .add-filter {
@@ -165,6 +166,14 @@
       flex-direction: column;
       background: var(--black-50, #f9f9f9);
       padding: 30px;
+      &-select {
+        background: white;
+        border-radius: 5px;
+        width: 100px !important;
+        height: 60px;
+        border: none !important;
+        font-size: 20px !important;
+      }
       .add-option {
         display: flex;
         justify-content: center;
