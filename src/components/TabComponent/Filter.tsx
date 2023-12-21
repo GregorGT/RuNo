@@ -5,7 +5,6 @@ import { useState } from "react"
 const Filter = () => {
   const [isCheckedA, setIsCheckedA] = useState(false)
   const [isCheckedB, setIsCheckedB] = useState(false)
-  // const [option, setOption] = useState('Or')
 
   return (
     <div className="filter">
@@ -13,19 +12,49 @@ const Filter = () => {
         <span>Formula scope:</span>
         <div className="flex items-center mx-3">
           Global
-          <input
-            className="radio-input w-20"
-            type="checkbox"
-            value="option1"
-          />
+          <Select
+            showSearch
+            className="filter-combobox mx-3"
+            defaultValue={"Item1"}
+            style={{ width: 200 }}
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              option?.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+            }
+          >
+            <Select.Option aria-label={"item1"} tabIndex={0} value="item1">
+              Item1
+            </Select.Option>
+            <Select.Option aria-label={"item2"} tabIndex={0} value="item2">
+              Item2
+            </Select.Option>
+            <Select.Option aria-label={"item3"} tabIndex={0} value="item3">
+              Item3
+            </Select.Option>
+          </Select>
         </div>
         <div className="flex items-center">
           Filtered
-          <input
-            className="radio-input w-20"
-            type="checkbox"
-            value="option1"
-          />
+          <Select
+            className="filter-combobox mx-3"
+            showSearch
+            defaultValue={"Item1"}
+            style={{ width: 200 }}
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              option?.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+            }
+          >
+            <Select.Option aria-label={"item1"} tabIndex={0} value="item1">
+              Item1
+            </Select.Option>
+            <Select.Option aria-label={"item2"} tabIndex={0} value="item2">
+              Item2
+            </Select.Option>
+            <Select.Option aria-label={"item3"} tabIndex={0} value="item3">
+              Item3
+            </Select.Option>
+          </Select>
         </div>
       </div>
       <div className="filter-content">
