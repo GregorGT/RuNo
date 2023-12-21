@@ -1,5 +1,14 @@
 import "./editor.scss";
 
+import {
+  BoldOutlined,
+  DownOutlined,
+  ItalicOutlined,
+  RedoOutlined,
+  TableOutlined,
+  UnderlineOutlined,
+  UndoOutlined,
+} from "@ant-design/icons";
 import { Color } from "@tiptap/extension-color";
 import FontFamily from "@tiptap/extension-font-family";
 import Highlight from "@tiptap/extension-highlight";
@@ -14,21 +23,10 @@ import StarterKit from "@tiptap/starter-kit";
 import {
   ColorPicker,
   Divider,
-  Dropdown,
   Button as IconButton,
   Select,
   Space,
 } from "antd";
-import { Button } from "react-bootstrap";
-import {
-  BoldOutlined,
-  ItalicOutlined,
-  UnderlineOutlined,
-  UndoOutlined,
-  RedoOutlined,
-  TableOutlined,
-  DownOutlined,
-} from "@ant-design/icons";
 const textStyle = [
   {
     value: "Paragraph",
@@ -230,15 +228,16 @@ const MenuBar = () => {
 
 const extensions = [
   Color.configure({ types: [TextStyle.name, ListItem.name] }),
+  //@ts-ignore
   TextStyle.configure({ types: [ListItem.name] }),
   StarterKit.configure({
     bulletList: {
       keepMarks: true,
-      keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+      keepAttributes: false,
     },
     orderedList: {
       keepMarks: true,
-      keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+      keepAttributes: false,
     },
   }),
   Highlight.configure({ multicolor: true }),
@@ -258,6 +257,7 @@ const content = `
 export default () => {
   return (
     <EditorProvider
+      children={<></>}
       slotBefore={<MenuBar />}
       extensions={extensions}
       content={content}
