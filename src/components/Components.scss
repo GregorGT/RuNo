@@ -126,6 +126,8 @@
       display: flex;
       flex-direction: column;
       .scope {
+        display: flex;
+        align-items: center;
         font-size: 30px;
         font-weight: 400;
         margin-bottom: 30px;

@@ -11,8 +11,22 @@ const Filter = () => {
     <div className="filter">
       <div className="scope">
         <span>Formula scope:</span>
-        <span>Global [{}]</span>
-        <span>Filtered [{}]</span>
+        <div className="flex items-center mx-3">
+          Global
+          <input
+            className="radio-input"
+            type="checkbox"
+            value="option1"
+          />
+        </div>
+        <div className="flex items-center">
+          Filtered
+          <input
+            className="radio-input"
+            type="checkbox"
+            value="option1"
+          />
+        </div>
       </div>
       <div className="filter-content">
         <div className="filters">
