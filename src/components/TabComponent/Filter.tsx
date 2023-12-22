@@ -5,6 +5,7 @@ import { useState } from "react"
 const Filter = () => {
   const [isCheckedA, setIsCheckedA] = useState(false)
   const [isCheckedB, setIsCheckedB] = useState(false)
+  const [isCheckedFormula, setIsCheckedFormula] = useState(true)
 
   return (
     <div className="filter">
@@ -12,49 +13,23 @@ const Filter = () => {
         <span>Formula scope:</span>
         <div className="flex items-center mx-3">
           Global
-          <Select
-            showSearch
-            className="filter-combobox mx-3"
-            defaultValue={"Item1"}
-            style={{ width: 200 }}
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option?.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-            }
-          >
-            <Select.Option aria-label={"item1"} tabIndex={0} value="item1">
-              Item1
-            </Select.Option>
-            <Select.Option aria-label={"item2"} tabIndex={0} value="item2">
-              Item2
-            </Select.Option>
-            <Select.Option aria-label={"item3"} tabIndex={0} value="item3">
-              Item3
-            </Select.Option>
-          </Select>
+          <input
+            className="radio-input"
+            checked={isCheckedFormula}
+            type="checkbox"
+            value="option2"
+            onClick={() => setIsCheckedFormula(true)}
+          />
         </div>
         <div className="flex items-center">
           Filtered
-          <Select
-            className="filter-combobox mx-3"
-            showSearch
-            defaultValue={"Item1"}
-            style={{ width: 200 }}
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option?.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-            }
-          >
-            <Select.Option aria-label={"item1"} tabIndex={0} value="item1">
-              Item1
-            </Select.Option>
-            <Select.Option aria-label={"item2"} tabIndex={0} value="item2">
-              Item2
-            </Select.Option>
-            <Select.Option aria-label={"item3"} tabIndex={0} value="item3">
-              Item3
-            </Select.Option>
-          </Select>
+          <input
+            className="radio-input"
+            checked={!isCheckedFormula}
+            type="checkbox"
+            value="option2"
+            onClick={() => setIsCheckedFormula(false)}
+          />
         </div>
       </div>
       <div className="filter-content">
