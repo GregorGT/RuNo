@@ -11,6 +11,13 @@
   },
   "tauri": {
     "allowlist": {
+      "path": {
+        "all": true
+      },
+      "fs": {
+        "writeFile": true,
+        "scope": ["$DOWNLOAD/*"]
+      },
       "all": false,
       "shell": {
         "all": false,

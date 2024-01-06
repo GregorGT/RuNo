@@ -3,9 +3,11 @@ import "./editor.scss";
 import {
   BoldOutlined,
   DownOutlined,
+  HighlightOutlined,
   ItalicOutlined,
   RedoOutlined,
   TableOutlined,
+  TabletOutlined,
   UnderlineOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
@@ -21,12 +23,18 @@ import TextStyle from "@tiptap/extension-text-style";
 import { EditorProvider, useCurrentEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
+  Button,
   ColorPicker,
   Divider,
   Button as IconButton,
   Select,
   Space,
+  Typography,
 } from "antd";
+import { useAtom } from "jotai";
+import { editorKeys, editorStateAtom } from "../state/editor";
+import { useEffect } from "react";
+import { loadEditorAtom } from "../state/load";
 const textStyle = [
   {
     value: "Paragraph",
@@ -106,8 +114,15 @@ const tableAcions = [
   },
 ];
 
-const MenuBar = () => {
+const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
+  const [loadEditor] = useAtom(loadEditorAtom);
   const { editor } = useCurrentEditor();
+  useEffect(() => {
+    if (loadEditor[editorName] && editor) {
+      editor.commands.setContent(loadEditor[editorName], true);
+    }
+  }, [loadEditor]);
+
   if (!editor) {
     return null;
   }
@@ -121,10 +136,10 @@ const MenuBar = () => {
     >
       <div className="d-flex gap-2">
         <Select
+          style={{ fontSize: 10 }}
           onChange={(value) => {
             const style = textStyle.find((item) => item.value === value);
             if (style) {
-              console.log(style);
               style.onclick(editor);
             }
           }}
@@ -155,6 +170,77 @@ const MenuBar = () => {
           disabled={!editor.can().chain().focus().toggleStrike().run()}
           icon={<UnderlineOutlined size={14} />}
         />
+
+        <Divider type="vertical" />
+
+        <ColorPicker
+          onChangeComplete={(color) => {
+            editor.chain().focus().setColor(color.toHexString()).run();
+          }}
+          defaultValue={"#000"}
+          value={editor.getAttributes("textStyle").color || "#000"}
+          showText={() => <span>Text Color</span>}
+          placement="top"
+          size="small"
+        >
+          <Button
+            color={editor.getAttributes("textStyle").color || "#000"}
+            style={{
+              cursor: "pointer",
+              fontWeight: 600,
+              padding: 0,
+              width: 30,
+              height: 30,
+            }}
+          >
+            A
+          </Button>
+        </ColorPicker>
+
+        <ColorPicker
+          onChangeComplete={(color) => {
+            editor
+              .chain()
+              .focus()
+              .toggleHighlight({ color: color.toHexString() })
+              .run();
+          }}
+          defaultValue={"#fff"}
+          value={editor.getAttributes("highlight").color || "#fff"}
+          showText={() => <span>Background Color</span>}
+        >
+          <IconButton
+            style={{
+              backgroundColor:
+                editor.getAttributes("highlight").color || "#fff",
+            }}
+            icon={<HighlightOutlined size={14} />}
+          ></IconButton>
+        </ColorPicker>
+
+        <Divider type="vertical" />
+        <IconButton
+          icon={<TableOutlined size={14} />}
+          onClick={() =>
+            editor
+              .chain()
+              .focus()
+              .insertTable({ rows: 3, cols: 3, withHeaderRow: false })
+              .run()
+          }
+        ></IconButton>
+        <Select
+          popupMatchSelectWidth={false}
+          onChange={(value) => {
+            const action = tableAcions.find((item) => item.label === value);
+            if (action) {
+              action.onClick(editor);
+            }
+          }}
+          value={""}
+          defaultValue={""}
+          options={tableAcions}
+        ></Select>
         <Divider type="vertical" />
         <IconButton
           icon={<UndoOutlined size={14} />}
@@ -166,61 +252,6 @@ const MenuBar = () => {
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().chain().focus().redo().run()}
         />
-      </div>
-      <div className="d-flex gap-2">
-        <ColorPicker
-          onChange={(color) => {
-            editor.chain().focus().setColor(color.toHexString()).run();
-          }}
-          defaultValue={"#000"}
-          value={editor.getAttributes("textStyle").color || "#000"}
-          showText={() => <span>Text Color</span>}
-        />
-
-        <ColorPicker
-          onChange={(color) => {
-            editor
-              .chain()
-              .focus()
-              .toggleHighlight({ color: color.toHexString() })
-              .run();
-          }}
-          defaultValue={"#fff"}
-          value={editor.getAttributes("highlight").color || "#fff"}
-          showText={() => <span>Background Color</span>}
-        />
-      </div>
-
-      <div className="d-flex gap-2">
-        <IconButton
-          icon={<TableOutlined size={14} />}
-          onClick={() =>
-            editor
-              .chain()
-              .focus()
-              .insertTable({ rows: 3, cols: 3, withHeaderRow: false })
-              .run()
-          }
-        >
-          insertTable
-        </IconButton>
-        <Select
-          style={{ width: 300 }}
-          onChange={(value) => {
-            const action = tableAcions.find((item) => item.label === value);
-            if (action) {
-              action.onClick(editor);
-            }
-          }}
-          value={"Table Actions"}
-          defaultValue={"Table Actions"}
-          options={tableAcions}
-        >
-          <Space>
-            Table Actions
-            <DownOutlined />
-          </Space>
-        </Select>
       </div>
     </div>
   );
@@ -254,13 +285,33 @@ const content = `
 
 `;
 
-export default () => {
+export default function Editor({
+  editorName,
+}: {
+  editorName: keyof typeof editorKeys;
+}) {
+  const [editorState, setEditorState] = useAtom(editorStateAtom);
+
+  useEffect(() => {
+    setEditorState({
+      ...editorState,
+      [editorName]: content,
+    });
+  }, []);
+
   return (
     <EditorProvider
+      onUpdate={({ editor }) => {
+        setEditorState((state) => {
+          return { ...state, [editorName]: editor.getJSON() };
+        });
+      }}
+      editable={true}
       children={<></>}
-      slotBefore={<MenuBar />}
+      slotBefore={<MenuBar editorName={editorName} />}
       extensions={extensions}
-      content={content}
+      content={editorState[editorName]}
+      autofocus="end"
     />
   );
-};
+}
