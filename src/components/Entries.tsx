@@ -1,34 +1,64 @@
+import { useState } from "react";
+import { Resizable } from "react-resizable-element";
 import "./Components.scss";
-import Editor from "./Editor";
-import Boxes from "./box";
 
 export default function Entries() {
-  const boxes = [
-    { name: "Marko", date: "07/11/2023" },
-    { name: "James", date: "08/12/2023" },
-    { name: "Kimura", date: "11/1/2023" },
-    { name: "Ruby", date: "07/09/2022" },
-    { name: "Potter", date: "07/09/2022" },
-    { name: "Stanislau", date: "07/09/2022" },
-    { name: "Ruby", date: "07/09/2022" },
-    { name: "Ruby", date: "07/09/2022" },
-  ];
+  const [context, setContext] = useState(false);
+  const [xyPosition, setxyPosition] = useState({ x: 0, y: 0 });
+
+  const showNav = (event: any) => {
+    event.preventDefault();
+    setContext(false);
+    const positionChange = {
+      x: event.pageX,
+      y: event.pageY,
+    };
+    setxyPosition(positionChange);
+    setContext(true);
+  };
+
+  const hideContext = () => {
+    setContext(false);
+  };
+
+  const [chosen, setChosen] = useState();
+  const initMenu = (chosen: any) => {
+    setChosen(chosen);
+  };
 
   return (
-    <div className="entries">
+    <Resizable direction="right" className="entries">
       <div className="entries-header">
         <input type="checkbox" />
         <span>ENTRIES</span>
         <button className="add-btn">Add an entry</button>
       </div>
       <div
-        className="boxes"
-        style={{
-          width: "50vw",
-        }}
+        className="contextContainer"
+        onContextMenu={(e) => showNav(e)}
+        onClick={() => hideContext()}
       >
-        <Editor />
+        {chosen && <h4>{chosen}</h4>}
+        {context && (
+          <div
+            style={{ top: xyPosition.y, left: xyPosition.x }}
+            className="rightClick"
+          >
+            <div
+              className="menuElement"
+              onClick={() => initMenu("Export table to CVS")}
+            >
+              Export table to CVS
+            </div>
+            <div
+              className="menuElement"
+              onClick={() => initMenu("Import CVS to table")}
+            >
+              Import CVS to table
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </Resizable>
   );
 }

@@ -1,14 +1,25 @@
 import { PlusSquareOutlined } from "@ant-design/icons"
+import { Select } from "antd"
 import { useState } from "react"
 
 const Sorting = () => {
   const [isCheckedA, setIsCheckedA] = useState(false)
   const [isCheckedB, setIsCheckedB] = useState(false)
+  // const [option, setOption] = useState('Up')
   return (
     <div className="flex-col">
       <div className="sorting">
         <div className="flex items-center">
-          <input className="modified w-1 flex-0" disabled value="Up" />
+          <Select
+            className="sorting-select"
+            defaultValue="Up"
+            style={{ width: 120 }}
+            // onChange={(e) =>setOption(e)}
+            options={[
+              { value: 'up', label: 'Up' },
+              { value: 'down', label: 'Down' },
+            ]}
+          />
           <input className="modified" defaultValue="Date modified => 07/11/2023" />
           <input
             className="radio-input"
@@ -19,7 +30,16 @@ const Sorting = () => {
           />
         </div>
         <div className="flex items-center">
-          <input className="modified w-1 flex-0" disabled value="Down" />
+          <Select
+            className="sorting-select"
+            defaultValue="Up"
+            style={{ width: 120 }}
+            // onChange={(e) =>setOption(e)}
+            options={[
+              { value: 'up', label: 'Up' },
+              { value: 'down', label: 'Down' },
+            ]}
+          />
           <input className="modified" defaultValue="Date modified" />
           <input
             className="radio-input"
