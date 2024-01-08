@@ -6,7 +6,6 @@ import Sorting from "./Sorting";
 import Header from "./Header";
 import Value from "./Value";
 import "../Components.scss";
-import Tiptap from "../Editor";
 
 export default function TabComponent() {
   const [activeTab, setActiveTab] = useState("filter");

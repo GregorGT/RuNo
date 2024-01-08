@@ -2,6 +2,7 @@ import "./editor.scss";
 
 import {
   BoldOutlined,
+  CalculatorOutlined,
   DownOutlined,
   HighlightOutlined,
   ItalicOutlined,
@@ -35,6 +36,7 @@ import { useAtom } from "jotai";
 import { editorKeys, editorStateAtom } from "../state/editor";
 import { useEffect } from "react";
 import { loadEditorAtom } from "../state/load";
+import MathComponent from "./CustomRte/math.extension";
 const textStyle = [
   {
     value: "Paragraph",
@@ -220,6 +222,28 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 
         <Divider type="vertical" />
         <IconButton
+          icon={<CalculatorOutlined />}
+          onClick={() => {
+            editor
+              .chain()
+              .insertContent(
+                {
+                  type: "mathComponent",
+                  attrs: {
+                    formula: "20*10",
+                  },
+                },
+                {
+                  parseOptions: {},
+                }
+              )
+              .run();
+          }}
+        />
+
+        <Divider type="vertical" />
+
+        <IconButton
           icon={<TableOutlined size={14} />}
           onClick={() =>
             editor
@@ -279,16 +303,18 @@ const extensions = [
   TableRow,
   TableHeader,
   TableCell,
+  MathComponent,
 ];
 
 const content = `
-
-`;
+<math-component><math-component/>`;
 
 export default function Editor({
   editorName,
+  showToolbar,
 }: {
   editorName: keyof typeof editorKeys;
+  showToolbar: boolean;
 }) {
   const [editorState, setEditorState] = useAtom(editorStateAtom);
 
@@ -308,9 +334,9 @@ export default function Editor({
       }}
       editable={true}
       children={<></>}
-      slotBefore={<MenuBar editorName={editorName} />}
+      slotBefore={showToolbar && <MenuBar editorName={editorName} />}
       extensions={extensions}
-      content={editorState[editorName]}
+      content={editorState[editorName] || content}
       autofocus="end"
     />
   );

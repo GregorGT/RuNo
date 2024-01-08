@@ -61,7 +61,7 @@ export default function Entries() {
             </div>
           )}
         </div> */}
-        <Editor editorName="ENTRIES" />
+        <Editor showToolbar editorName="ENTRIES" />
       </>
     </Resizable>
   );
