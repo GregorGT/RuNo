@@ -6,9 +6,10 @@ import Component from "./math.jsx";
 export default Node.create({
   name: "mathComponent",
 
-  group: "block",
+  group: "inline",
 
   atom: true,
+  inline: true,
 
   addAttributes() {
     return {

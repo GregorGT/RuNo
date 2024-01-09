@@ -39,7 +39,7 @@ export default (props: any) => {
           }}
         />
       </Modal>
-      <NodeViewWrapper className="math-component">
+      <NodeViewWrapper className="math-component d-inline">
         <span
           onClick={askFormula}
           style={{

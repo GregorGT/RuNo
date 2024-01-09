@@ -136,7 +136,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         margin: "20px",
       }}
     >
-      <div className="d-flex gap-2">
+      <div className="d-flex gap-2  ">
         <Select
           style={{ fontSize: 10 }}
           onChange={(value) => {
@@ -326,18 +326,20 @@ export default function Editor({
   }, []);
 
   return (
-    <EditorProvider
-      onUpdate={({ editor }) => {
-        setEditorState((state) => {
-          return { ...state, [editorName]: editor.getJSON() };
-        });
-      }}
-      editable={true}
-      children={<></>}
-      slotBefore={showToolbar && <MenuBar editorName={editorName} />}
-      extensions={extensions}
-      content={editorState[editorName] || content}
-      autofocus="end"
-    />
+    <div className="">
+      <EditorProvider
+        onUpdate={({ editor }) => {
+          setEditorState((state) => {
+            return { ...state, [editorName]: editor.getJSON() };
+          });
+        }}
+        editable={true}
+        children={<></>}
+        slotBefore={showToolbar && <MenuBar editorName={editorName} />}
+        extensions={extensions}
+        content={editorState[editorName] || content}
+        autofocus="end"
+      />
+    </div>
   );
 }
