@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri dev"
+    "tauri": "tauri"
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
