@@ -21,7 +21,7 @@ const Header = () => {
   ];
   return (
     <div className="header-tab">
-      <Editor showToolbar={false} editorName="HEADER" />
+      <Editor height={300} showToolbar={false} editorName="HEADER" />
       <button className="add-btn mt-3">Apply</button>
     </div>
   );
