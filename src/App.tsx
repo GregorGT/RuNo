@@ -3,18 +3,19 @@ import Dropdowns from "./components/Dropdowns";
 import Entries from "./components/Entries";
 import TabComponent from "./components/TabComponent";
 import "./App.scss";
+import { ConfigProvider } from "antd";
 
 function App() {
-    return (
-        <div className="home">
-            <Header />
-            <Dropdowns />
-            <div className="content">
-                <Entries />
-                <TabComponent />
-            </div>
-        </div>
-    );
+  return (
+    <div className="home">
+      <Header />
+      <Dropdowns />
+      <div className="content">
+        <Entries />
+        <TabComponent />
+      </div>
+    </div>
+  );
 }
 
 export default App;

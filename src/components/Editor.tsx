@@ -2,6 +2,7 @@ import "./editor.scss";
 
 import {
   BoldOutlined,
+  CalculatorOutlined,
   DownOutlined,
   HighlightOutlined,
   ItalicOutlined,
@@ -35,6 +36,7 @@ import { useAtom } from "jotai";
 import { editorKeys, editorStateAtom } from "../state/editor";
 import { useEffect } from "react";
 import { loadEditorAtom } from "../state/load";
+import MathComponent from "./CustomRte/math.extension";
 const textStyle = [
   {
     value: "Paragraph",
@@ -134,7 +136,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         margin: "20px",
       }}
     >
-      <div className="d-flex gap-2">
+      <div className="d-flex gap-2  ">
         <Select
           style={{ fontSize: 10 }}
           onChange={(value) => {
@@ -220,6 +222,28 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 
         <Divider type="vertical" />
         <IconButton
+          icon={<CalculatorOutlined />}
+          onClick={() => {
+            editor
+              .chain()
+              .insertContent(
+                {
+                  type: "mathComponent",
+                  attrs: {
+                    formula: "20*10",
+                  },
+                },
+                {
+                  parseOptions: {},
+                }
+              )
+              .run();
+          }}
+        />
+
+        <Divider type="vertical" />
+
+        <IconButton
           icon={<TableOutlined size={14} />}
           onClick={() =>
             editor
@@ -279,16 +303,20 @@ const extensions = [
   TableRow,
   TableHeader,
   TableCell,
+  MathComponent,
 ];
 
 const content = `
-
-`;
+<math-component><math-component/>`;
 
 export default function Editor({
   editorName,
+  showToolbar,
+  height,
 }: {
   editorName: keyof typeof editorKeys;
+  showToolbar: boolean;
+  height: number;
 }) {
   const [editorState, setEditorState] = useAtom(editorStateAtom);
 
@@ -300,18 +328,25 @@ export default function Editor({
   }, []);
 
   return (
-    <EditorProvider
-      onUpdate={({ editor }) => {
-        setEditorState((state) => {
-          return { ...state, [editorName]: editor.getJSON() };
-        });
-      }}
-      editable={true}
-      children={<></>}
-      slotBefore={<MenuBar editorName={editorName} />}
-      extensions={extensions}
-      content={editorState[editorName]}
-      autofocus="end"
-    />
+    <div>
+      <EditorProvider
+        onUpdate={({ editor }) => {
+          setEditorState((state) => {
+            return { ...state, [editorName]: editor.getJSON() };
+          });
+        }}
+        editorProps={{
+          attributes: {
+            style: `max-height:${height}px`,
+          },
+        }}
+        editable={true}
+        children={<></>}
+        slotBefore={showToolbar && <MenuBar editorName={editorName} />}
+        extensions={extensions}
+        content={editorState[editorName] || content}
+        autofocus="end"
+      />
+    </div>
   );
 }

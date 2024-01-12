@@ -1,5 +1,5 @@
 import type { MenuProps } from "antd";
-import { Dropdown } from "antd";
+import { Dropdown, notification } from "antd";
 import "./Components.scss";
 import { useAtom } from "jotai/react";
 import { editorStateAtom } from "../state/editor";
@@ -30,8 +30,17 @@ export default function Dropdowns() {
     { key: 3, label: "Contact" },
   ];
 
+  const [api, contextHolder] = notification.useNotification();
+  const showNotificaiton = (message: string) => {
+    api.info({
+      message: message,
+      placement: "topRight",
+    });
+  };
+
   return (
     <div className="dropdowns">
+      {contextHolder}
       <Dropdown
         menu={{
           items: fileItems,
@@ -41,6 +50,7 @@ export default function Dropdowns() {
                 path: `${await downloadDir()}/export-${new Date().getTime()}.json`,
                 contents: JSON.stringify(editorState),
               });
+              showNotificaiton("File Saved");
             }
             if (e.key === "1") {
               // Open File Picker
@@ -55,6 +65,7 @@ export default function Dropdowns() {
                 reader.onload = () => {
                   loadEditor(JSON.parse(reader.result as string));
                   setState(JSON.parse(reader.result as string));
+                  showNotificaiton("File Loaded");
                 };
               };
               input.click();
