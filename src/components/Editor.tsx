@@ -312,9 +312,11 @@ const content = `
 export default function Editor({
   editorName,
   showToolbar,
+  height,
 }: {
   editorName: keyof typeof editorKeys;
   showToolbar: boolean;
+  height: number;
 }) {
   const [editorState, setEditorState] = useAtom(editorStateAtom);
 
@@ -326,12 +328,17 @@ export default function Editor({
   }, []);
 
   return (
-    <div className="">
+    <div>
       <EditorProvider
         onUpdate={({ editor }) => {
           setEditorState((state) => {
             return { ...state, [editorName]: editor.getJSON() };
           });
+        }}
+        editorProps={{
+          attributes: {
+            style: `max-height:${height}px`,
+          },
         }}
         editable={true}
         children={<></>}
