@@ -16,6 +16,9 @@ export default Node.create({
       formula: {
         default: "10*10",
       },
+      id: {
+        default: "",
+      },
     };
   },
 

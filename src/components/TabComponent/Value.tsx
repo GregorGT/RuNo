@@ -1,16 +1,23 @@
+import { useAtom } from "jotai";
 import Editor from "../Editor";
+import { convertStringToFormula, formula, value } from "../../state/formula";
 
 const Value = () => {
+  const [selectedFormula, setSelectedFormula] = useAtom(formula);
+  const [selectedValue] = useAtom(value);
+
   return (
     <div className="value">
       <div>Formula</div>
-      <Editor height={100} showToolbar={false} editorName="VALUE_FORMULA" />
+      <textarea
+        className="p-1"
+        value={selectedFormula}
+        onChange={(e) => {
+          setSelectedFormula(e.target.value);
+        }}
+      />
       <div>Value</div>
-      <Editor height={100} showToolbar={false} editorName="VALUE" />
-      <div className="flex justify-between">
-        <button className="apply-filtered mt-3">Apply single</button>
-        <button className="apply-filtered mt-3">Apply filtered</button>
-      </div>
+      <textarea className="p-1" value={selectedValue} disabled />
     </div>
   );
 };

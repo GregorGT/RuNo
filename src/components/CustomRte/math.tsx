@@ -1,46 +1,48 @@
 import { dialog } from "@tauri-apps/api";
-import { NodeViewWrapper } from "@tiptap/react";
+import { NodeViewWrapper, useCurrentEditor } from "@tiptap/react";
 import React, { useEffect, useState } from "react";
 //@ts-ignore
 import math from "mathjs-expression-parser";
 import { Input, Modal } from "antd";
+import { nanoid } from "nanoid";
+import { useAtom, useAtomValue } from "jotai";
+import {
+  convertStringToFormula,
+  formula,
+  formulaId,
+  value,
+} from "../../state/formula";
 
 export default (props: any) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formula, setFormula] = useState(props.node.attrs.formula);
+  const currentId = props.node.attrs.id;
+  const [localFormula, setFormula] = useState<string | undefined>();
+  const [localValue, setValue] = useState<string | undefined>();
 
+  const [globalFormula, setGlobalFormula] = useAtom(formula);
+  const [globalValue, setGlobalValue] = useAtom(value);
+  const [globalFormulaId, setGlobalFormulaId] = useAtom(formulaId);
+
+  const { editor } = useCurrentEditor();
   useEffect(() => {
-    setFormula(props.node.attrs.formula);
-  }, [props.node.attrs.formula]);
+    if (currentId !== globalFormulaId) return;
+    if (!globalFormula) return;
+    setFormula(globalFormula);
+    setValue(globalValue);
+    if (globalFormula) {
+      editor?.commands.setSearchTerm(convertStringToFormula(globalFormula));
+    }
+  }, [globalFormula, globalValue]);
 
-  const askFormula = () => {
-    setIsModalOpen(true);
+  const askFormula = async () => {
+    setGlobalFormulaId(props.node.attrs.id);
+    setGlobalFormula(localFormula);
+    setGlobalValue(localValue);
   };
 
   return (
     <>
-      <Modal
-        title="Enter Math Formula"
-        open={isModalOpen}
-        onOk={() => {
-          props.updateAttributes({
-            formula,
-          });
-          setIsModalOpen(false);
-        }}
-        onCancel={() => {
-          setIsModalOpen(false);
-        }}
-      >
-        <Input
-          value={formula}
-          onChange={(e) => {
-            setFormula(e.target.value);
-          }}
-        />
-      </Modal>
       <NodeViewWrapper className="math-component d-inline">
-        <span
+        <button
           onClick={askFormula}
           style={{
             backgroundColor: "gray",
@@ -49,10 +51,8 @@ export default (props: any) => {
           }}
           className="label"
         >
-          &nbsp;
-          {math.eval(props.node.attrs?.formula || "0")}
-          &nbsp;
-        </span>
+          {localFormula || localFormula?.trim() === "" ? localFormula : "NULL"}
+        </button>
       </NodeViewWrapper>
     </>
   );
