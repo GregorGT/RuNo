@@ -28,14 +28,16 @@ import {
   Button as IconButton,
   Select,
 } from "antd";
-import { useAtom } from "jotai";
-import { useEffect } from "react";
+import { useAtom, useAtomValue } from "jotai";
+import { useEffect, useState } from "react";
 import { editorKeys, editorStateAtom } from "../../state/editor";
 import { loadEditorAtom } from "../../state/load";
 import MathComponent from "../CustomRte/math.extension";
 import SearchAndReplace from "../CustomRte/search";
 import { tableAcions, textStyle } from "./const";
 import { nanoid } from "nanoid";
+import { useDebounce } from "react-use";
+import { formulaAtom, selectedFormulaIdStore } from "../../state/formula";
 
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const [loadEditor] = useAtom(loadEditorAtom);
@@ -245,18 +247,33 @@ export default function Editor({
   height: number;
 }) {
   const [editorState, setEditorState] = useAtom(editorStateAtom);
-
+  const [localEditorState, setLocalEditorState] = useState<string>();
   useEffect(() => {
     setEditorState({
       ...editorState,
       [editorName]: content,
     });
   }, []);
+  const allFormula = useAtomValue(formulaAtom);
+  useDebounce(
+    () => {
+      const currentlySelctedId = selectedFormulaIdStore.getState();
+      for (const formula of allFormula) {
+        selectedFormulaIdStore.setState(formula.id);
+        const editor = useCurrentEditor().editor;
+      }
+
+      //set all search query here to calculate outcome
+    },
+    1000,
+    [localEditorState]
+  );
 
   return (
     <div>
       <EditorProvider
         onUpdate={({ editor }) => {
+          setLocalEditorState(editor.getHTML());
           setEditorState((state) => {
             return { ...state, [editorName]: editor.getJSON() };
           });

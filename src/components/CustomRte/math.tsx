@@ -1,57 +1,60 @@
-import { dialog } from "@tauri-apps/api";
 import { NodeViewWrapper, useCurrentEditor } from "@tiptap/react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 //@ts-ignore
-import math from "mathjs-expression-parser";
-import { Input, Modal } from "antd";
-import { nanoid } from "nanoid";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom } from "jotai";
 import {
   convertStringToFormula,
-  formula,
-  formulaId,
-  value,
+  formulaAtom,
+  selectedFormulaIdAtom,
 } from "../../state/formula";
 
 export default (props: any) => {
   const currentId = props.node.attrs.id;
-  const [localFormula, setFormula] = useState<string | undefined>();
-  const [localValue, setValue] = useState<string | undefined>();
+  const [localFormula, setFormula] = useState<string | undefined>("");
+  const [localValue, setValue] = useState<string | string[] | undefined>("");
 
-  const [globalFormula, setGlobalFormula] = useAtom(formula);
-  const [globalValue, setGlobalValue] = useAtom(value);
-  const [globalFormulaId, setGlobalFormulaId] = useAtom(formulaId);
+  const [allFormula, setAllForumula] = useAtom(formulaAtom);
+  const [selectedFormulaId, setSelectedFormula] = useAtom(
+    selectedFormulaIdAtom
+  );
 
   const { editor } = useCurrentEditor();
   useEffect(() => {
-    if (currentId !== globalFormulaId) return;
-    if (!globalFormula) return;
-    setFormula(globalFormula);
-    setValue(globalValue);
-    if (globalFormula) {
-      editor?.commands.setSearchTerm(convertStringToFormula(globalFormula));
-    }
-  }, [globalFormula, globalValue]);
+    if (currentId !== selectedFormulaId) return;
+    console.log("currentId", currentId);
+    console.log("allFormula", allFormula);
+    const selectedFormula = allFormula?.find((f) => f.id === currentId);
+    if (!selectedFormula) return;
+    props.node.attrs.formula = selectedFormula?.textFormula;
+    setValue(selectedFormula?.value);
+    const data = editor?.commands.setSearchTerm(
+      convertStringToFormula(selectedFormula?.textFormula)
+    );
+    if (!data?.findings) return;
+  }, [selectedFormulaId, allFormula]);
 
   const askFormula = async () => {
-    setGlobalFormulaId(props.node.attrs.id);
-    setGlobalFormula(localFormula);
-    setGlobalValue(localValue);
+    const selectedId = props.node.attrs.id;
+    setSelectedFormula(selectedId);
+    return;
   };
 
+  console.log(localFormula);
   return (
     <>
       <NodeViewWrapper className="math-component d-inline">
         <button
           onClick={askFormula}
           style={{
-            backgroundColor: "gray",
+            backgroundColor: currentId !== selectedFormulaId ? "gray" : "green",
             fontFamily: "monospace",
             color: "white",
           }}
           className="label"
         >
-          {localFormula || localFormula?.trim() === "" ? localFormula : "NULL"}
+          {localValue || localValue?.trim() !== "" || localValue.length !== 0
+            ? localValue
+            : "NULL"}
         </button>
       </NodeViewWrapper>
     </>

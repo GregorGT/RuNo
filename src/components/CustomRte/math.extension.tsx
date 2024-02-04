@@ -10,12 +10,12 @@ export default Node.create({
 
   atom: true,
   inline: true,
+  renderText(props) {
+    return "Some Text";
+  },
 
   addAttributes() {
     return {
-      formula: {
-        default: "10*10",
-      },
       id: {
         default: "",
       },

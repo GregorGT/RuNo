@@ -36,6 +36,7 @@
     "react-dom": "^18.2.0",
     "react-resizable-element": "^0.1.5",
     "react-router-dom": "^6.19.0",
+    "react-use": "^17.5.0",
     "sass": "^1.69.5",
     "zustand": "^4.5.0"
   },
