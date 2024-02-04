@@ -42,6 +42,7 @@ const Value = () => {
         id: selectedFormulaId,
         textFormula: "",
         value: "",
+        result: "",
       };
       setAllForumula((old) => [...old, newFormula]);
     } else {
@@ -51,6 +52,7 @@ const Value = () => {
             return {
               ...f,
               textFormula: e.target.value || "",
+              result: "",
             };
           }
           return f;

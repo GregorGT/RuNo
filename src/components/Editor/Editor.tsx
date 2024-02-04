@@ -205,18 +205,13 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 };
 
 const extensions = [
-  Color.configure({ types: [TextStyle.name, ListItem.name] }),
+  Color.configure({ types: [TextStyle.name] }),
   //@ts-ignore
-  TextStyle.configure({ types: [ListItem.name] }),
+  TextStyle.configure(),
   StarterKit.configure({
-    bulletList: {
-      keepMarks: true,
-      keepAttributes: false,
-    },
-    orderedList: {
-      keepMarks: true,
-      keepAttributes: false,
-    },
+    bulletList: false,
+    listItem: false,
+    orderedList: false,
   }),
   Highlight.configure({ multicolor: true }),
   FontFamily,

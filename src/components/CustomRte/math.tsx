@@ -7,33 +7,52 @@ import {
   formulaAtom,
   selectedFormulaIdAtom,
 } from "../../state/formula";
+import { useDebounce } from "react-use";
 
 export default (props: any) => {
   const currentId = props.node.attrs.id;
-  const [localFormula, setFormula] = useState<string | undefined>("");
   const [localValue, setValue] = useState<string | string[] | undefined>("");
 
   const [allFormula, setAllForumula] = useAtom(formulaAtom);
   const [selectedFormulaId, setSelectedFormula] = useAtom(
     selectedFormulaIdAtom
   );
-
-  useEffect(() => {
-    console.log(allFormula);
-    console.log(selectedFormulaId);
-  }, [allFormula, selectedFormulaId]);
-
   const { editor } = useCurrentEditor();
+
+  // useDebounce(
+  //   () => {
+  //     const selectedFormula = allFormula?.find((f) => f.id === currentId);
+  //     if (!selectedFormula || currentId === selectedFormulaId) return;
+  //     console.log(selectedFormula);
+  //     const formula = convertStringToFormula(selectedFormula?.textFormula);
+  //     const data = editor?.commands.setSearchTerm(formula.text, currentId);
+  //   },
+  //   1500,
+  //   [editor?.state.doc.content.size]
+  // );
+
   useEffect(() => {
     if (currentId !== selectedFormulaId) return;
     const selectedFormula = allFormula?.find((f) => f.id === currentId);
     if (!selectedFormula) return;
     props.node.attrs.formula = selectedFormula?.textFormula;
     setValue(selectedFormula?.value);
-    const data = editor?.commands.setSearchTerm(
-      convertStringToFormula(selectedFormula?.textFormula)
-    );
-    if (!data?.findings) return;
+    const formula = convertStringToFormula(selectedFormula?.textFormula);
+    const data = editor?.commands.setSearchTerm(formula.text, currentId);
+    return;
+    if (data?.findings) {
+      setAllForumula((old) =>
+        old.map((f) => {
+          if (f.id === currentId) {
+            return {
+              ...f,
+              result: formula.fn(data.findings),
+            };
+          }
+          return f;
+        })
+      );
+    }
   }, [selectedFormulaId, allFormula]);
 
   const askFormula = async () => {
@@ -42,22 +61,25 @@ export default (props: any) => {
     return;
   };
 
-  console.log(localFormula);
   return (
     <>
       <NodeViewWrapper as={"div"} className="math-component d-inline">
         <button
           onClick={askFormula}
           style={{
-            backgroundColor: currentId !== selectedFormulaId ? "gray" : "green",
+            borderColor: currentId !== selectedFormulaId ? "gray" : "green",
+            borderWidth: "1px",
+            color: currentId !== selectedFormulaId ? "black" : "blue",
+            background: "transparent",
             fontFamily: "monospace",
-            color: "white",
             marginLeft: "5px",
             marginRight: "5px",
           }}
           className="label"
         >
-          {localValue || localValue?.trim() !== "" || localValue.length !== 0
+          {Array.isArray(localValue)
+            ? localValue.join(",")
+            : localValue?.length !== 0
             ? localValue
             : "NULL"}
         </button>

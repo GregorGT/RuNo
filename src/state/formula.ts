@@ -5,16 +5,50 @@ import { atomWithStore } from "jotai-zustand";
 import { createStore } from "zustand/vanilla";
 
 export const convertStringToFormula = (str: string) => {
-  if (str.includes("{NUMBER}")) {
-    return str.replace("{NUMBER}", "([0-9]+)");
+  let fn = (str: string | string[]): number | string => {
+    if (typeof str === "string") {
+      return str;
+    }
+    return str.join(",");
+  };
+  let finalStr = str;
+
+  try {
+    if (finalStr.startsWith("SUM(")) {
+      finalStr = finalStr.slice(0, 4);
+      finalStr = finalStr.slice(0, -1);
+      fn = (str) => {
+        if (typeof str === "string") {
+          return str
+            .split(",")
+            .map((s) => parseInt(s))
+            .reduce((a, b) => a + b);
+        } else {
+          return str.map((s) => parseInt(s)).reduce((a, b) => a + b);
+        }
+      };
+    }
+
+    if (finalStr.includes("{NUMBER}")) {
+      finalStr = finalStr.replace("{NUMBER}", "([0-9]+)");
+    }
+    if (finalStr.includes("{TEXT}")) {
+      finalStr = finalStr.replace("{TEXT}", "([a-zA-Z]+)");
+    }
+    if (finalStr.includes("{DATE}")) {
+      finalStr = finalStr.replace("{DATE}", "((?:[0-9]+(?:-|/)){2}[0-9]+)");
+    }
+    return { text: finalStr, fn };
+  } catch {
+    return { text: finalStr, fn };
   }
-  return str;
 };
 
 type allStoredFormulas = {
   id: string;
   textFormula: string;
-  value: string | string[];
+  value: string | string[]; // which we find from the text
+  result: string | string[] | number; // which we apply formula to
 };
 
 export const formulaStore = createStore<allStoredFormulas[]>(() => []);

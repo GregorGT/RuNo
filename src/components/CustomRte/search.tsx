@@ -19,7 +19,10 @@ declare module "@tiptap/core" {
       /**
        * @description Set search term in extension.
        */
-      setSearchTerm: (searchTerm: string) => {
+      setSearchTerm: (
+        searchTerm: string,
+        id: string
+      ) => {
         find: boolean;
         findings: string[];
       };
@@ -182,75 +185,6 @@ function processSearches(
   };
 }
 
-const replace = (
-  replaceTerm: string,
-  results: Range[],
-  { state, dispatch }: { state: EditorState; dispatch: Dispatch }
-) => {
-  const firstResult = results[0];
-
-  if (!firstResult) return;
-
-  const { from, to } = results[0];
-
-  if (dispatch) dispatch(state.tr.insertText(replaceTerm, from, to));
-};
-
-const rebaseNextResult = (
-  replaceTerm: string,
-  index: number,
-  lastOffset: number,
-  results: Range[]
-): [number, Range[]] | null => {
-  const nextIndex = index + 1;
-
-  if (!results[nextIndex]) return null;
-
-  const { from: currentFrom, to: currentTo } = results[index];
-
-  const offset = currentTo - currentFrom - replaceTerm.length + lastOffset;
-
-  const { from, to } = results[nextIndex];
-
-  results[nextIndex] = {
-    to: to - offset,
-    from: from - offset,
-  };
-
-  return [offset, results];
-};
-
-const replaceAll = (
-  replaceTerm: string,
-  results: Range[],
-  { tr, dispatch }: { tr: Transaction; dispatch: Dispatch }
-) => {
-  let offset = 0;
-
-  let resultsCopy = results.slice();
-
-  if (!resultsCopy.length) return;
-
-  for (let i = 0; i < resultsCopy.length; i += 1) {
-    const { from, to } = resultsCopy[i];
-
-    tr.insertText(replaceTerm, from, to);
-
-    const rebaseNextResultResponse = rebaseNextResult(
-      replaceTerm,
-      i,
-      offset,
-      resultsCopy
-    );
-
-    if (!rebaseNextResultResponse) continue;
-
-    offset = rebaseNextResultResponse[0];
-    resultsCopy = rebaseNextResultResponse[1];
-  }
-  if (dispatch) dispatch(tr);
-};
-
 export const searchAndReplacePluginKey = new PluginKey(
   "searchAndReplacePlugin"
 );
@@ -294,16 +228,17 @@ export const SearchAndReplace = Extension.create<
       lastCaseSensitive: false,
       resultIndex: 0,
       lastResultIndex: 0,
+      selectedId: "",
     };
   },
 
   addCommands() {
     return {
       setSearchTerm:
-        (searchTerm: string) =>
+        (searchTerm: string, id: string) =>
         ({ editor }) => {
           editor.storage.searchAndReplace.searchTerm = searchTerm;
-
+          editor.storage.searchAndReplace.selectedId = id;
           // const { setState, getState } = selectedDataStore;
           // const currentState = getState;
           // const { getState: formulaState } = formulaIdStore;
@@ -320,10 +255,13 @@ export const SearchAndReplace = Extension.create<
           //     allFindings = listAllData[formulaId] as unknown as string[];
           //   } catch {}
           // }
+          const values = formulaStore
+            .getState()
+            .find((e) => e.id === selectedFormulaIdStore.getState())?.value;
 
           return {
             find: true,
-            findings: [],
+            findings: values,
           };
         },
       setReplaceTerm:
@@ -344,54 +282,6 @@ export const SearchAndReplace = Extension.create<
         () =>
         ({ editor }) => {
           editor.storage.searchAndReplace.resultIndex = 0;
-
-          return false;
-        },
-      nextSearchResult:
-        () =>
-        ({ editor }) => {
-          const { results, resultIndex } = editor.storage.searchAndReplace;
-
-          const nextIndex = resultIndex + 1;
-
-          if (results[nextIndex]) {
-            editor.storage.searchAndReplace.resultIndex = nextIndex;
-          } else {
-            editor.storage.searchAndReplace.resultIndex = 0;
-          }
-
-          return false;
-        },
-      previousSearchResult:
-        () =>
-        ({ editor }) => {
-          const { results, resultIndex } = editor.storage.searchAndReplace;
-
-          const prevIndex = resultIndex - 1;
-
-          if (results[prevIndex]) {
-            editor.storage.searchAndReplace.resultIndex = prevIndex;
-          } else {
-            editor.storage.searchAndReplace.resultIndex = results.length - 1;
-          }
-
-          return false;
-        },
-      replace:
-        () =>
-        ({ editor, state, dispatch }) => {
-          const { replaceTerm, results } = editor.storage.searchAndReplace;
-
-          replace(replaceTerm, results, { state, dispatch });
-
-          return false;
-        },
-      replaceAll:
-        () =>
-        ({ editor, tr, dispatch }) => {
-          const { replaceTerm, results } = editor.storage.searchAndReplace;
-
-          replaceAll(replaceTerm, results, { tr, dispatch });
 
           return false;
         },
@@ -422,6 +312,7 @@ export const SearchAndReplace = Extension.create<
               lastCaseSensitive,
               resultIndex,
               lastResultIndex,
+              selectedId,
             } = editor.storage.searchAndReplace;
 
             if (
@@ -448,8 +339,8 @@ export const SearchAndReplace = Extension.create<
               resultIndex
             );
             const { getState, setState } = formulaStore;
-            const currentSelectedId = selectedFormulaIdStore;
-            const currentId = currentSelectedId.getState();
+            const currentSelectedId = selectedId;
+            const currentId = currentSelectedId;
             const listAllData = getState();
             const newData = listAllData.map((f) => {
               if (f.id === currentId) {
