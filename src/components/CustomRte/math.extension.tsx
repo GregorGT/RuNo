@@ -10,13 +10,13 @@ export default Node.create({
 
   atom: true,
   inline: true,
-  renderText(props) {
-    return "Some Text";
-  },
 
   addAttributes() {
     return {
       id: {
+        default: "",
+      },
+      formula: {
         default: "",
       },
     };

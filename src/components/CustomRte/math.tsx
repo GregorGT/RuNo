@@ -18,11 +18,14 @@ export default (props: any) => {
     selectedFormulaIdAtom
   );
 
+  useEffect(() => {
+    console.log(allFormula);
+    console.log(selectedFormulaId);
+  }, [allFormula, selectedFormulaId]);
+
   const { editor } = useCurrentEditor();
   useEffect(() => {
     if (currentId !== selectedFormulaId) return;
-    console.log("currentId", currentId);
-    console.log("allFormula", allFormula);
     const selectedFormula = allFormula?.find((f) => f.id === currentId);
     if (!selectedFormula) return;
     props.node.attrs.formula = selectedFormula?.textFormula;
@@ -42,13 +45,15 @@ export default (props: any) => {
   console.log(localFormula);
   return (
     <>
-      <NodeViewWrapper className="math-component d-inline">
+      <NodeViewWrapper as={"div"} className="math-component d-inline">
         <button
           onClick={askFormula}
           style={{
             backgroundColor: currentId !== selectedFormulaId ? "gray" : "green",
             fontFamily: "monospace",
             color: "white",
+            marginLeft: "5px",
+            marginRight: "5px",
           }}
           className="label"
         >

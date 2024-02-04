@@ -7,6 +7,11 @@ import {
   type Transaction,
 } from "@tiptap/pm/state";
 import { Node as PMNode } from "@tiptap/pm/model";
+import {
+  formulaAtom,
+  formulaStore,
+  selectedFormulaIdStore,
+} from "../../state/formula";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -14,7 +19,10 @@ declare module "@tiptap/core" {
       /**
        * @description Set search term in extension.
        */
-      setSearchTerm: (searchTerm: string) => ReturnType;
+      setSearchTerm: (searchTerm: string) => {
+        find: boolean;
+        findings: string[];
+      };
       /**
        * @description Set replace term in extension.
        */
@@ -94,10 +102,22 @@ function processSearches(
   }
 
   doc?.descendants((node, pos) => {
-    if (node.isText) {
+    const isSelectedNode = selectedFormulaIdStore.getState() === node.attrs.id;
+    const isValidMathNode =
+      node.type.name === "mathComponent" && !isSelectedNode;
+    if (node.isText || isValidMathNode) {
       if (textNodesWithPosition[index]) {
+        let value = formulaStore
+          .getState()
+          .find((e) => e.id === node.attrs.id)?.value;
+
+        if (Array.isArray(value)) {
+          value = value.join(",");
+        }
+        console.log(textNodesWithPosition[index].text + (node.text ?? value));
+
         textNodesWithPosition[index] = {
-          text: textNodesWithPosition[index].text + node.text,
+          text: textNodesWithPosition[index].text + (node.text ?? value),
           pos: textNodesWithPosition[index].pos,
         };
       } else {
@@ -284,7 +304,27 @@ export const SearchAndReplace = Extension.create<
         ({ editor }) => {
           editor.storage.searchAndReplace.searchTerm = searchTerm;
 
-          return false;
+          // const { setState, getState } = selectedDataStore;
+          // const currentState = getState;
+          // const { getState: formulaState } = formulaIdStore;
+
+          // const listAllData = currentState();
+          // const formulaId = formulaState();
+          // let allFindings: string[] = [];
+          // if (
+          //   formulaId &&
+          //   listAllData &&
+          //   listAllData?.hasOwnProperty(formulaId)
+          // ) {
+          //   try {
+          //     allFindings = listAllData[formulaId] as unknown as string[];
+          //   } catch {}
+          // }
+
+          return {
+            find: true,
+            findings: [],
+          };
         },
       setReplaceTerm:
         (replaceTerm: string) =>
@@ -401,12 +441,27 @@ export const SearchAndReplace = Extension.create<
               return DecorationSet.empty;
             }
 
-            const { decorationsToReturn, results } = processSearches(
+            const { decorationsToReturn, results, finalData } = processSearches(
               doc,
               getRegex(searchTerm, disableRegex, caseSensitive),
               searchResultClass,
               resultIndex
             );
+            const { getState, setState } = formulaStore;
+            const currentSelectedId = selectedFormulaIdStore;
+            const currentId = currentSelectedId.getState();
+            const listAllData = getState();
+            const newData = listAllData.map((f) => {
+              if (f.id === currentId) {
+                return {
+                  ...f,
+                  value: finalData,
+                };
+              }
+              return f;
+            });
+
+            setState([...newData], true);
 
             editor.storage.searchAndReplace.results = results;
 

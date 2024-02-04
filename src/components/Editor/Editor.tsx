@@ -255,19 +255,19 @@ export default function Editor({
     });
   }, []);
   const allFormula = useAtomValue(formulaAtom);
-  useDebounce(
-    () => {
-      const currentlySelctedId = selectedFormulaIdStore.getState();
-      for (const formula of allFormula) {
-        selectedFormulaIdStore.setState(formula.id);
-        const editor = useCurrentEditor().editor;
-      }
+  // useDebounce(
+  //   () => {
+  //     const currentlySelctedId = selectedFormulaIdStore.getState();
+  //     for (const formula of allFormula) {
+  //       selectedFormulaIdStore.setState(formula.id);
+  //       const editor = useCurrentEditor().editor;
+  //     }
 
-      //set all search query here to calculate outcome
-    },
-    1000,
-    [localEditorState]
-  );
+  //     //set all search query here to calculate outcome
+  //   },
+  //   1000,
+  //   [localEditorState]
+  // );
 
   return (
     <div>
