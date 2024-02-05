@@ -104,7 +104,50 @@ function processSearches(
     };
   }
 
+  const selectedFormulaId = selectedFormulaIdStore.getState();
+  const currenFormulaData = formulaStore
+    .getState()
+    .find((e) => e.id === selectedFormulaId);
+
+  if (!currenFormulaData) {
+    return {
+      decorationsToReturn: DecorationSet.empty,
+      results: [],
+      finalData: [],
+    };
+  }
+
+  type ListNodeType = {
+    node: PMNode;
+    pos: number;
+  };
+  let allNodes: ListNodeType[] = [];
   doc?.descendants((node, pos) => {
+    allNodes.push({ node, pos });
+  });
+  let blockedNodeList: ListNodeType[] = [];
+  if (currenFormulaData.isLocal) {
+    let found = false;
+    //Get Data Between Entries
+    for (const data of allNodes) {
+      const { node, pos } = data;
+      if (node.attrs.id === selectedFormulaId) {
+        found = true;
+      }
+
+      if (!found && node.type.name === "horizontalRule") {
+        blockedNodeList = [];
+      }
+      if (found && node.type.name === "horizontalRule") {
+        break;
+      }
+      blockedNodeList.push({ node, pos: pos });
+    }
+  } else {
+    blockedNodeList = allNodes;
+  }
+
+  blockedNodeList.map(({ node, pos }) => {
     const isSelectedNode = selectedFormulaIdStore.getState() === node.attrs.id;
     const isValidMathNode =
       node.type.name === "mathComponent" && !isSelectedNode;
@@ -117,7 +160,6 @@ function processSearches(
         if (Array.isArray(value)) {
           value = value.join(",");
         }
-        console.log(textNodesWithPosition[index].text + (node.text ?? value));
 
         textNodesWithPosition[index] = {
           text: textNodesWithPosition[index].text + (node.text ?? value),

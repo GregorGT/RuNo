@@ -49,6 +49,7 @@ type allStoredFormulas = {
   textFormula: string;
   value: string | string[]; // which we find from the text
   result: string | string[] | number; // which we apply formula to
+  isLocal: boolean;
 };
 
 export const formulaStore = createStore<allStoredFormulas[]>(() => []);

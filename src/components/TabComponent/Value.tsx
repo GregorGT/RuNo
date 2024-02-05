@@ -1,6 +1,7 @@
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { formulaAtom, selectedFormulaIdAtom } from "../../state/formula";
+import { Checkbox } from "antd";
 
 const Value = () => {
   const [allFormula, setAllForumula] = useAtom(formulaAtom);
@@ -11,6 +12,7 @@ const Value = () => {
     string | string[] | undefined
   >();
   const [thisFormula, setThisFormula] = useState<string | undefined>("");
+  const [isLocal, setIsLocal] = useState(false);
 
   useEffect(() => {
     if (!selectedFormulaId) return;
@@ -43,6 +45,7 @@ const Value = () => {
         textFormula: "",
         value: "",
         result: "",
+        isLocal: isLocal,
       };
       setAllForumula((old) => [...old, newFormula]);
     } else {
@@ -53,6 +56,7 @@ const Value = () => {
               ...f,
               textFormula: e.target.value || "",
               result: "",
+              isLocal: isLocal,
             };
           }
           return f;
@@ -66,8 +70,17 @@ const Value = () => {
   }
   return (
     <div className="value">
-      <div>Formula </div>
-      <span>{}</span>
+      <div className="d-flex justify-between">
+        <p>Formula</p>
+        <div>
+          <Checkbox
+            checked={isLocal}
+            onChange={(e) => setIsLocal(e.target.checked)}
+          >
+            Is Entry Specific
+          </Checkbox>
+        </div>
+      </div>
       <textarea
         className="p-1"
         value={thisFormula}

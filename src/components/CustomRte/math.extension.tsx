@@ -21,6 +21,9 @@ export default Node.create({
       formula: {
         default: "",
       },
+      value: {
+        default: "",
+      },
     };
   },
 
@@ -30,9 +33,6 @@ export default Node.create({
         tag: "math-component",
       },
     ];
-  },
-  onTransaction({ transaction }) {
-    console.log(formulaStore.getState());
   },
 
   renderHTML({ HTMLAttributes }) {

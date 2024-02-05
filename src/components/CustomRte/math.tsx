@@ -21,18 +21,6 @@ export default (props: any) => {
   );
   const { editor } = useCurrentEditor();
 
-  // useDebounce(
-  //   () => {
-  //     const selectedFormula = allFormula?.find((f) => f.id === currentId);
-  //     if (!selectedFormula || currentId === selectedFormulaId) return;
-  //     console.log(selectedFormula);
-  //     const formula = convertStringToFormula(selectedFormula?.textFormula);
-  //     const data = editor?.commands.setSearchTerm(formula.text, currentId);
-  //   },
-  //   1500,
-  //   [editor?.state.doc.content.size]
-  // );
-
   useEffect(
     () => () => {
       const allFormulaData = formulaStore.getState();
@@ -43,7 +31,6 @@ export default (props: any) => {
         editor?.commands.setSearchTerm("", currentId);
         selectedFormulaIdStore.setState(undefined, true);
       }
-      console.log("unmount");
     },
     []
   );
@@ -57,19 +44,6 @@ export default (props: any) => {
     const formula = convertStringToFormula(selectedFormula?.textFormula);
     const data = editor?.commands.setSearchTerm(formula.text, currentId);
     return;
-    if (data?.findings) {
-      setAllForumula((old) =>
-        old.map((f) => {
-          if (f.id === currentId) {
-            return {
-              ...f,
-              result: formula.fn(data.findings),
-            };
-          }
-          return f;
-        })
-      );
-    }
   }, [selectedFormulaId, allFormula]);
 
   const askFormula = async () => {

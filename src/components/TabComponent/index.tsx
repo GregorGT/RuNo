@@ -13,7 +13,6 @@ export default function TabComponent() {
     { eventKey: "filter", content: <Filter /> },
     { eventKey: "sorting", content: <Sorting /> },
     { eventKey: "value", content: <Value /> },
-    { eventKey: "header", content: <Header /> },
   ];
 
   return (
@@ -39,12 +38,6 @@ export default function TabComponent() {
             onClick={() => setActiveTab("value")}
           >
             Value
-          </button>
-          <button
-            className={`header-button ${activeTab == "header" && "active"}`}
-            onClick={() => setActiveTab("header")}
-          >
-            Header
           </button>
         </div>
         <Tabs activeKey={activeTab} className="mb-3">
