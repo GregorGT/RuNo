@@ -22,6 +22,9 @@ export default Node.create({
       value: {
         default: "",
       },
+      isLocal: {
+        default: false,
+      },
     };
   },
 

@@ -12,7 +12,9 @@ import {
 
 export default (props: any) => {
   const currentId = props.node.attrs.id;
-  const [localValue, setValue] = useState<string | string[] | undefined>("");
+  const [localValue, setValue] = useState<
+    string | string[] | undefined | number
+  >("");
 
   const [allFormula, setAllForumula] = useAtom(formulaAtom);
   const [selectedFormulaId, setSelectedFormula] = useAtom(
@@ -38,11 +40,12 @@ export default (props: any) => {
     if (currentId !== selectedFormulaId) return;
     const selectedFormula = allFormula?.find((f) => f.id === currentId);
     if (!selectedFormula) return;
+    setValue(selectedFormula?.result ?? selectedFormula?.value);
+    // if (props.node.attrs.formula === selectedFormula?.textFormula) return;
     props.node.attrs.formula = selectedFormula?.textFormula;
-    setValue(selectedFormula?.value);
-    const formula = convertStringToFormula(selectedFormula?.textFormula);
-    const data = editor?.commands.setSearchTerm(formula.text, currentId);
-    return;
+    props.node.attrs.isLocal = selectedFormula?.isLocal;
+    // const formula = convertStringToFormula();
+    editor?.commands.setSearchTerm(selectedFormula?.textFormula, currentId);
   }, [selectedFormulaId, allFormula]);
 
   const askFormula = async () => {

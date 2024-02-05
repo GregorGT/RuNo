@@ -2,7 +2,11 @@ import { Extension, Range } from "@tiptap/core";
 import { Node as PMNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { formulaStore, selectedFormulaIdStore } from "../../state/formula";
+import {
+  convertStringToFormula,
+  formulaStore,
+  selectedFormulaIdStore,
+} from "../../state/formula";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -144,9 +148,11 @@ function processSearches(
       node.type.name === "mathComponent" && !isSelectedNode;
     if (node.isText || isValidMathNode) {
       if (textNodesWithPosition[index]) {
-        let value = formulaStore
+        let selectedFormula = formulaStore
           .getState()
-          .find((e) => e.id === node.attrs.id)?.value;
+          .find((e) => e.id === node.attrs.id);
+
+        let value = selectedFormula?.result ?? selectedFormula?.value;
 
         if (Array.isArray(value)) {
           value = value.join(",");
@@ -272,22 +278,7 @@ export const SearchAndReplace = Extension.create<
         ({ editor }) => {
           editor.storage.searchAndReplace.searchTerm = searchTerm;
           editor.storage.searchAndReplace.selectedId = id;
-          // const { setState, getState } = selectedDataStore;
-          // const currentState = getState;
-          // const { getState: formulaState } = formulaIdStore;
 
-          // const listAllData = currentState();
-          // const formulaId = formulaState();
-          // let allFindings: string[] = [];
-          // if (
-          //   formulaId &&
-          //   listAllData &&
-          //   listAllData?.hasOwnProperty(formulaId)
-          // ) {
-          //   try {
-          //     allFindings = listAllData[formulaId] as unknown as string[];
-          //   } catch {}
-          // }
           const values = formulaStore
             .getState()
             .find((e) => e.id === selectedFormulaIdStore.getState())?.value;
@@ -360,14 +351,16 @@ export const SearchAndReplace = Extension.create<
             setLastCaseSensitive(caseSensitive);
             setLastResultIndex(resultIndex);
 
-            if (!searchTerm) {
+            let { text, fn } = convertStringToFormula(searchTerm);
+
+            if (!text) {
               editor.storage.searchAndReplace.results = [];
               return DecorationSet.empty;
             }
 
             const { decorationsToReturn, results, finalData } = processSearches(
               doc,
-              getRegex(searchTerm, disableRegex, caseSensitive),
+              getRegex(text, disableRegex, caseSensitive),
               searchResultClass,
               resultIndex
             );
@@ -375,11 +368,16 @@ export const SearchAndReplace = Extension.create<
             const currentSelectedId = selectedId;
             const currentId = currentSelectedId;
             const listAllData = getState();
+            try {
+              console.log(listAllData[0].fn(listAllData[0].value));
+            } catch {}
             const newData = listAllData.map((f) => {
               if (f.id === currentId) {
                 return {
                   ...f,
                   value: finalData,
+                  fn: fn,
+                  result: fn ? fn(finalData) : finalData,
                 };
               }
               return f;

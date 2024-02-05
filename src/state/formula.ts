@@ -11,19 +11,95 @@ export const convertStringToFormula = (str: string) => {
   let finalStr = str;
 
   try {
-    if (finalStr.startsWith("SUM(")) {
-      finalStr = finalStr.slice(0, 4);
-      finalStr = finalStr.slice(0, -1);
+    if (finalStr.startsWith("SUM(") && finalStr.endsWith(")")) {
+      // sum we need to calculate the final value
+      finalStr = finalStr.substring(4, finalStr.length - 1);
       fn = (str) => {
-        if (typeof str === "string") {
-          return str
-            .split(",")
-            .map((s) => parseInt(s))
-            .reduce((a, b) => a + b);
-        } else {
-          return str.map((s) => parseInt(s)).reduce((a, b) => a + b);
+        try {
+          if (typeof str === "string") {
+            return str
+              .split(",")
+              .map((s) => parseInt(s))
+              .reduce((a, b) => a + b);
+          } else {
+            return str.map((s) => parseInt(s)).reduce((a, b) => a + b, 0);
+          }
+        } catch (e) {
+          console.error(e);
+          return "Error";
         }
       };
+    }
+
+    /// Average
+    if (finalStr.startsWith("AVG(") && finalStr.endsWith(")")) {
+      // sum we need to calculate the final value
+      finalStr = finalStr.substring(4, finalStr.length - 1);
+      fn = (str) => {
+        try {
+          if (typeof str === "string") {
+            return str
+              .split(",")
+              .map((s) => parseInt(s))
+              .reduce((a, b) => a + b);
+          } else {
+            return (
+              str.map((s) => parseInt(s)).reduce((a, b) => a + b, 0) /
+              str.length
+            );
+          }
+        } catch (e) {
+          console.error(e);
+          return "Error";
+        }
+      };
+    }
+
+    /// DIVIDE
+    if (finalStr.startsWith("DIVIDE(") && finalStr.endsWith(")")) {
+      // sum we need to calculate the final value
+      finalStr = finalStr.substring(7, finalStr.length - 1);
+      fn = (str) => {
+        try {
+          if (typeof str === "string") {
+            return str
+              .split(",")
+              .map((s) => parseInt(s))
+              .reduce((a, b) => a / b);
+          } else {
+            return str.map((s) => parseInt(s)).reduce((a, b) => a / b);
+          }
+        } catch (e) {
+          console.error(e);
+          return "Error";
+        }
+      };
+    }
+
+    /// MULTIPLY
+    if (finalStr.startsWith("MUL(") && finalStr.endsWith(")")) {
+      // sum we need to calculate the final value
+      finalStr = finalStr.substring(9, finalStr.length - 1);
+      fn = (str) => {
+        try {
+          if (typeof str === "string") {
+            return str
+              .split(",")
+              .map((s) => parseInt(s))
+              .reduce((a, b) => a * b);
+          } else {
+            return str.map((s) => parseInt(s)).reduce((a, b) => a * b);
+          }
+        } catch (e) {
+          console.error(e);
+          return "Error";
+        }
+      };
+    }
+
+    if (finalStr.startsWith("EVAL(")) {
+      //We just need to remove eval
+      finalStr = finalStr.substring(5, finalStr.length - 1);
     }
 
     if (finalStr.includes("{NUMBER}")) {
@@ -35,6 +111,7 @@ export const convertStringToFormula = (str: string) => {
     if (finalStr.includes("{DATE}")) {
       finalStr = finalStr.replace("{DATE}", "((?:[0-9]+(?:-|/)){2}[0-9]+)");
     }
+    console.log(finalStr);
     return { text: finalStr, fn };
   } catch {
     return { text: finalStr, fn };
@@ -47,6 +124,7 @@ type allStoredFormulas = {
   value: string | string[]; // which we find from the text
   result: string | string[] | number; // which we apply formula to
   isLocal: boolean;
+  fn: (str: string | string[]) => number | string;
 };
 
 export const formulaStore = createStore<allStoredFormulas[]>(() => []);

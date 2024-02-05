@@ -65,6 +65,22 @@ const Value = () => {
     }
   };
 
+  const setIsLocalInFormula = (isLocal: boolean) => {
+    if (!selectedFormulaId) return;
+    setIsLocal(isLocal);
+    setAllForumula((old) =>
+      old.map((f) => {
+        if (f.id === selectedFormulaId) {
+          return {
+            ...f,
+            isLocal: isLocal,
+          };
+        }
+        return f;
+      })
+    );
+  };
+
   if (!selectedFormulaId) {
     return <p>Please Select Formula From Entries To Get Started</p>;
   }
@@ -75,7 +91,7 @@ const Value = () => {
         <div>
           <Checkbox
             checked={isLocal}
-            onChange={(e) => setIsLocal(e.target.checked)}
+            onChange={(e) => setIsLocalInFormula(e.target.checked)}
           >
             Is Entry Specific
           </Checkbox>
