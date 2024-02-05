@@ -5,7 +5,9 @@ import { useAtom } from "jotai";
 import {
   convertStringToFormula,
   formulaAtom,
+  formulaStore,
   selectedFormulaIdAtom,
+  selectedFormulaIdStore,
 } from "../../state/formula";
 import { useDebounce } from "react-use";
 
@@ -30,6 +32,21 @@ export default (props: any) => {
   //   1500,
   //   [editor?.state.doc.content.size]
   // );
+
+  useEffect(
+    () => () => {
+      const allFormulaData = formulaStore.getState();
+      // Removing the formula from the store
+      const newList = allFormulaData.filter((f) => f.id !== currentId);
+      formulaStore.setState(newList, true);
+      if (selectedFormulaIdStore.getState() === currentId) {
+        editor?.commands.setSearchTerm("", currentId);
+        selectedFormulaIdStore.setState(undefined, true);
+      }
+      console.log("unmount");
+    },
+    []
+  );
 
   useEffect(() => {
     if (currentId !== selectedFormulaId) return;
@@ -72,8 +89,8 @@ export default (props: any) => {
             color: currentId !== selectedFormulaId ? "black" : "blue",
             background: "transparent",
             fontFamily: "monospace",
-            marginLeft: "5px",
-            marginRight: "5px",
+            marginLeft: "0px",
+            marginRight: "0px",
           }}
           className="label"
         >
