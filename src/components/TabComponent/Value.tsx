@@ -1,7 +1,7 @@
+import { Checkbox } from "antd";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { formulaAtom, selectedFormulaIdAtom } from "../../state/formula";
-import { Checkbox } from "antd";
 
 const Value = () => {
   const [allFormula, setAllForumula] = useAtom(formulaAtom);

@@ -1,11 +1,10 @@
 import { useState } from "react";
 import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
+import "../Components.scss";
 import Filter from "./Filter";
 import Sorting from "./Sorting";
-import Header from "./Header";
 import Value from "./Value";
-import "../Components.scss";
 
 export default function TabComponent() {
   const [activeTab, setActiveTab] = useState("filter");

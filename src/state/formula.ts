@@ -1,6 +1,3 @@
-import { atom, useAtom } from "jotai";
-import { nanoid } from "nanoid";
-
 import { atomWithStore } from "jotai-zustand";
 import { createStore } from "zustand/vanilla";
 

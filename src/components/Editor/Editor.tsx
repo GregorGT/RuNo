@@ -13,7 +13,6 @@ import {
 import { Color } from "@tiptap/extension-color";
 import FontFamily from "@tiptap/extension-font-family";
 import Highlight from "@tiptap/extension-highlight";
-import ListItem from "@tiptap/extension-list-item";
 import Table from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -29,15 +28,14 @@ import {
   Select,
 } from "antd";
 import { useAtom, useAtomValue } from "jotai";
+import { nanoid } from "nanoid";
 import { useEffect, useState } from "react";
 import { editorKeys, editorStateAtom } from "../../state/editor";
+import { formulaAtom } from "../../state/formula";
 import { loadEditorAtom } from "../../state/load";
 import MathComponent from "../CustomRte/math.extension";
 import SearchAndReplace from "../CustomRte/search";
 import { tableAcions, textStyle } from "./const";
-import { nanoid } from "nanoid";
-import { useDebounce } from "react-use";
-import { formulaAtom, selectedFormulaIdStore } from "../../state/formula";
 
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const [loadEditor] = useAtom(loadEditorAtom);

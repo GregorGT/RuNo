@@ -9,7 +9,6 @@ import {
   selectedFormulaIdAtom,
   selectedFormulaIdStore,
 } from "../../state/formula";
-import { useDebounce } from "react-use";
 
 export default (props: any) => {
   const currentId = props.node.attrs.id;

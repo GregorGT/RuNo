@@ -2,8 +2,6 @@ import { mergeAttributes, Node } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 
 import Component from "./math.jsx";
-import { formulaStore } from "../../state/formula.js";
-import { tableAcions } from "../Editor/const.js";
 
 export default Node.create({
   name: "mathComponent",

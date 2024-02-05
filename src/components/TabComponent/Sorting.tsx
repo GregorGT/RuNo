@@ -1,10 +1,10 @@
-import { PlusSquareOutlined } from "@ant-design/icons"
-import { Select } from "antd"
-import { useState } from "react"
+import { PlusSquareOutlined } from "@ant-design/icons";
+import { Select } from "antd";
+import { useState } from "react";
 
 const Sorting = () => {
-  const [isCheckedA, setIsCheckedA] = useState(false)
-  const [isCheckedB, setIsCheckedB] = useState(false)
+  const [isCheckedA, setIsCheckedA] = useState(false);
+  const [isCheckedB, setIsCheckedB] = useState(false);
   // const [option, setOption] = useState('Up')
   return (
     <div className="flex-col">
@@ -16,11 +16,14 @@ const Sorting = () => {
             style={{ width: 120 }}
             // onChange={(e) =>setOption(e)}
             options={[
-              { value: 'up', label: 'Up' },
-              { value: 'down', label: 'Down' },
+              { value: "up", label: "Up" },
+              { value: "down", label: "Down" },
             ]}
           />
-          <input className="modified" defaultValue="Date modified => 07/11/2023" />
+          <input
+            className="modified"
+            defaultValue="Date modified => 07/11/2023"
+          />
           <input
             className="radio-input"
             checked={isCheckedA}
@@ -36,8 +39,8 @@ const Sorting = () => {
             style={{ width: 120 }}
             // onChange={(e) =>setOption(e)}
             options={[
-              { value: 'up', label: 'Up' },
-              { value: 'down', label: 'Down' },
+              { value: "up", label: "Up" },
+              { value: "down", label: "Down" },
             ]}
           />
           <input className="modified" defaultValue="Date modified" />
@@ -54,9 +57,9 @@ const Sorting = () => {
           Add Option
         </div>
       </div>
-      <button className='add-btn mx-auto my-3'>Add sort group</button>
+      <button className="add-btn mx-auto my-3">Add sort group</button>
     </div>
-  )
-}
+  );
+};
 
-export default Sorting
+export default Sorting;

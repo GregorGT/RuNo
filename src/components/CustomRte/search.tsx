@@ -1,17 +1,8 @@
-import { Extension, Range, type Dispatch } from "@tiptap/core";
-import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import {
-  Plugin,
-  PluginKey,
-  type EditorState,
-  type Transaction,
-} from "@tiptap/pm/state";
+import { Extension, Range } from "@tiptap/core";
 import { Node as PMNode } from "@tiptap/pm/model";
-import {
-  formulaAtom,
-  formulaStore,
-  selectedFormulaIdStore,
-} from "../../state/formula";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { formulaStore, selectedFormulaIdStore } from "../../state/formula";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
