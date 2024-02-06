@@ -31,7 +31,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { nanoid } from "nanoid";
 import { useEffect, useState } from "react";
 import { editorKeys, editorStateAtom } from "../../state/editor";
-import { formulaAtom } from "../../state/formula";
+import { formulaAtom, formulaStore } from "../../state/formula";
 import { loadEditorAtom } from "../../state/load";
 import MathComponent from "../CustomRte/math.extension";
 import SearchAndReplace from "../CustomRte/search";
@@ -144,20 +144,18 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         <IconButton
           icon={<CalculatorOutlined />}
           onClick={() => {
+            let id = nanoid();
+            while (formulaStore.getState().find((f) => f.id === id)) {
+              id = nanoid();
+            }
             editor
               .chain()
-              .insertContent(
-                {
-                  type: "mathComponent",
-                  attrs: {
-                    id: nanoid(),
-                    formula: "20*10",
-                  },
+              .insertContent({
+                type: "mathComponent",
+                attrs: {
+                  id,
                 },
-                {
-                  parseOptions: {},
-                }
-              )
+              })
               .run();
           }}
         />
@@ -248,19 +246,6 @@ export default function Editor({
     });
   }, []);
   const allFormula = useAtomValue(formulaAtom);
-  // useDebounce(
-  //   () => {
-  //     const currentlySelctedId = selectedFormulaIdStore.getState();
-  //     for (const formula of allFormula) {
-  //       selectedFormulaIdStore.setState(formula.id);
-  //       const editor = useCurrentEditor().editor;
-  //     }
-
-  //     //set all search query here to calculate outcome
-  //   },
-  //   1000,
-  //   [localEditorState]
-  // );
 
   return (
     <div>

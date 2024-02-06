@@ -1,3 +1,4 @@
+import { atom } from "jotai";
 import { atomWithStore } from "jotai-zustand";
 import { createStore } from "zustand/vanilla";
 
@@ -111,7 +112,6 @@ export const convertStringToFormula = (str: string) => {
     if (finalStr.includes("{DATE}")) {
       finalStr = finalStr.replace("{DATE}", "((?:[0-9]+(?:-|/)){2}[0-9]+)");
     }
-    console.log(finalStr);
     return { text: finalStr, fn };
   } catch {
     return { text: finalStr, fn };
@@ -136,3 +136,10 @@ export const formulaAtom = atomWithStore(formulaStore);
 export const selectedFormulaIdAtom = atomWithStore<string | undefined>(
   selectedFormulaIdStore
 );
+export const selectedFormulaTextAtom = atom<
+  | undefined
+  | {
+      text: string;
+      isLocal: boolean;
+    }
+>(undefined);

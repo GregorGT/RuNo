@@ -83,7 +83,8 @@ function processSearches(
   doc: PMNode,
   searchTerm: RegExp,
   searchResultClass: string,
-  resultIndex: number
+  resultIndex: number,
+  searchId: string
 ): ProcessedSearches {
   const decorations: Decoration[] = [];
   const results: Range[] = [];
@@ -99,7 +100,7 @@ function processSearches(
     };
   }
 
-  const selectedFormulaId = selectedFormulaIdStore.getState();
+  const selectedFormulaId = searchId;
   const currenFormulaData = formulaStore
     .getState()
     .find((e) => e.id === selectedFormulaId);
@@ -121,6 +122,7 @@ function processSearches(
     allNodes.push({ node, pos });
   });
   let blockedNodeList: ListNodeType[] = [];
+
   if (currenFormulaData.isLocal) {
     let found = false;
     //Get Data Between Entries
@@ -143,28 +145,29 @@ function processSearches(
   }
 
   blockedNodeList.map(({ node, pos }) => {
-    const isSelectedNode = selectedFormulaIdStore.getState() === node.attrs.id;
+    const isSelectedNode = searchId === node.attrs.id;
     const isValidMathNode =
       node.type.name === "mathComponent" && !isSelectedNode;
+
     if (node.isText || isValidMathNode) {
+      let selectedFormula = formulaStore
+        .getState()
+        .find((e) => e.id === node.attrs.id);
+
+      let value = selectedFormula?.result ?? "";
+
+      if (Array.isArray(value)) {
+        value = value.join(",");
+      }
+
       if (textNodesWithPosition[index]) {
-        let selectedFormula = formulaStore
-          .getState()
-          .find((e) => e.id === node.attrs.id);
-
-        let value = selectedFormula?.result ?? selectedFormula?.value;
-
-        if (Array.isArray(value)) {
-          value = value.join(",");
-        }
-
         textNodesWithPosition[index] = {
           text: textNodesWithPosition[index].text + (node.text ?? value),
           pos: textNodesWithPosition[index].pos,
         };
       } else {
         textNodesWithPosition[index] = {
-          text: `${node.text}`,
+          text: `${node.text ?? value}`,
           pos,
         };
       }
@@ -263,7 +266,7 @@ export const SearchAndReplace = Extension.create<
       replaceTerm: "",
       results: [],
       lastSearchTerm: "",
-      caseSensitive: false,
+      caseSensitive: true,
       lastCaseSensitive: false,
       resultIndex: 0,
       lastResultIndex: 0,
@@ -340,6 +343,7 @@ export const SearchAndReplace = Extension.create<
             } = editor.storage.searchAndReplace;
 
             if (
+              false &&
               !docChanged &&
               lastSearchTerm === searchTerm &&
               lastCaseSensitive === caseSensitive &&
@@ -362,17 +366,13 @@ export const SearchAndReplace = Extension.create<
               doc,
               getRegex(text, disableRegex, caseSensitive),
               searchResultClass,
-              resultIndex
+              resultIndex,
+              selectedId
             );
             const { getState, setState } = formulaStore;
-            const currentSelectedId = selectedId;
-            const currentId = currentSelectedId;
             const listAllData = getState();
-            try {
-              console.log(listAllData[0].fn(listAllData[0].value));
-            } catch {}
             const newData = listAllData.map((f) => {
-              if (f.id === currentId) {
+              if (f.id === selectedId) {
                 return {
                   ...f,
                   value: finalData,
@@ -384,6 +384,12 @@ export const SearchAndReplace = Extension.create<
             });
 
             setState([...newData], true);
+            //
+            const currentSlectedFormula = selectedFormulaIdStore.getState();
+
+            if (currentSlectedFormula !== selectedId) {
+              return oldState;
+            }
 
             editor.storage.searchAndReplace.results = results;
 

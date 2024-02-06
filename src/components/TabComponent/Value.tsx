@@ -1,18 +1,22 @@
 import { Checkbox } from "antd";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { formulaAtom, selectedFormulaIdAtom } from "../../state/formula";
+import {
+  formulaAtom,
+  selectedFormulaIdAtom,
+  selectedFormulaIdStore,
+  selectedFormulaTextAtom,
+} from "../../state/formula";
 
 const Value = () => {
   const [allFormula, setAllForumula] = useAtom(formulaAtom);
-  const [selectedFormulaId, setSelectedFormula] = useAtom(
-    selectedFormulaIdAtom
-  );
+  const [selectedFormulaId] = useAtom(selectedFormulaIdAtom);
   const [thisValueData, setThisValueData] = useState<
     string | string[] | undefined
   >();
   const [thisFormula, setThisFormula] = useState<string | undefined>("");
   const [isLocal, setIsLocal] = useState(false);
+  const [_, setLocalFormula] = useAtom(selectedFormulaTextAtom);
 
   useEffect(() => {
     if (!selectedFormulaId) return;
@@ -31,11 +35,13 @@ const Value = () => {
       setThisFormula("");
     } else {
       setThisFormula(selectedFormula.textFormula);
+      setIsLocal(selectedFormula.isLocal);
     }
   }, [selectedFormulaId]);
 
   const onChangeFunction = (e: any) => {
     if (!selectedFormulaId) return;
+    setLocalFormula({ isLocal: isLocal, text: e.target.value || "" });
     setThisFormula(e.target.value || "");
     const isIdInFormula = allFormula.find((f) => f.id === selectedFormulaId);
 
@@ -68,6 +74,7 @@ const Value = () => {
   const setIsLocalInFormula = (isLocal: boolean) => {
     if (!selectedFormulaId) return;
     setIsLocal(isLocal);
+    setLocalFormula({ isLocal: isLocal, text: thisFormula || "" });
     setAllForumula((old) =>
       old.map((f) => {
         if (f.id === selectedFormulaId) {
