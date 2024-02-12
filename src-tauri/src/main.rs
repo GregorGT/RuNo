@@ -13,9 +13,13 @@ mod error;
 mod models;
 
 fn main() {
+    let is_dir = Path::new("data").exists();
+    if (is_dir) {
+        fs::remove_dir_all("data");
+    }
     // CreateIndex().unwrap();
-    AddDocument().unwrap();
-    SearchData().unwrap();
+    add_document().unwrap();
+    search_data().unwrap();
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             create_new_gist,
@@ -33,8 +37,8 @@ fn main() {
 }
 use std::path::Path;
 use std::{fs, string};
-use tantivy::schema::*;
-use tantivy::{doc, Index, ReloadPolicy, Result};
+use tantivy::{doc, Directory, Index, ReloadPolicy, Result, TantivyError};
+use tantivy::{schema::*, IndexWriter};
 
 const example: &str = r#"<html>
         <head>
@@ -43,57 +47,88 @@ const example: &str = r#"<html>
         <body>
             <p>Hello, world!</p>
             <p>this is the test for <span>search</span> engine</p>
+            <hr/>
             <p>this is the test for <span>search</span> package</p>
+            <p>this is the test for <span>search</span> engine</p>
             <p>this is the test for </p>
         </body>
     </html>"#;
 
-fn CreateIndex() -> Result<()> {
+fn create_index() -> Result<()> {
     let schema = Schema::builder().build();
     let path = Path::new("data");
     let _index = Index::create_in_dir(&path, schema)?;
     Ok(())
 }
-
-fn AddDocument() -> Result<()> {
-    // check if the data directory exists
-    let is_dir = Path::new("data").exists();
-    if (is_dir) {
-        fs::remove_dir_all("data")?;
-    }
-
+fn get_schema() -> Result<Index> {
     let mut schema_builder = Schema::builder();
     schema_builder.add_u64_field("line", STORED);
+    schema_builder.add_u64_field("entry", STORED);
     schema_builder.add_text_field("body", STORED | TEXT);
-
     let path = Path::new("data");
+    // Check if dir exists
+
+    if path.exists() {
+        let index_dir = MmapDirectory::open(path)?;
+        let index = Index::open(index_dir)?;
+
+        return Ok(index);
+    }
+
     fs::create_dir_all(path)?;
     let index = Index::create_in_dir(&path, schema_builder.build())?;
+    Ok(index)
+}
+fn add_line() -> Result<()> {
+    let index = get_schema().unwrap();
+    let schema = index.schema();
+    let mut index_writer = index.writer(50_000_000)?;
+    let body_field = schema.get_field("body").unwrap();
+    let line_number = schema.get_field("line").unwrap();
+    let entry = schema.get_field("entry").unwrap();
+    let doc = doc!(
+        line_number => 10 as u64,
+        body_field => "test search engine".to_string(),
+        entry => 0 as u64
+    );
+    assert_eq!(index_writer.add_document(doc).is_ok(), true);
+    assert_eq!(index_writer.commit().is_ok(), true);
+    Ok(())
+}
+
+fn add_document() -> Result<()> {
+    let index = get_schema().unwrap();
 
     let schema = index.schema();
     let mut index_writer = index.writer(50_000_000)?;
     let body_field = schema.get_field("body").unwrap();
     let line_number = schema.get_field("line").unwrap();
+    let entry = schema.get_field("entry").unwrap();
 
-    let body = strip_html(example);
-    //split body by \n and loop through it
-    let body = body.split("\n").collect::<Vec<&str>>();
-    // TODO maybe we can improve this
-    for (i, line) in body.iter().enumerate() {
-        let doc = doc!(
-            line_number => i as u64,
-            body_field => line.to_string(),
-        );
-        let _ = index_writer.add_document(doc);
+    let body = strip_html_with_break(example);
+
+    for (entry_index, line) in body.iter().enumerate() {
+        let lines = line.split("\n").collect::<Vec<&str>>();
+        for (i, line) in lines.iter().enumerate() {
+            let doc = doc!(
+                line_number => i as u64,
+                body_field => line.to_string(),
+                entry => entry_index as u64
+            );
+            let _ = index_writer.add_document(doc);
+        }
     }
+    let _ = add_line();
+
     index_writer.commit()?;
+
     Ok(())
 }
 use tantivy::collector::{BytesFilterCollector, Count, TopDocs};
 use tantivy::directory::MmapDirectory;
 use tantivy::query::{PhrasePrefixQuery, QueryParser};
 
-fn SearchData() -> Result<()> {
+fn search_data() -> Result<()> {
     let path = Path::new("data");
     let index_dir = MmapDirectory::open(path)?;
     let index = Index::open(index_dir)?;
@@ -106,7 +141,6 @@ fn SearchData() -> Result<()> {
         .try_into()?;
 
     let searcher = reader.searcher();
-    let queryText = "search engine";
 
     let query = "search engine";
     let query_whitespace_split: Vec<&str> = query.split_whitespace().collect();
@@ -128,11 +162,9 @@ fn SearchData() -> Result<()> {
 }
 
 fn strip_html(source: &str) -> String {
-    let mut data = String::new();
     let mut inside = false;
-    // Step 1: loop over string chars.
+    let mut result = String::new();
     for c in source.chars() {
-        // Step 2: detect markup start and end, and skip over markup chars.
         if c == '<' {
             inside = true;
             continue;
@@ -142,10 +174,41 @@ fn strip_html(source: &str) -> String {
             continue;
         }
         if !inside {
-            // Step 3: push other characters to the result string.
-            data.push(c); // We can remove whitespace
+            result.push(c);
         }
     }
-    // Step 4: return string.
-    return data;
+    return result;
+}
+
+fn strip_html_with_break(source: &str) -> Vec<String> {
+    let mut inside = false;
+    let mut break_index = 0;
+
+    let mut vector_string: Vec<String> = Vec::new();
+    let mut current_iteration = 0;
+    vector_string.push("".to_string());
+
+    for c in source.chars() {
+        current_iteration += 1;
+        if source.chars().nth(current_iteration) == Some('<')
+            && source.chars().nth(current_iteration + 1) == Some('h')
+            && source.chars().nth(current_iteration + 2) == Some('r')
+        {
+            break_index += 1;
+            vector_string.push("".to_string())
+        }
+
+        if c == '<' {
+            inside = true;
+            continue;
+        }
+        if c == '>' {
+            inside = false;
+            continue;
+        }
+        if !inside {
+            vector_string[break_index].push(c);
+        }
+    }
+    return vector_string;
 }
