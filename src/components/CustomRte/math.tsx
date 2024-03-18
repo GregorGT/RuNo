@@ -32,7 +32,7 @@ export default (props: any) => {
       // const newList = allFormulaData.filter((f) => f.id !== currentId);
       // formulaStore.setState(newList, true);
       if (selectedFormulaIdStore.getState() === currentId) {
-        editor?.commands.setSearchTerm("", currentId);
+        // editor?.commands.setSearchTerm("", currentId);
         selectedFormulaIdStore.setState(undefined, true);
       }
     },
@@ -46,7 +46,7 @@ export default (props: any) => {
       if (!selectedFormula || currentId === selectedFormulaId) return;
       props.node.attrs.formula = selectedFormula?.textFormula;
       props.node.attrs.isLocal = selectedFormula?.isLocal;
-      editor?.commands.setSearchTerm(selectedFormula?.textFormula, currentId);
+      // editor?.commands.setSearchTerm(selectedFormula?.textFormula, currentId);
     },
     1000 // Making this smaller will make the editor slow as it will run on every change / complexity is O(Formula Length * Node) basically too much
   );
@@ -60,9 +60,6 @@ export default (props: any) => {
       setValue(selectedFormula?.result ?? selectedFormula?.value);
       props.node.attrs.formula = selectedFormula?.textFormula;
       props.node.attrs.isLocal = selectedFormula?.isLocal;
-      console.log(
-        editor?.commands.setSearchTerm(selectedFormula?.textFormula, currentId)
-      );
     },
     // 200,
     [selectedFormulaId, selectedFormulaData]
@@ -82,31 +79,23 @@ export default (props: any) => {
     setValue(selectedFormula?.result ?? selectedFormula?.value);
   }, [allFormula]);
 
-  let valueToDisplay =
-    typeof localValue === "undefined" || localValue === ""
-      ? props.node.attrs?.formula?.length
-        ? "No Match Found"
-        : "Click To Add Formula"
-      : localValue;
-
   return (
     <>
-      <NodeViewWrapper as={"div"} className="math-component d-inline">
-        <button
-          onClick={askFormula}
-          style={{
-            borderColor: currentId !== selectedFormulaId ? "gray" : "green",
-            borderWidth: "1px",
-            color: currentId !== selectedFormulaId ? "black" : "blue",
-            background: "transparent",
-            fontFamily: "monospace",
-            marginLeft: "0px",
-            marginRight: "0px",
-          }}
-          className="label"
-        >
-          {valueToDisplay}
-        </button>
+      <NodeViewWrapper
+        style={{
+          borderColor: currentId !== selectedFormulaId ? "gray" : "green",
+          borderWidth: "1px",
+          color: currentId !== selectedFormulaId ? "black" : "blue",
+          background: "transparent",
+          fontFamily: "monospace",
+          marginLeft: "0px",
+          marginRight: "0px",
+        }}
+        onClick={askFormula}
+        className="math-component d-inline"
+      >
+        {allFormula?.find((f) => f.id === currentId)?.textFormula ??
+          "Click To Insert Formula"}
       </NodeViewWrapper>
     </>
   );

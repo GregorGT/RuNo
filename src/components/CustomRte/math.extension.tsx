@@ -10,22 +10,17 @@ import Component from "./math.jsx";
 import { MarkType } from "@tiptap/pm/model";
 import { formulaStore } from "../../state/formula.js";
 import { nanoid } from "nanoid";
-
+import { v4 } from "uuid";
 export default Node.create({
   name: "mathComponent",
   group: "inline",
   atom: true,
   inline: true,
 
-  onCreate() {
-    console.log("Created");
-  },
-
   addAttributes() {
-    let id = nanoid();
-    console.log("New Id");
+    let id = v4();
     while (formulaStore.getState().find((f) => f.id === id)) {
-      id = nanoid();
+      id = v4();
     }
 
     return {
@@ -50,7 +45,7 @@ export default Node.create({
   parseHTML() {
     return [
       {
-        tag: "div",
+        tag: "formula",
         attrs: {
           "data-type": "math-component",
         },
@@ -59,8 +54,7 @@ export default Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    console.log("HTMLAttributes", HTMLAttributes);
-    return ["div", mergeAttributes(HTMLAttributes)];
+    return ["formula", mergeAttributes(HTMLAttributes)];
   },
 
   addNodeView() {

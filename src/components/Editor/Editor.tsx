@@ -36,6 +36,8 @@ import { loadEditorAtom } from "../../state/load";
 import MathComponent from "../CustomRte/math.extension";
 import SearchAndReplace from "../CustomRte/search";
 import { tableAcions, textStyle } from "./const";
+import { v4 } from "uuid";
+import { invoke } from "@tauri-apps/api/tauri";
 
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const [loadEditor] = useAtom(loadEditorAtom);
@@ -56,6 +58,13 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         margin: "20px",
       }}
     >
+      <Button
+        onClick={() => {
+          invoke("run_command", { input: editor.getHTML() });
+        }}
+      >
+        Load Data
+      </Button>
       <div className="d-flex gap-2  ">
         <Select
           style={{ fontSize: 10 }}
@@ -144,9 +153,9 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         <IconButton
           icon={<CalculatorOutlined />}
           onClick={() => {
-            let id = nanoid();
+            let id = v4();
             while (formulaStore.getState().find((f) => f.id === id)) {
-              id = nanoid();
+              id = v4();
             }
             editor
               .chain()
@@ -258,12 +267,14 @@ export default function Editor({
         }}
         editorProps={{
           attributes: {
+            id: "editor",
             style: `max-height:${height}px`,
           },
         }}
         editable={true}
         children={<></>}
         slotBefore={showToolbar && <MenuBar editorName={editorName} />}
+        //@ts-ignore
         extensions={extensions}
         content={editorState[editorName] || content}
         autofocus="end"
