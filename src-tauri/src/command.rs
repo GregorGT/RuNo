@@ -537,6 +537,10 @@ fn recursive_funcation_parser<'a>(
                         }
                         // make entry list uniq elements
 
+                        if !is_last_eval {
+                            continue;
+                        }
+
                         if is_str {
                             let str_list = string_list
                                 .iter()

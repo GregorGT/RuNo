@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "TAURI_DEV_WATCHER_IGNORE_FILE=.taurignore && tauri dev  "
+    "tauri": "tauri dev  "
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
