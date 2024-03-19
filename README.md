@@ -30,3 +30,5 @@ Goto to the cloned repository:<br>
 Yarn<br>
 2.) Type:<br>
 Yarn tauri dev
+or 
+Yarn tauri
