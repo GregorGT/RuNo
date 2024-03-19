@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Resizable } from "react-resizable-element";
 import "./Components.scss";
-import Editor from "./Editor";
+import Editor from "./Editor/Editor";
 
 export default function Entries() {
   const [context, setContext] = useState(false);
@@ -35,32 +35,6 @@ export default function Entries() {
           <span>ENTRIES</span>
           <button className="add-btn">Add an entry</button>
         </div>
-        {/* <div
-          className="contextContainer"
-          onContextMenu={(e) => showNav(e)}
-          onClick={() => hideContext()}
-        >
-          {chosen && <h4>{chosen}</h4>}
-          {context && (
-            <div
-              style={{ top: xyPosition.y, left: xyPosition.x }}
-              className="rightClick"
-            >
-              <div
-                className="menuElement"
-                onClick={() => initMenu("Export table to CVS")}
-              >
-                Export table to CVS
-              </div>
-              <div
-                className="menuElement"
-                onClick={() => initMenu("Import CVS to table")}
-              >
-                Import CVS to table
-              </div>
-            </div>
-          )}
-        </div> */}
         <Editor height={500} showToolbar editorName="ENTRIES" />
       </>
     </Resizable>

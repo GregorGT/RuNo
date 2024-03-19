@@ -1,12 +1,11 @@
+import { writeTextFile } from "@tauri-apps/api/fs";
+import { downloadDir } from "@tauri-apps/api/path";
 import type { MenuProps } from "antd";
 import { Dropdown, notification } from "antd";
-import "./Components.scss";
 import { useAtom } from "jotai/react";
 import { editorStateAtom } from "../state/editor";
 import { loadEditorAtom } from "../state/load";
-import { save } from "@tauri-apps/api/dialog";
-import { downloadDir } from "@tauri-apps/api/path";
-import { writeBinaryFile, writeTextFile } from "@tauri-apps/api/fs";
+import "./Components.scss";
 
 export default function Dropdowns() {
   const [editorState, setState] = useAtom(editorStateAtom);

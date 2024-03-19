@@ -1,16 +1,116 @@
-import Editor from "../Editor";
+import { Checkbox } from "antd";
+import { useAtom } from "jotai";
+import { useEffect, useState } from "react";
+import {
+  formulaAtom,
+  selectedFormulaIdAtom,
+  selectedFormulaIdStore,
+  selectedFormulaTextAtom,
+} from "../../state/formula";
 
 const Value = () => {
+  const [allFormula, setAllForumula] = useAtom(formulaAtom);
+  const [selectedFormulaId] = useAtom(selectedFormulaIdAtom);
+  const [thisValueData, setThisValueData] = useState<
+    string | string[] | undefined
+  >();
+  const [thisFormula, setThisFormula] = useState<string | undefined>("");
+  const [isLocal, setIsLocal] = useState(false);
+  const [_, setLocalFormula] = useAtom(selectedFormulaTextAtom);
+
+  useEffect(() => {
+    if (!selectedFormulaId) return;
+    const selectedFormula = allFormula.find((f) => f.id === selectedFormulaId);
+    if (!selectedFormula) return;
+    setThisValueData(
+      allFormula.find((f) => f.id === selectedFormulaId)?.value || ""
+    );
+  }, [selectedFormulaId, allFormula]);
+
+  useEffect(() => {
+    if (!selectedFormulaId) return;
+    const selectedFormula = allFormula.find((f) => f.id === selectedFormulaId);
+    if (!selectedFormula) {
+      setThisValueData("");
+      setThisFormula("");
+    } else {
+      setThisFormula(selectedFormula.textFormula);
+      setIsLocal(selectedFormula.isLocal);
+    }
+  }, [selectedFormulaId]);
+
+  const onChangeFunction = (e: any) => {
+    if (!selectedFormulaId) return;
+    setLocalFormula({ isLocal: isLocal, text: e.target.value || "" });
+    setThisFormula(e.target.value || "");
+    const isIdInFormula = allFormula.find((f) => f.id === selectedFormulaId);
+
+    if (!isIdInFormula) {
+      const newFormula = {
+        id: selectedFormulaId,
+        textFormula: "",
+        value: "",
+        result: "",
+        isLocal: isLocal,
+      };
+      setAllForumula((old) => [...old, newFormula]);
+    } else {
+      setAllForumula((old) =>
+        old.map((f) => {
+          if (f.id === selectedFormulaId) {
+            return {
+              ...f,
+              textFormula: e.target.value || "",
+              result: "",
+              isLocal: isLocal,
+            };
+          }
+          return f;
+        })
+      );
+    }
+  };
+
+  const setIsLocalInFormula = (isLocal: boolean) => {
+    if (!selectedFormulaId) return;
+    setIsLocal(isLocal);
+    setLocalFormula({ isLocal: isLocal, text: thisFormula || "" });
+    setAllForumula((old) =>
+      old.map((f) => {
+        if (f.id === selectedFormulaId) {
+          return {
+            ...f,
+            isLocal: isLocal,
+          };
+        }
+        return f;
+      })
+    );
+  };
+
+  if (!selectedFormulaId) {
+    return <p>Please Select Formula From Entries To Get Started</p>;
+  }
   return (
     <div className="value">
-      <div>Formula</div>
-      <Editor height={100} showToolbar={false} editorName="VALUE_FORMULA" />
-      <div>Value</div>
-      <Editor height={100} showToolbar={false} editorName="VALUE" />
-      <div className="flex justify-between">
-        <button className="apply-filtered mt-3">Apply single</button>
-        <button className="apply-filtered mt-3">Apply filtered</button>
+      <div className="d-flex justify-between">
+        <p>Formula</p>
+        <div>
+          <Checkbox
+            checked={isLocal}
+            onChange={(e) => setIsLocalInFormula(e.target.checked)}
+          >
+            Is Entry Specific
+          </Checkbox>
+        </div>
       </div>
+      <textarea
+        className="p-1"
+        value={thisFormula}
+        onChange={onChangeFunction}
+      />
+      <div>Value</div>
+      <textarea className="p-1" value={thisValueData} disabled />
     </div>
   );
 };

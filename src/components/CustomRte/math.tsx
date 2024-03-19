@@ -1,58 +1,106 @@
-import { dialog } from "@tauri-apps/api";
-import { NodeViewWrapper } from "@tiptap/react";
-import React, { useEffect, useState } from "react";
+import { NodeViewWrapper, useCurrentEditor } from "@tiptap/react";
+import { useEffect, useState } from "react";
 //@ts-ignore
-import math from "mathjs-expression-parser";
-import { Input, Modal } from "antd";
+import { useAtom, useAtomValue } from "jotai";
+import {
+  formulaAtom,
+  formulaStore,
+  selectedFormulaIdAtom,
+  selectedFormulaIdStore,
+  selectedFormulaTextAtom,
+} from "../../state/formula";
+import { useDebounce, useInterval, useTimeoutFn } from "react-use";
 
 export default (props: any) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formula, setFormula] = useState(props.node.attrs.formula);
+  const currentId = props.node.attrs.id;
+  const [localValue, setValue] = useState<
+    string | string[] | undefined | number
+  >("");
 
-  useEffect(() => {
-    setFormula(props.node.attrs.formula);
-  }, [props.node.attrs.formula]);
+  const [allFormula] = useAtom(formulaAtom);
+  const [selectedFormulaId, setSelectedFormula] = useAtom(
+    selectedFormulaIdAtom
+  );
+  const { editor } = useCurrentEditor();
+  const selectedFormulaData = useAtomValue(selectedFormulaTextAtom);
+  // This WIll Run On UnMount
+  useEffect(
+    () => () => {
+      const allFormulaData = formulaStore.getState();
+      // Removing the formula from the store
+      // Enable This If We Want To Delete The Formula When Deleting
+      const newList = allFormulaData.filter((f) => f.id !== currentId);
+      formulaStore.setState(newList, true);
+      if (selectedFormulaIdStore.getState() === currentId) {
+        // editor?.commands.setSearchTerm("", currentId);
+        selectedFormulaIdStore.setState(undefined, true);
+      }
+    },
+    []
+  );
 
-  const askFormula = () => {
-    setIsModalOpen(true);
+  //Function That Will Work On Any Changes In Editor with 1 sec delay so we dont make it all slow
+  useInterval(
+    () => {
+      const selectedFormula = allFormula?.find((f) => f.id === currentId);
+      if (!selectedFormula || currentId === selectedFormulaId) return;
+      props.node.attrs.formula = selectedFormula?.textFormula;
+      props.node.attrs.isLocal = selectedFormula?.isLocal;
+      // editor?.commands.setSearchTerm(selectedFormula?.textFormula, currentId);
+    },
+    1000 // Making this smaller will make the editor slow as it will run on every change / complexity is O(Formula Length * Node) basically too much
+  );
+
+  //This Will Run On Formula Selected Or Changed Its Formula
+  useEffect(
+    () => {
+      if (currentId !== selectedFormulaId) return;
+      const selectedFormula = allFormula?.find((f) => f.id === currentId);
+      if (!selectedFormula) return;
+      setValue(selectedFormula?.result ?? selectedFormula?.value);
+      props.node.attrs.formula = selectedFormula?.textFormula;
+      props.node.attrs.isLocal = selectedFormula?.isLocal;
+    },
+    // 200,
+    [selectedFormulaId, selectedFormulaData]
+  );
+
+  const askFormula = async () => {
+    const selectedId = props.node.attrs.id;
+    setSelectedFormula(selectedId);
+    return;
   };
 
+  useEffect(() => {
+    const selectedFormula = allFormula?.find((f) => f.id === currentId);
+
+    props.node.attrs.formula = selectedFormula?.textFormula;
+    props.node.attrs.isLocal = selectedFormula?.isLocal;
+    props.node.attrs.value = selectedFormula?.result ?? selectedFormula?.value;
+    setValue(selectedFormula?.result ?? selectedFormula?.value);
+  }, [allFormula]);
+  console.log(allFormula);
   return (
     <>
-      <Modal
-        title="Enter Math Formula"
-        open={isModalOpen}
-        onOk={() => {
-          props.updateAttributes({
-            formula,
-          });
-          setIsModalOpen(false);
+      <NodeViewWrapper
+        style={{
+          borderColor: currentId !== selectedFormulaId ? "gray" : "green",
+          borderWidth: "1px",
+          color: currentId !== selectedFormulaId ? "black" : "blue",
+          background: "transparent",
+          fontFamily: "monospace",
+          marginLeft: "0px",
+          marginRight: "0px",
         }}
-        onCancel={() => {
-          setIsModalOpen(false);
-        }}
+        onClick={askFormula}
+        className="math-component d-inline"
       >
-        <Input
-          value={formula}
-          onChange={(e) => {
-            setFormula(e.target.value);
-          }}
-        />
-      </Modal>
-      <NodeViewWrapper className="math-component d-inline">
-        <span
-          onClick={askFormula}
-          style={{
-            backgroundColor: "gray",
-            fontFamily: "monospace",
-            color: "white",
-          }}
-          className="label"
-        >
-          &nbsp;
-          {math.eval(props.node.attrs?.formula || "0")}
-          &nbsp;
-        </span>
+        {allFormula?.find((f) => f.id === currentId)
+          ? allFormula?.find((f) => f.id === currentId)?.result === ""
+            ? allFormula?.find((f) => f.id === currentId)?.textFormula ??
+              "Click To Insert Formula"
+            : allFormula?.find((f) => f.id === currentId)?.result
+          : "Click To Insert Formula"}
       </NodeViewWrapper>
     </>
   );

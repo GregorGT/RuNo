@@ -3,19 +3,16 @@ import "./editor.scss";
 import {
   BoldOutlined,
   CalculatorOutlined,
-  DownOutlined,
   HighlightOutlined,
   ItalicOutlined,
   RedoOutlined,
   TableOutlined,
-  TabletOutlined,
   UnderlineOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
 import { Color } from "@tiptap/extension-color";
 import FontFamily from "@tiptap/extension-font-family";
 import Highlight from "@tiptap/extension-highlight";
-import ListItem from "@tiptap/extension-list-item";
 import Table from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -29,102 +26,29 @@ import {
   Divider,
   Button as IconButton,
   Select,
-  Space,
-  Typography,
 } from "antd";
-import { useAtom } from "jotai";
-import { editorKeys, editorStateAtom } from "../state/editor";
-import { useEffect } from "react";
-import { loadEditorAtom } from "../state/load";
-import MathComponent from "./CustomRte/math.extension";
-const textStyle = [
-  {
-    value: "Paragraph",
-    label: "Paragraph",
-    isActive: (editor: any) => editor.isActive("paragraph"),
-    onclick: (editor: any) => editor.chain().focus().toggleParagraph().run(),
-  },
-  {
-    value: "heading 1",
-    label: "heading 1",
-    isActive: (editor: any) => editor.isActive("heading", { level: 1 }),
-    onclick: (editor: any) =>
-      editor.chain().focus().toggleHeading({ level: 1 }).run(),
-  },
-  {
-    value: "heading 2",
-    label: "heading 2",
-    isActive: (editor: any) => editor.isActive("heading", { level: 2 }),
-    onclick: (editor: any) =>
-      editor.chain().focus().toggleHeading({ level: 2 }).run(),
-  },
-  {
-    value: "heading 3",
-    label: "heading 3",
-    isActive: (editor: any) => editor.isActive("heading", { level: 3 }),
-    onclick: (editor: any) =>
-      editor.chain().focus().toggleHeading({ level: 3 }).run(),
-  },
-  {
-    value: "heading 4",
-    label: "heading 4",
-    isActive: (editor: any) => editor.isActive("heading", { level: 4 }),
-    onclick: (editor: any) =>
-      editor.chain().focus().toggleHeading({ level: 4 }).run(),
-  },
-  {
-    value: "heading 5",
-    label: "heading 5",
-    isActive: (editor: any) => editor.isActive("heading", { level: 5 }),
-    onclick: (editor: any) =>
-      editor.chain().focus().toggleHeading({ level: 5 }).run(),
-  },
-  {
-    value: "heading 6",
-    label: "heading 6",
-    isActive: (editor: any) => editor.isActive("heading", { level: 6 }),
-    onclick: (editor: any) =>
-      editor.chain().focus().toggleHeading({ level: 6 }).run(),
-  },
-];
-
-const tableAcions = [
-  {
-    label: "Add Row Below",
-    value: "Add Row Below",
-    onClick: (editor: any) => editor.chain().focus().addRowAfter().run(),
-  },
-  {
-    label: "Add Column After",
-    value: "Add Column After",
-    onClick: (editor: any) => editor.chain().focus().addColumnAfter().run(),
-  },
-  {
-    label: "Delete Row",
-    value: "Delete Row",
-    onClick: (editor: any) => editor.chain().focus().deleteRow().run(),
-  },
-  {
-    label: "Delete Column",
-    value: "Delete Column",
-    onClick: (editor: any) => editor.chain().focus().deleteColumn().run(),
-  },
-  {
-    label: "Delete Table",
-    value: "Delete Table",
-    onClick: (editor: any) => editor.chain().focus().deleteTable().run(),
-  },
-];
+import { useAtom, useAtomValue } from "jotai";
+import { nanoid } from "nanoid";
+import { useEffect, useState } from "react";
+import { editorKeys, editorStateAtom } from "../../state/editor";
+import { formulaAtom, formulaStore } from "../../state/formula";
+import { loadEditorAtom } from "../../state/load";
+import MathComponent from "../CustomRte/math.extension";
+import SearchAndReplace from "../CustomRte/search";
+import { tableAcions, textStyle } from "./const";
+import { v4 } from "uuid";
+import { invoke } from "@tauri-apps/api/tauri";
 
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const [loadEditor] = useAtom(loadEditorAtom);
   const { editor } = useCurrentEditor();
+  const [allFormula, setFormulaValues] = useAtom(formulaAtom);
+
   useEffect(() => {
     if (loadEditor[editorName] && editor) {
       editor.commands.setContent(loadEditor[editorName], true);
     }
   }, [loadEditor]);
-
   if (!editor) {
     return null;
   }
@@ -136,6 +60,45 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         margin: "20px",
       }}
     >
+      <Button
+        onClick={async () => {
+          const ret = await invoke("run_command", { input: editor.getHTML() });
+          console.log(ret);
+          console.log(allFormula);
+
+          if (Array.isArray(ret)) {
+            ret?.map((item: any) => {
+              if (item.id && item.data && document) {
+                const element = document.getElementById(item.id);
+                if (element) element.innerText = item.data;
+              }
+            });
+            setFormulaValues((formula) => {
+              return formula.map((item) => {
+                const newItem = ret.find((r: any) => r.id === item.id);
+                if (newItem) {
+                  return {
+                    ...item,
+                    result: newItem.data,
+                  };
+                }
+                return item;
+              });
+            });
+          }
+        }}
+      >
+        Load Data
+      </Button>
+      <Button
+        onClick={() => {
+          const data =
+            '<p>price dog 10</p><hr><p>Entry: x</p><p></p><p>price dog 20</p><p></p><p>price dog <formula id="f13188e7-6610-43de-909e-e4648c31c9ee" formula="SUM(EVAL(&quot;Entry: x&quot;.&quot;price dog {NUMBER}&quot;))" value="20" result="" islocal="false" data-type="math-component"></formula></p><p></p><hr><p>total price: <formula id="8e692ebd-a5cf-4098-98a0-683530b35891" formula="SUM(EVAL(&quot;price dog {NUMBER}&quot;))" value="30" result="" islocal="false" data-type="math-component"></formula></p><p></p>';
+          editor.commands.setContent(data, true);
+        }}
+      >
+        Predefined Data
+      </Button>
       <div className="d-flex gap-2  ">
         <Select
           style={{ fontSize: 10 }}
@@ -224,19 +187,18 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         <IconButton
           icon={<CalculatorOutlined />}
           onClick={() => {
+            let id = v4();
+            while (formulaStore.getState().find((f) => f.id === id)) {
+              id = v4();
+            }
             editor
               .chain()
-              .insertContent(
-                {
-                  type: "mathComponent",
-                  attrs: {
-                    formula: "20*10",
-                  },
+              .insertContent({
+                type: "mathComponent",
+                attrs: {
+                  id,
                 },
-                {
-                  parseOptions: {},
-                }
-              )
+              })
               .run();
           }}
         />
@@ -282,18 +244,13 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 };
 
 const extensions = [
-  Color.configure({ types: [TextStyle.name, ListItem.name] }),
+  Color.configure({ types: [TextStyle.name] }),
   //@ts-ignore
-  TextStyle.configure({ types: [ListItem.name] }),
+  TextStyle.configure(),
   StarterKit.configure({
-    bulletList: {
-      keepMarks: true,
-      keepAttributes: false,
-    },
-    orderedList: {
-      keepMarks: true,
-      keepAttributes: false,
-    },
+    bulletList: false,
+    listItem: false,
+    orderedList: false,
   }),
   Highlight.configure({ multicolor: true }),
   FontFamily,
@@ -304,10 +261,15 @@ const extensions = [
   TableHeader,
   TableCell,
   MathComponent,
+  SearchAndReplace.configure({
+    searchResultClass: "search-result",
+    disableRegex: false,
+  }),
 ];
 
 const content = `
-<math-component><math-component/>`;
+<p>price dog 10</p>
+`;
 
 export default function Editor({
   editorName,
@@ -319,30 +281,34 @@ export default function Editor({
   height: number;
 }) {
   const [editorState, setEditorState] = useAtom(editorStateAtom);
-
+  const [localEditorState, setLocalEditorState] = useState<string>();
   useEffect(() => {
     setEditorState({
       ...editorState,
       [editorName]: content,
     });
   }, []);
+  const [allFormula, setFormulaValues] = useAtom(formulaAtom);
 
   return (
     <div>
       <EditorProvider
         onUpdate={({ editor }) => {
+          setLocalEditorState(editor.getHTML());
           setEditorState((state) => {
             return { ...state, [editorName]: editor.getJSON() };
           });
         }}
         editorProps={{
           attributes: {
+            id: "editor",
             style: `max-height:${height}px`,
           },
         }}
         editable={true}
         children={<></>}
         slotBefore={showToolbar && <MenuBar editorName={editorName} />}
+        //@ts-ignore
         extensions={extensions}
         content={editorState[editorName] || content}
         autofocus="end"

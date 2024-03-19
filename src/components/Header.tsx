@@ -1,5 +1,9 @@
-import { CloseCircleOutlined, MinusCircleOutlined, PlusCircleOutlined } from "@ant-design/icons";
-import './Components.scss'
+import {
+  CloseCircleOutlined,
+  MinusCircleOutlined,
+  PlusCircleOutlined,
+} from "@ant-design/icons";
+import "./Components.scss";
 
 export default function Header() {
   return (
@@ -11,5 +15,5 @@ export default function Header() {
         <CloseCircleOutlined className="cursor-pointer" />
       </div>
     </div>
-  )
+  );
 }
