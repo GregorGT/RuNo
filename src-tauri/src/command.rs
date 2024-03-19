@@ -167,6 +167,16 @@ fn parse_string(
 ) -> Result<TypeOr<String, f64, NaiveDateTime>> {
     let pairs = MyParser::parse(Rule::Fn, formula.formula.as_str()).unwrap();
     let mut ans: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
+    unsafe {
+        // set current formula to in process
+        let mut formula_list = FORMULA_LIST_CELL.clone();
+        formula_list.iter_mut().for_each(|x| {
+            if x.id == formula.id {
+                x.data = TypeOr::InProcess;
+            }
+        });
+        FORMULA_LIST_CELL = formula_list;
+    }
 
     for pair in pairs {
         ans = recursive_funcation_parser(
@@ -204,6 +214,7 @@ enum TypeOr<S, T, Y> {
     Error,
     None,
     NotCalculated,
+    InProcess,
 }
 
 impl Serialize for TypeOr<std::string::String, f64, NaiveDateTime> {
@@ -233,6 +244,7 @@ impl Serialize for TypeOr<std::string::String, f64, NaiveDateTime> {
             TypeOr::None => serializer.serialize_str("None"),
             TypeOr::Error => serializer.serialize_str("Error"),
             TypeOr::NotCalculated => serializer.serialize_str("Not Calculated"),
+            TypeOr::InProcess => serializer.serialize_str("In Process"),
         }
     }
 }
@@ -249,6 +261,7 @@ impl Clone for TypeOr<String, f64, NaiveDateTime> {
             TypeOr::None => TypeOr::None,
             TypeOr::Error => TypeOr::Error,
             TypeOr::NotCalculated => TypeOr::NotCalculated,
+            TypeOr::InProcess => TypeOr::InProcess,
         }
     }
 }
@@ -269,6 +282,7 @@ impl ToString for TypeOr<String, f64, NaiveDateTime> {
             TypeOr::None => "None".to_string(),
             TypeOr::Error => "Error".to_string(),
             TypeOr::NotCalculated => "Not Calculated".to_string(),
+            TypeOr::InProcess => "In Process".to_string(),
         }
     }
 }
@@ -449,8 +463,12 @@ fn recursive_funcation_parser<'a>(
                                         }
                                         let formula = current_formula_search.unwrap();
 
-                                        if !current_formula_search.is_none() {
+                                        if !current_formula_search.is_none()
+                                            && formula.data != TypeOr::InProcess
+                                        {
                                             if formula.data == TypeOr::NotCalculated {
+                                                // set current formula to in process
+
                                                 let val = parse_string(
                                                     current_formula_search.unwrap().clone(),
                                                     searcher.clone(),
@@ -883,6 +901,7 @@ fn recursive_funcation_parser<'a>(
                     TypeOr::DateList(value) => val = TypeOr::Left("DATE".to_string()),
                     TypeOr::Error => val = TypeOr::Left("ERROR".to_string()),
                     TypeOr::NotCalculated => val = TypeOr::Left("NOT CALCULATED".to_string()),
+                    TypeOr::InProcess => val = TypeOr::Left("IN PROCESS".to_string()),
                 };
             }
             return val;

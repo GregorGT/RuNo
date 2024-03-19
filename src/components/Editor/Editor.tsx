@@ -90,6 +90,15 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       >
         Load Data
       </Button>
+      <Button
+        onClick={() => {
+          const data =
+            '<p>price dog 10</p><hr><p>Entry: x</p><p></p><p>price dog 20</p><p></p><p>price dog <formula id="f13188e7-6610-43de-909e-e4648c31c9ee" formula="SUM(EVAL(&quot;Entry: x&quot;.&quot;price dog {NUMBER}&quot;))" value="20" result="" islocal="false" data-type="math-component"></formula></p><p></p><hr><p>total price: <formula id="8e692ebd-a5cf-4098-98a0-683530b35891" formula="SUM(EVAL(&quot;price dog {NUMBER}&quot;))" value="30" result="" islocal="false" data-type="math-component"></formula></p><p></p>';
+          editor.commands.setContent(data, true);
+        }}
+      >
+        Predefined Data
+      </Button>
       <div className="d-flex gap-2  ">
         <Select
           style={{ fontSize: 10 }}
