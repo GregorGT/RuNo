@@ -6,6 +6,7 @@ use crate::models::{
 extern crate msgbox;
 
 use msgbox::IconType;
+use serde::Serialize;
 
 #[tauri::command]
 pub fn get_repositories_for_authenticated_user(token: &str) -> APIResult<Vec<Repository>> {
@@ -55,7 +56,7 @@ const LENGTH: i32 = 1;
 // SUM(EVAL(!"dog price {NUMBER}"))
 // const SINGLE_LINE_EXAMPLE: &str = r#"<p>hello test some 15</p><p>hello test some 16</p><p><formula id="f6d6ee64-2c7f-47df-a91e-641017824f3d">IFERROR(SUM(EVAL("hello test some {NUMBER}"))){SUM(1,2)}ELSE{SUM(1)}</formula><hr>"#;
 #[tauri::command]
-pub fn run_command(input: String) {
+pub fn run_command(input: String) -> Vec<html::formula> {
     let SINGLE_LINE_EXAMPLE: &str = input.as_str();
     println!("Input: {:?}", SINGLE_LINE_EXAMPLE);
 
@@ -138,8 +139,7 @@ pub fn run_command(input: String) {
                 documents::get_searcher(global_index.clone()).unwrap(),
                 schema.clone(),
                 new_list.clone(),
-            )
-            .unwrap();
+            );
 
             // println!("Final : {:?}", out);
         }
@@ -150,7 +150,9 @@ pub fn run_command(input: String) {
         "Time taken For Query: {:?}",
         end_query_time.duration_since(start_query_time)
     );
-    unsafe { println!("{:?} ", FORMULA_LIST_CELL) }
+    unsafe {
+        return FORMULA_LIST_CELL.clone();
+    }
 }
 
 #[derive(Parser)]
@@ -203,6 +205,38 @@ enum TypeOr<S, T, Y> {
     None,
     NotCalculated,
 }
+
+impl Serialize for TypeOr<std::string::String, f64, NaiveDateTime> {
+    fn serialize<S>(&self, serializer: S) -> std::prelude::v1::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            TypeOr::Left(value) => serializer.serialize_str(value),
+            TypeOr::Right(value) => serializer.serialize_f64(*value),
+            TypeOr::LeftList(value) => serializer.serialize_str(&value.join("")),
+            TypeOr::RightList(value) => serializer.serialize_str(
+                &value
+                    .iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<String>>()
+                    .join(","),
+            ),
+            TypeOr::DateValue(value) => serializer.serialize_str(&value.to_string()),
+            TypeOr::DateList(value) => serializer.serialize_str(
+                &value
+                    .iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<String>>()
+                    .join(","),
+            ),
+            TypeOr::None => serializer.serialize_str("None"),
+            TypeOr::Error => serializer.serialize_str("Error"),
+            TypeOr::NotCalculated => serializer.serialize_str("Not Calculated"),
+        }
+    }
+}
+
 impl Clone for TypeOr<String, f64, NaiveDateTime> {
     fn clone(&self) -> Self {
         match self {

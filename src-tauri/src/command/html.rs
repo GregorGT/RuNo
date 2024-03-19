@@ -85,7 +85,7 @@ fn walk(
     }
     result
 }
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct formula {
     pub line: u64,
     pub formula: String,

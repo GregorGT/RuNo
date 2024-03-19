@@ -42,6 +42,8 @@ import { invoke } from "@tauri-apps/api/tauri";
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const [loadEditor] = useAtom(loadEditorAtom);
   const { editor } = useCurrentEditor();
+  const [allFormula, setFormulaValues] = useAtom(formulaAtom);
+
   useEffect(() => {
     if (loadEditor[editorName] && editor) {
       editor.commands.setContent(loadEditor[editorName], true);
@@ -59,8 +61,31 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       }}
     >
       <Button
-        onClick={() => {
-          invoke("run_command", { input: editor.getHTML() });
+        onClick={async () => {
+          const ret = await invoke("run_command", { input: editor.getHTML() });
+          console.log(ret);
+          console.log(allFormula);
+
+          if (Array.isArray(ret)) {
+            ret?.map((item: any) => {
+              if (item.id && item.data && document) {
+                const element = document.getElementById(item.id);
+                if (element) element.innerText = item.data;
+              }
+            });
+            setFormulaValues((formula) => {
+              return formula.map((item) => {
+                const newItem = ret.find((r: any) => r.id === item.id);
+                if (newItem) {
+                  return {
+                    ...item,
+                    result: newItem.data,
+                  };
+                }
+                return item;
+              });
+            });
+          }
         }}
       >
         Load Data
@@ -254,7 +279,7 @@ export default function Editor({
       [editorName]: content,
     });
   }, []);
-  const allFormula = useAtomValue(formulaAtom);
+  const [allFormula, setFormulaValues] = useAtom(formulaAtom);
 
   return (
     <div>

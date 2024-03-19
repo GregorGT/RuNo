@@ -29,8 +29,8 @@ export default (props: any) => {
       const allFormulaData = formulaStore.getState();
       // Removing the formula from the store
       // Enable This If We Want To Delete The Formula When Deleting
-      // const newList = allFormulaData.filter((f) => f.id !== currentId);
-      // formulaStore.setState(newList, true);
+      const newList = allFormulaData.filter((f) => f.id !== currentId);
+      formulaStore.setState(newList, true);
       if (selectedFormulaIdStore.getState() === currentId) {
         // editor?.commands.setSearchTerm("", currentId);
         selectedFormulaIdStore.setState(undefined, true);
@@ -73,12 +73,13 @@ export default (props: any) => {
 
   useEffect(() => {
     const selectedFormula = allFormula?.find((f) => f.id === currentId);
+
     props.node.attrs.formula = selectedFormula?.textFormula;
     props.node.attrs.isLocal = selectedFormula?.isLocal;
     props.node.attrs.value = selectedFormula?.result ?? selectedFormula?.value;
     setValue(selectedFormula?.result ?? selectedFormula?.value);
   }, [allFormula]);
-
+  console.log(allFormula);
   return (
     <>
       <NodeViewWrapper
@@ -94,8 +95,12 @@ export default (props: any) => {
         onClick={askFormula}
         className="math-component d-inline"
       >
-        {allFormula?.find((f) => f.id === currentId)?.textFormula ??
-          "Click To Insert Formula"}
+        {allFormula?.find((f) => f.id === currentId)
+          ? allFormula?.find((f) => f.id === currentId)?.result === ""
+            ? allFormula?.find((f) => f.id === currentId)?.textFormula ??
+              "Click To Insert Formula"
+            : allFormula?.find((f) => f.id === currentId)?.result
+          : "Click To Insert Formula"}
       </NodeViewWrapper>
     </>
   );

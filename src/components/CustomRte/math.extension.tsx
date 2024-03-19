@@ -33,6 +33,7 @@ export default Node.create({
       value: {
         default: "",
       },
+      result: { default: "" },
       isLocal: {
         default: false,
       },
