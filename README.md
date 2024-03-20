@@ -33,7 +33,7 @@ Yarn tauri dev
 or 
 Yarn tauri
 
-4.) Usage of formulas
+3.) Usage of formulas
 
 Please follow the function name, description and example strictly, no spaces for ELSE{} and upper case always
 
