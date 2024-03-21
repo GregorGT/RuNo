@@ -10,9 +10,9 @@ EVAL            =  { "EVAL(" ~ CHAIN_PATTREN+ ~ ")" }
 SUM             =  { "SUM(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
 MUL             =  { "MUL(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
 COMPARATOR_SIGN =  { "="  | "<=" | ">=" | ">"| "<" }
-COMPARATOR = { Fn ~ WHITESPACE* ~ COMPARATOR_SIGN ~ WHITESPACE* ~ (Fn | number | text) }
+COMPARATOR = { Fn ~ WHITESPACE* ~ COMPARATOR_SIGN ~ WHITESPACE* ~ (Fn | number | text | DATE) }
 
-COMPARATOR_COUNT = { (Fn | number | text) ~ WHITESPACE* ~ COMPARATOR_SIGN ~ WHITESPACE* ~ (number |text) }
+COMPARATOR_COUNT = { (Fn | number | text) ~ WHITESPACE* ~ COMPARATOR_SIGN ~ WHITESPACE* ~ (number |text |DATE) }
 
 COUNT = { "COUNT(" ~ WHITESPACE* ~ EVAL ~ WHITESPACE* ~ ")" }
 // DONE
@@ -37,6 +37,8 @@ IFERROR = { "IFERROR(" ~ Fn ~ "){" ~ WHITESPACE* ~ Fn ~ WHITESPACE* ~ "}ELSE{" ~
 
 SUMIF  = { "SUMIF(" ~ COMPARATOR_COUNT ~ ")" }
 COUNTIF  = { "COUNTIF(" ~ COMPARATOR_COUNT ~ ")" }
+
+DATE = {"DATE(" ~ WHITESPACE* ~ text_val ~ ("," ~ text_val)* ~ WHITESPACE* ~ ")"}
 
 Fn = { EVAL | SUM | MUL | COUNT | LEN | TYPE | CONCAT | IF | MIN | MAX | AVERAGE | TRIM | ROUND | IFERROR |SUMIF | COUNTIF}
 

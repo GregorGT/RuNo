@@ -68,6 +68,8 @@ pub fn run_command(input: String) -> Vec<html::formula> {
         html::parse_html(SINGLE_LINE_EXAMPLE.repeat(LENGTH as usize).as_str());
 
     let SEPARATED_DOCS = parsed_data.parsed_text;
+    println!("Parsed Text: {:?}", SEPARATED_DOCS);
+
     let formula_list = parsed_data.formula_list;
     println!("Formula List: {:?}", formula_list.len());
     //SET GLOBAL LIST FOR FORMULA
@@ -344,12 +346,13 @@ fn recursive_funcation_parser<'a>(
                                 )
                                 .unwrap();
                             } else {
+                                println!("Entry List: {:?}", formula.entry);
                                 found_data = documents::search_data(
                                     eval_pair.as_str(),
                                     searcher.clone(),
                                     schema.clone(),
                                     vec![formula.entry],
-                                    index == 1,
+                                    false,
                                 )
                                 .unwrap()
                             }
@@ -391,9 +394,9 @@ fn recursive_funcation_parser<'a>(
                         } else if final_formula.find("{DATE}") != None {
                             is_date = true;
                             // price data 11/01/2020
-
-                            exp = Regex::new(final_formula.replace("{DATE}", r"(?<date>\^(0?[1-9]|1[0-2])[\/](0?[1-9]|[12]\d|3[01])[\/](19|20)\d{2}$)").as_str()).unwrap();
-                            return_val = TypeOr::LeftList([].to_vec());
+                            println!("DATE");
+                            exp = Regex::new(final_formula.replace("{DATE}", r"(?<date>(0[1-9]|[12][0-9]|3[01])(\/|-)(0[1-9]|1[1,2])(\/|-)(19|20)\d{2})").as_str()).unwrap();
+                            return_val = TypeOr::DateList([].to_vec());
                         } else {
                             exp = Regex::new(final_formula).unwrap();
                         }
@@ -518,10 +521,12 @@ fn recursive_funcation_parser<'a>(
                                                 } else if is_date {
                                                     catch! {
                                                      try{
+                                                        println!("Date: {:?}", val.to_string());
                                                          date_list.push(
                                                             parse(val.to_string().as_str())?.naive_utc(),
                                                         );
                                                     }catch err {
+                                                        println!("Error: {:?}", err);
                                                     }
                                                     }
                                                 }
@@ -545,8 +550,17 @@ fn recursive_funcation_parser<'a>(
 
                                         number_list.push(result["number"].parse::<f64>().unwrap());
                                     } else if is_date {
-                                        date_list
-                                            .push(result["date"].parse::<NaiveDateTime>().unwrap());
+                                        // println!("Eval Pair {:}", eval_pair.as_str());
+                                        // println!("Date: {:?}", result["date"].to_string());
+                                        catch! {
+                                         try{
+                                            date_list.push(
+                                                parse(&result["date"].to_string()).unwrap().naive_utc(),
+                                            );
+                                        }catch err {
+                                            // println!("Error: {:?}", err);
+                                        }
+                                        }
                                     }
                                 }
 
@@ -880,6 +894,27 @@ fn recursive_funcation_parser<'a>(
             }
             return TypeOr::Left("".to_string());
         }
+        Rule::DATE => {
+            //length of inner pair
+            let len = pair.clone().into_inner().count();
+            let mut date_list = TypeOr::DateList([].to_vec());
+            let mut date_vec: Vec<NaiveDateTime> = [].to_vec();
+            if (len == 1) {
+                for inner_pair in pair.clone().into_inner() {
+                    if inner_pair.as_rule() == Rule::text_val {
+                        return TypeOr::DateValue(parse(inner_pair.as_str()).unwrap().naive_utc());
+                    }
+                }
+            } else {
+                for inner_pair in pair.into_inner() {
+                    if inner_pair.as_rule() == Rule::text_val {
+                        date_vec.push(parse(inner_pair.as_str()).unwrap().naive_utc());
+                    }
+                }
+                return TypeOr::DateList(date_vec);
+            }
+            return date_list;
+        }
         Rule::TYPE => {
             let mut val: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
             for inner_pair in pair.into_inner() {
@@ -955,13 +990,20 @@ fn recursive_funcation_parser<'a>(
                     let mut isGTE = false;
                     let mut isLTE = false;
                     for compare_pair in inner_pair.clone().into_inner() {
-                        let ans = recursive_funcation_parser(
+                        let mut ans = recursive_funcation_parser(
                             compare_pair.clone(),
                             searcher.clone(),
                             schema.clone(),
                             formula_list.clone(),
                             formula.clone(),
                         );
+                        match ans.clone() {
+                            TypeOr::DateValue(val) => {
+                                ans = TypeOr::Right(val.and_utc().timestamp() as f64);
+                            }
+                            _ => {}
+                        }
+
                         if (is_left) {
                             left_answer = ans;
                             is_left = false;
@@ -1089,13 +1131,19 @@ fn recursive_funcation_parser<'a>(
                     let mut isGTE = false;
                     let mut isLTE = false;
                     for compare_pair in inner_pair.clone().into_inner() {
-                        let ans = recursive_funcation_parser(
+                        let mut ans = recursive_funcation_parser(
                             compare_pair.clone(),
                             searcher.clone(),
                             schema.clone(),
                             formula_list.clone(),
                             formula.clone(),
                         );
+                        match ans.clone() {
+                            TypeOr::DateValue(val) => {
+                                ans = TypeOr::Right(val.and_utc().timestamp() as f64);
+                            }
+                            _ => {}
+                        }
                         if (is_left) {
                             left_answer = ans;
                             is_left = false;
@@ -1119,6 +1167,10 @@ fn recursive_funcation_parser<'a>(
                             }
                         }
                     }
+
+                    if let (TypeOr::DateList(left_list), TypeOr::DateList(right_list)) =
+                        (left_answer.clone(), right_answer.clone())
+                    {}
 
                     if isEQ {
                         if let (TypeOr::RightList(left_list), TypeOr::Right(right_list)) =
@@ -1257,19 +1309,12 @@ fn recursive_funcation_parser<'a>(
                             formula_list.clone(),
                             formula.clone(),
                         );
-                        // match ans.clone() {
-                        //     TypeOr::Right(val) => {
-                        //         if compare_pair.as_rule() == Rule::number {
-                        //             ans = TypeOr::RightList([val].to_vec());
-                        //         }
-                        //     }
-                        //     TypeOr::Left(val) => {
-                        //         if compare_pair.as_rule() == Rule::text {
-                        //             ans = TypeOr::LeftList([val].to_vec());
-                        //         }
-                        //     }
-                        //     _ => {}
-                        // }
+                        match ans.clone() {
+                            TypeOr::DateValue(val) => {
+                                ans = TypeOr::Right(val.and_utc().timestamp() as f64);
+                            }
+                            _ => {}
+                        }
 
                         if (is_left) {
                             left_answer = ans;
@@ -1497,3 +1542,4 @@ fn search_data(
     }
     Ok(TypeOr::RightList(found_numbers_list))
 }
+//

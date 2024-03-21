@@ -1,116 +1,51 @@
 import { Checkbox } from "antd";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
-import {
-  formulaAtom,
-  selectedFormulaIdAtom,
-  selectedFormulaIdStore,
-  selectedFormulaTextAtom,
-} from "../../state/formula";
+import { formulaAtom, selectedFormulaIdAtom } from "../../state/formula";
 
 const Value = () => {
   const [allFormula, setAllForumula] = useAtom(formulaAtom);
-  const [selectedFormulaId] = useAtom(selectedFormulaIdAtom);
-  const [thisValueData, setThisValueData] = useState<
-    string | string[] | undefined
-  >();
-  const [thisFormula, setThisFormula] = useState<string | undefined>("");
-  const [isLocal, setIsLocal] = useState(false);
-  const [_, setLocalFormula] = useAtom(selectedFormulaTextAtom);
+  const selectedFormulaId = useAtomValue(selectedFormulaIdAtom);
 
-  useEffect(() => {
-    if (!selectedFormulaId) return;
-    const selectedFormula = allFormula.find((f) => f.id === selectedFormulaId);
-    if (!selectedFormula) return;
-    setThisValueData(
-      allFormula.find((f) => f.id === selectedFormulaId)?.value || ""
-    );
-  }, [selectedFormulaId, allFormula]);
+  const setFormulaText = (text: string) => {
+    const currentFormula = allFormula;
+    const changed = currentFormula.map((item) => {
+      if (item.id === selectedFormulaId) {
+        item.formula = text;
+      }
+      return item;
+    });
 
-  useEffect(() => {
-    if (!selectedFormulaId) return;
-    const selectedFormula = allFormula.find((f) => f.id === selectedFormulaId);
-    if (!selectedFormula) {
-      setThisValueData("");
-      setThisFormula("");
-    } else {
-      setThisFormula(selectedFormula.textFormula);
-      setIsLocal(selectedFormula.isLocal);
-    }
-  }, [selectedFormulaId]);
-
-  const onChangeFunction = (e: any) => {
-    if (!selectedFormulaId) return;
-    setLocalFormula({ isLocal: isLocal, text: e.target.value || "" });
-    setThisFormula(e.target.value || "");
-    const isIdInFormula = allFormula.find((f) => f.id === selectedFormulaId);
-
-    if (!isIdInFormula) {
-      const newFormula = {
-        id: selectedFormulaId,
-        textFormula: "",
-        value: "",
-        result: "",
-        isLocal: isLocal,
-      };
-      setAllForumula((old) => [...old, newFormula]);
-    } else {
-      setAllForumula((old) =>
-        old.map((f) => {
-          if (f.id === selectedFormulaId) {
-            return {
-              ...f,
-              textFormula: e.target.value || "",
-              result: "",
-              isLocal: isLocal,
-            };
-          }
-          return f;
-        })
-      );
-    }
+    return setAllForumula([...changed]);
   };
 
-  const setIsLocalInFormula = (isLocal: boolean) => {
-    if (!selectedFormulaId) return;
-    setIsLocal(isLocal);
-    setLocalFormula({ isLocal: isLocal, text: thisFormula || "" });
-    setAllForumula((old) =>
-      old.map((f) => {
-        if (f.id === selectedFormulaId) {
-          return {
-            ...f,
-            isLocal: isLocal,
-          };
-        }
-        return f;
-      })
-    );
-  };
+  const [displayValue, setDisplayValue] = useState("");
+  useEffect(() => {
+    if (selectedFormulaId) {
+      const formula = allFormula.find((item) => item.id === selectedFormulaId);
+      setDisplayValue(formula?.formula || "");
+    }
+  }, [allFormula, selectedFormulaId]);
+  useEffect(() => {
+    setFormulaText(displayValue);
+  }, [displayValue]);
 
   if (!selectedFormulaId) {
     return <p>Please Select Formula From Entries To Get Started</p>;
   }
+
   return (
     <div className="value">
       <div className="d-flex justify-between">
         <p>Formula</p>
-        <div>
-          <Checkbox
-            checked={isLocal}
-            onChange={(e) => setIsLocalInFormula(e.target.checked)}
-          >
-            Is Entry Specific
-          </Checkbox>
-        </div>
       </div>
       <textarea
         className="p-1"
-        value={thisFormula}
-        onChange={onChangeFunction}
+        value={displayValue}
+        onChange={(e) => {
+          setDisplayValue(e.target.value);
+        }}
       />
-      <div>Value</div>
-      <textarea className="p-1" value={thisValueData} disabled />
     </div>
   );
 };
