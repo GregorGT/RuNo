@@ -46,34 +46,44 @@ static mut FORMULA_LIST_CELL: Vec<html::formula> = vec![];
 //
 const LENGTH: i32 = 1;
 
-// const SINGLE_LINE_EXAMPLE: &str = r#"<p>hello test some 15.5</p><p>hello test some 16.2</p><p>eval some **<formula id="6f8b240b-196a-410d-893f-b5cbe1b769ff">MIN(EVAL("test some {NUMBER}"),177)</formula></p><hr><p>dasd</p><p>my name</p><p>my pc</p><p><formula id="fddde677-e326-4dcd-8333-f81fced7cce5">SUM(EVAL("eval some {NUMBER}"),1)</formula><formula id="fddde677-e326-4dcd-8533-981fced7cce5">TRIM(EVAL("my {TEXT}"))</formula></p><p>
-// <formula id="fddde677-e326-4dcd-8333-981fced7cce5">TRIM("one   ")</formula>
-// </p><p>
-// <formula id="f5dde677-e326-4dcd-8333-981fced7cce5">AVERAGE(EVAL("test some {NUMBER}"),177)</formula>
-// </p>"#;
-// const SINGLE_LINE_EXAMPLE: &str = r#"<p>hello test some 15</p><p>hello test some 16</p><hr><p><formula id="fddde677-e326-4dcd-8333-f81fced7cce2">SUM(EVAL("hello test some {NUMBER}"),1,EVAL("hello test some {NUMBER}"))</formula></p><p>dasd</p><p>dasdas</p><p><formula id="fddde677-e326-4dcd-8343-f81fced7cce5">SUM(EVAL("eval some {NUMBER}"),0)</formula></p><p>eval some <formula id="6f89240b-196a-410d-893f-b5cbe1b769fg">SUM(10,20)</formula></p>"#;
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd)]
+pub struct return_data {
+    formula_list: Vec<html::formula>,
+    parsed_text: String,
+}
 
-// SUM(EVAL(!"dog price {NUMBER}"))
-// const SINGLE_LINE_EXAMPLE: &str = r#"<p>hello test some 15</p><p>hello test some 16</p><p><formula id="f6d6ee64-2c7f-47df-a91e-641017824f3d">IFERROR(SUM(EVAL("hello test some {NUMBER}"))){SUM(1,2)}ELSE{SUM(1)}</formula><hr>"#;
 #[tauri::command]
-pub fn run_command(input: String) -> Vec<html::formula> {
+pub fn run_command(input: String) -> return_data {
     let SINGLE_LINE_EXAMPLE: &str = input.as_str();
     println!("Input: {:?}", SINGLE_LINE_EXAMPLE);
 
-    const simple_string: &str = r#"EVAL("new rust"."some text name")"#; //
+    let sortingFn = r#"SUM(EVAL(!"price dog {NUMBER}"))"#;
+
     let start_time = Instant::now();
 
-    const simple_string_veh_parameter: &str = r#"SUM(1)"#;
     let parsed_data: html::parse_html_return =
         html::parse_html(SINGLE_LINE_EXAMPLE.repeat(LENGTH as usize).as_str());
 
     let SEPARATED_DOCS = parsed_data.parsed_text;
+    let all_html = parsed_data.tags;
+
+    let sorting_formula_list = all_html
+        .clone()
+        .into_iter()
+        .enumerate()
+        .map(|(index, x)| html::convert_to_formula(sortingFn.to_string(), index as u64))
+        .collect::<Vec<html::formula>>();
+
     println!("Parsed Text: {:?}", SEPARATED_DOCS);
 
     let formula_list = parsed_data.formula_list;
     println!("Formula List: {:?}", formula_list.len());
     //SET GLOBAL LIST FOR FORMULA
     unsafe {
+        // merge formula list and sorting formula list
+        let mut formula_list = formula_list.clone();
+        formula_list.extend(sorting_formula_list.clone());
+
         FORMULA_LIST_CELL = formula_list.clone();
     }
 
@@ -152,8 +162,58 @@ pub fn run_command(input: String) -> Vec<html::formula> {
         "Time taken For Query: {:?}",
         end_query_time.duration_since(start_query_time)
     );
+
     unsafe {
-        return FORMULA_LIST_CELL.clone();
+        let mut only_sorting_functions = FORMULA_LIST_CELL
+            .clone()
+            .into_iter()
+            .filter(|x| x.isSorting)
+            .collect::<Vec<html::formula>>();
+
+        only_sorting_functions.sort_by(|a, b| {
+            let a = a.data.clone();
+            let b = b.data.clone();
+            match (a, b) {
+                (TypeOr::Right(a), TypeOr::Right(b)) => a.partial_cmp(&b).unwrap(),
+                (TypeOr::RightList(a), TypeOr::RightList(b)) => {
+                    let a = a.iter().sum::<f64>();
+                    let b = b.iter().sum::<f64>();
+                    a.partial_cmp(&b).unwrap()
+                }
+                (TypeOr::Left(a), TypeOr::Left(b)) => a.partial_cmp(&b).unwrap(),
+                (TypeOr::LeftList(a), TypeOr::LeftList(b)) => {
+                    let a = a.join("");
+                    let b = b.join("");
+                    a.partial_cmp(&b).unwrap()
+                }
+                (TypeOr::DateValue(a), TypeOr::DateValue(b)) => a.partial_cmp(&b).unwrap(),
+                (TypeOr::DateList(a), TypeOr::DateList(b)) => {
+                    let a = a.iter().map(|x| x.timestamp()).sum::<i64>();
+                    let b = b.iter().map(|x| x.timestamp()).sum::<i64>();
+                    a.partial_cmp(&b).unwrap()
+                }
+                _ => panic!("Error"),
+            }
+        });
+
+        println!("Sorted: {:?}", only_sorting_functions);
+        // sort based on the data
+
+        // re arrange the all_html based on the entry id on only_sorting_functions
+        let mut new_all_html = vec![];
+        // Clone all_html
+        for formula in only_sorting_functions {
+            // sort based on the entry id
+            // get the index element from all_html
+            let index = formula.entry as usize;
+
+            new_all_html.push(all_html.clone()[index].clone());
+        }
+
+        return_data {
+            formula_list: FORMULA_LIST_CELL.clone(),
+            parsed_text: new_all_html.join("<hr>"),
+        }
     }
 }
 
@@ -205,7 +265,7 @@ fn parse_string(
     Ok(TypeOr::None)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, PartialOrd)]
 enum TypeOr<S, T, Y> {
     Left(S),
     Right(T),
@@ -558,7 +618,7 @@ fn recursive_funcation_parser<'a>(
                                                 parse(&result["date"].to_string()).unwrap().naive_utc(),
                                             );
                                         }catch err {
-                                            // println!("Error: {:?}", err);
+                                            println!("Error: {:?}", err);
                                         }
                                         }
                                     }
@@ -901,14 +961,24 @@ fn recursive_funcation_parser<'a>(
             let mut date_vec: Vec<NaiveDateTime> = [].to_vec();
             if (len == 1) {
                 for inner_pair in pair.clone().into_inner() {
-                    if inner_pair.as_rule() == Rule::text_val {
-                        return TypeOr::DateValue(parse(inner_pair.as_str()).unwrap().naive_utc());
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                return TypeOr::DateValue(
+                                    parse(inner_pair.as_str()).unwrap().naive_utc(),
+                                );
+                            }
+                        }
                     }
                 }
             } else {
                 for inner_pair in pair.into_inner() {
-                    if inner_pair.as_rule() == Rule::text_val {
-                        date_vec.push(parse(inner_pair.as_str()).unwrap().naive_utc());
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                date_vec.push(parse(inner_pair.as_str()).unwrap().naive_utc());
+                            }
+                        }
                     }
                 }
                 return TypeOr::DateList(date_vec);

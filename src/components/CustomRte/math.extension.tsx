@@ -35,7 +35,7 @@ export default Node.create({
                   ...allFormula,
                   {
                     id: element.getAttribute("id") || "",
-                    data: "",
+                    data: element.getAttribute("data") || "",
                     formula: element.getAttribute("formula") || "",
                   },
                 ],

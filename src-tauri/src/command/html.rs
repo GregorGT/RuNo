@@ -2,12 +2,12 @@ use std::borrow::{Borrow, BorrowMut};
 use std::default::Default;
 use std::{clone, io, result, vec};
 
+use crate::command::TypeOr;
 use chrono::NaiveDateTime;
 use html5ever::tendril::TendrilSink;
 use html5ever::{parse_document, QualName};
 use rcdom::{Handle, NodeData, RcDom};
-
-use crate::command::TypeOr;
+use uuid::Uuid;
 
 fn walk(
     handle: &Handle,
@@ -58,6 +58,7 @@ fn walk(
                     entry: entry,
                     id: id.clone(),
                     data: TypeOr::NotCalculated,
+                    isSorting: false,
                 });
 
                 return vec![id.to_string()];
@@ -85,13 +86,14 @@ fn walk(
     }
     result
 }
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd)]
 pub struct formula {
     pub line: u64,
     pub formula: String,
     pub entry: u64,
     pub id: String,
     pub data: TypeOr<String, f64, NaiveDateTime>,
+    pub isSorting: bool,
 }
 
 impl Clone for formula {
@@ -102,6 +104,7 @@ impl Clone for formula {
             entry: self.entry,
             id: self.id.clone(),
             data: self.data.clone(),
+            isSorting: self.isSorting,
         }
     }
 }
@@ -109,6 +112,18 @@ impl Clone for formula {
 pub struct parse_html_return {
     pub parsed_text: Vec<Vec<String>>,
     pub formula_list: Vec<formula>,
+    pub tags: Vec<String>,
+}
+
+pub fn convert_to_formula(formula: String, entry_no: u64) -> formula {
+    return formula {
+        line: 0,
+        formula: formula,
+        entry: entry_no,
+        id: Uuid::new_v4().to_string(),
+        data: TypeOr::NotCalculated,
+        isSorting: true,
+    };
 }
 
 pub fn parse_html(html: &str) -> parse_html_return {
@@ -133,5 +148,6 @@ pub fn parse_html(html: &str) -> parse_html_return {
     parse_html_return {
         parsed_text,
         formula_list,
+        tags: tags.iter().map(|x| x.to_string()).collect(),
     }
 }

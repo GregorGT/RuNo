@@ -32,6 +32,7 @@ round = "0.1.2"
 chrono = "0.4.35"
 dateparser = "0.2.1"
 try-catch = "0.2.2"
+uuid = "1.8.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
