@@ -26,6 +26,7 @@ import {
   Divider,
   Button as IconButton,
   Select,
+  Switch,
 } from "antd";
 import { useAtom, useAtomValue } from "jotai";
 import { nanoid } from "nanoid";
@@ -51,6 +52,55 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   if (!editor) {
     return null;
   }
+  const [filteredEditorData, setFilteredEditorData] = useState<string>("");
+  const [normailEditorData, setNormalEditorData] = useState<string>("");
+
+  const load_data_to_backend = async () => {
+    const return_data = (await invoke("run_command", {
+      input: editor.getHTML(),
+    })) as unknown;
+    console.log(return_data);
+
+    if (
+      !return_data ||
+      typeof return_data !== "object" ||
+      !("formula_list" in return_data) ||
+      !("parsed_text" in return_data) ||
+      typeof return_data.parsed_text !== "string"
+    )
+      return;
+
+    editor.commands.setContent(return_data.parsed_text, true);
+
+    const formulas = return_data?.formula_list;
+    if (Array.isArray(formulas)) {
+      // ret?.map((item: any) => {
+      //   if (item.id && item.data && document) {
+      //     const element = document.getElementById(item.id);
+      //     if (element) element.innerText = item.data;
+      //   }
+      // });
+      const formula = formulaStore.getState();
+      formulaStore.setState(
+        [
+          ...formula.map((item) => {
+            const newItem = formulas.find((r: any) => r.id === item.id);
+            if (newItem) {
+              return {
+                ...item,
+                data: newItem.data,
+              };
+            }
+            return item;
+          }),
+        ],
+        true
+      );
+
+      // focus back to the editor
+      editor.commands.focus();
+    }
+  };
 
   return (
     <div
@@ -59,54 +109,9 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         margin: "20px",
       }}
     >
-      <Button
-        onClick={async () => {
-          const return_data = (await invoke("run_command", {
-            input: editor.getHTML(),
-          })) as unknown;
-          if (
-            !return_data ||
-            typeof return_data !== "object" ||
-            !("formula_list" in return_data) ||
-            !("parsed_text" in return_data) ||
-            typeof return_data.parsed_text !== "string"
-          )
-            return;
+      <Button onClick={load_data_to_backend}>Load Data</Button>
+      <Switch onChange={(checked) => {}} />
 
-          editor.commands.setContent(return_data.parsed_text, true);
-
-          const formulas = return_data?.formula_list;
-          if (Array.isArray(formulas)) {
-            // ret?.map((item: any) => {
-            //   if (item.id && item.data && document) {
-            //     const element = document.getElementById(item.id);
-            //     if (element) element.innerText = item.data;
-            //   }
-            // });
-            const formula = formulaStore.getState();
-            formulaStore.setState(
-              [
-                ...formula.map((item) => {
-                  const newItem = formulas.find((r: any) => r.id === item.id);
-                  if (newItem) {
-                    return {
-                      ...item,
-                      data: newItem.data,
-                    };
-                  }
-                  return item;
-                }),
-              ],
-              true
-            );
-
-            // focus back to the editor
-            editor.commands.focus();
-          }
-        }}
-      >
-        Load Data
-      </Button>
       <Button
         onClick={async () => {
           const html2 = `<p>price dog 10</p><p>price dog 20</p><p></p><hr><p>ID: 1</p><p>price dog 10</p><p><formula id="e04b3496-dc9f-414c-b99f-8bd698aef573" formula="SUM(EVAL(&quot;ID: 1&quot;.&quot;price dog {NUMBER}&quot;))" value="" result="" data="10" data-type="math-component"></formula></p><p><formula id="d48956a1-c04e-42e0-8c52-0a974e1d1778" formula="MUL(EVAL(!&quot;price dog {NUMBER}&quot;),10)" value="" result="" data="100" data-type="math-component"></formula></p><p></p>`;

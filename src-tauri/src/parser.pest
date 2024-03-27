@@ -10,7 +10,7 @@ EVAL            =  { "EVAL(" ~ CHAIN_PATTREN+ ~ ")" }
 SUM             =  { "SUM(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
 MUL             =  { "MUL(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
 COMPARATOR_SIGN =  { "="  | "<=" | ">=" | ">"| "<" }
-COMPARATOR = { (DATE | Fn ) ~ WHITESPACE* ~ COMPARATOR_SIGN ~ WHITESPACE* ~ (Fn | number | text | DATE) }
+COMPARATOR = { ( Fn | DATE ) ~ WHITESPACE* ~ COMPARATOR_SIGN ~ WHITESPACE* ~ (Fn | number | text | DATE) }
 
 COMPARATOR_COUNT = { (Fn | number | text | DATE) ~ WHITESPACE* ~ COMPARATOR_SIGN ~ WHITESPACE* ~ (number |text |DATE) }
 
