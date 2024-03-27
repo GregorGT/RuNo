@@ -4,9 +4,11 @@ use std::{clone, io, result, vec};
 
 use crate::command::TypeOr;
 use chrono::NaiveDateTime;
+use html5ever::parse_document;
+use html5ever::serialize::SerializeOpts;
 use html5ever::tendril::TendrilSink;
-use html5ever::{parse_document, QualName};
-use rcdom::{Handle, NodeData, RcDom};
+use rcdom::{Handle, NodeData, RcDom, SerializableHandle};
+use scraper::html;
 use uuid::Uuid;
 
 fn walk(
@@ -112,10 +114,16 @@ impl Clone for formula {
     }
 }
 
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd, Clone)]
+pub struct entry_data {
+    pub entry: u64,
+    pub ids: Vec<String>,
+}
 pub struct parse_html_return {
-    pub parsed_text: Vec<Vec<String>>,
+    pub parsed_text: Vec<entry_data>,
     pub formula_list: Vec<formula>,
     pub tags: Vec<String>,
+    pub index_data: Vec<Vec<String>>,
 }
 
 pub fn convert_to_sorting_formula(formula: String, entry_no: u64) -> formula {
@@ -140,54 +148,103 @@ pub fn convert_to_filter_formula(formula: String, entry_no: u64) -> formula {
         isFilter: true,
     };
 }
+use std::collections::HashSet;
+
+pub static mut ENTRY_LIST: Vec<entry_data> = vec![];
+
+fn extract_hr_ids_recursive(node: Handle, hr_ids: &mut HashSet<String>) {
+    let node_data = node.data.borrow();
+    if let NodeData::Element { name, attrs, .. } = &*node_data {
+        if name.local.to_lowercase() == "hr" {
+            for attr in attrs.borrow().iter() {
+                unsafe {
+                    ENTRY_LIST.push(entry_data {
+                        entry: ENTRY_LIST.len() as u64,
+                        ids: vec![],
+                    });
+                }
+            }
+        } else if name.local.to_lowercase() == "head"
+            || name.local.to_lowercase() == "body"
+            || name.local.to_lowercase() == "html"
+        {
+            // do nothing
+        } else {
+            // remove <head></head> <body></body> tags
+            // data = data.replace("<head></head>", "");
+
+            // println!("Data: {:?}", bytes);
+            // convert bytes to string
+
+            if (name.local.to_lowercase() == "p" || name.local.to_lowercase() == "div") {
+                unsafe {
+                    //find id from attributes
+                    let mut id = "".to_string();
+                    for attr in attrs.borrow().iter() {
+                        if attr.name.local.to_lowercase() == "id" {
+                            id = attr.value.to_string();
+                        }
+                    }
+
+                    if (id.len() > 0) {
+                        ENTRY_LIST.last_mut().unwrap().ids.push(id);
+                    }
+                }
+            }
+        }
+    }
+
+    for child in node.children.borrow().iter() {
+        extract_hr_ids_recursive(child.clone(), hr_ids);
+    }
+}
 
 pub fn parse_html(html: &str) -> parse_html_return {
-    // split the html by <hr> tag
-    // split by <hr> <hr/> and <hr />
+    unsafe {
+        ENTRY_LIST = vec![];
+    }
 
+    let dom = parse_document(RcDom::default(), Default::default()).one(html.to_string());
+
+    // Extract <hr> tag IDs recursively
+    let mut hr_ids = HashSet::new();
+    extract_hr_ids_recursive(dom.document, &mut hr_ids);
+
+    // Print the extracted IDs
+    println!("Extracted HR IDs: {:?}", hr_ids);
+
+    // ///////////////////
     let delimiters = ["<hr>", "<hr/>", "<hr />", "<hr class=\"hidden\">"];
     let final_string: String;
 
-    // split by <hr> <hr/> and <hr /> or <hr class="hidden">
+    let saperated_hr = parse_document(RcDom::default(), Default::default()).one(html.to_string());
+    // let tag_data = vec![];
 
-    // let mut tags = Vec::new();
-
-    // let mut current_word = String::new();
-
-    // for c in html.chars() {
-    //     let c_str = c.to_string();
-    //     if delimiters.contains(&c_str.as_str()) {
-    //         if !current_word.is_empty() {
-    //             tags.push(current_word.clone());
-    //             current_word.clear();
-    //         }
-    //     } else {
-    //         current_word.push(c);
-    //     }
-    // }
-
-    // if !current_word.is_empty() {
-    //     tags.push(current_word);
-    // }
-
-    // println!("{:?}", tags.len());
-
-    let tags = html.split("<hr>").collect::<Vec<&str>>();
-
-    let mut parsed_text = vec![];
     let mut formula_list: Vec<formula> = vec![];
+    let mut index_data = vec![];
     let mut entry = 0;
-    for tag in tags.iter() {
-        let mut line = 0;
-        let dom = parse_document(RcDom::default(), Default::default()).one(tag.to_string());
-        let final_data = walk(&dom.document, false, &mut formula_list, &mut line, entry);
-        parsed_text.push(final_data);
-        entry += 1;
+    let mut tags = html.split("<hr>").collect::<Vec<&str>>();
+
+    unsafe {
+        for tag in tags.iter() {
+            let mut line = 0;
+            let dom = parse_document(RcDom::default(), Default::default()).one(tag.to_string());
+            let final_data = walk(&dom.document, false, &mut formula_list, &mut line, entry);
+            index_data.push(final_data);
+            entry += 1;
+        }
     }
 
-    parse_html_return {
-        parsed_text,
-        formula_list,
-        tags: tags.iter().map(|x| x.to_string()).collect(),
+    unsafe {
+        println!("Entry List: {:?}", ENTRY_LIST);
+    }
+
+    unsafe {
+        parse_html_return {
+            parsed_text: ENTRY_LIST.clone(),
+            formula_list,
+            tags: tags.iter().map(|x| x.to_string()).collect(),
+            index_data,
+        }
     }
 }

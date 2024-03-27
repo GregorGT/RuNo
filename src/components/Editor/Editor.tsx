@@ -38,6 +38,8 @@ import MathComponent from "../CustomRte/math.extension";
 import { tableAcions, textStyle } from "./const";
 import { v4 } from "uuid";
 import { invoke } from "@tauri-apps/api/tauri";
+//@ts-ignore
+import UniqueId from "tiptap-unique-id";
 
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const [loadEditor] = useAtom(loadEditorAtom);
@@ -282,6 +284,28 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 };
 
 const extensions = [
+  UniqueId.configure({
+    attributeName: "id",
+    types: [
+      "paragraph",
+      "heading",
+      "orderedList",
+      "bulletList",
+      "listItem",
+      "mathComponent",
+      "table",
+      "tableRow",
+      "tableCell",
+      "tableHeader",
+      "horizontalRule",
+      "bold",
+      "italic",
+      "underline",
+      "textStyle",
+      "highlight",
+    ],
+    createId: () => window.crypto.randomUUID(),
+  }),
   Color.configure({ types: [TextStyle.name] }),
   //@ts-ignore
   TextStyle.configure(),

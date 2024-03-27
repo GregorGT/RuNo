@@ -37,6 +37,8 @@ use tantivy::{doc, Directory, DocAddress, Index, ReloadPolicy, Result};
 use tantivy::{schema::*, Searcher};
 use try_catch::catch;
 
+use self::html::entry_data;
+
 mod documents;
 mod html;
 mod utils;
@@ -49,17 +51,20 @@ const LENGTH: i32 = 1;
 #[derive(Debug, serde::Serialize, PartialEq, PartialOrd)]
 pub struct return_data {
     formula_list: Vec<html::formula>,
-    parsed_text: String,
+    sorted: String,
+    filtered: String,
 }
+
+static mut ENTRY_DATA: Vec<entry_data> = vec![];
 
 #[tauri::command]
 pub fn run_command(input: String) -> return_data {
     let SINGLE_LINE_EXAMPLE: &str = input.as_str();
     println!("Input: {:?}", SINGLE_LINE_EXAMPLE);
 
-    let sortingFn = r#"EVAL(!"ID: {NUMBER}")"#;
-    let inputFilterFn = r#"EVAL(!"ID: {NUMBER}") = 1"#;
-    let filterFn = format!("IF({}){{SUM(1)}}ELSE{{SUM(2)}}", inputFilterFn);
+    let mut sorting_fn = r#"EVAL(!"ID: {NUMBER}")"#;
+    let input_filter_fn = r#"EVAL(!"ID: {NUMBER}") = 1"#;
+    let filterFn = format!("IF({}){{SUM(1)}}ELSE{{SUM(2)}}", input_filter_fn);
     println!("Filter: {:?}", filterFn);
 
     let start_time = Instant::now();
@@ -68,21 +73,42 @@ pub fn run_command(input: String) -> return_data {
         html::parse_html(SINGLE_LINE_EXAMPLE.repeat(LENGTH as usize).as_str());
 
     let SEPARATED_DOCS = parsed_data.parsed_text;
+
+    unsafe {
+        ENTRY_DATA = SEPARATED_DOCS
+        // .clone()
+        // .into_iter()
+        // .enumerate()
+        // .map(|(index, x)| entry_data {
+        //     entry: index as u64,
+        //     nodes: x,
+        // })
+        // .collect::<Vec<entry_data>>();
+    }
+
     let all_html = parsed_data.tags;
+    let mut sorting_formula_list = vec![];
 
-    let sorting_formula_list = all_html
-        .clone()
-        .into_iter()
-        .enumerate()
-        .map(|(index, x)| html::convert_to_sorting_formula(sortingFn.to_string(), index as u64))
-        .collect::<Vec<html::formula>>();
+    if sorting_fn.trim().len() > 1 {
+        sorting_formula_list = all_html
+            .clone()
+            .into_iter()
+            .enumerate()
+            .map(|(index, x)| {
+                html::convert_to_sorting_formula(sorting_fn.to_string(), index as u64)
+            })
+            .collect::<Vec<html::formula>>();
+    }
+    let mut filter_formula_list = vec![];
 
-    let filter_formula_list = all_html
-        .clone()
-        .into_iter()
-        .enumerate()
-        .map(|(index, x)| html::convert_to_filter_formula(filterFn.to_string(), index as u64))
-        .collect::<Vec<html::formula>>();
+    if input_filter_fn.trim().len() > 1 {
+        filter_formula_list = all_html
+            .clone()
+            .into_iter()
+            .enumerate()
+            .map(|(index, x)| html::convert_to_filter_formula(filterFn.to_string(), index as u64))
+            .collect::<Vec<html::formula>>();
+    }
 
     let formula_list = parsed_data.formula_list;
     //SET GLOBAL LIST FOR FORMULA
@@ -117,7 +143,16 @@ pub fn run_command(input: String) -> return_data {
     // START INDEXING
     let start_time = Instant::now();
     // let separated_docs = documents::break_html(EXAMPLE.repeat(LENGTH as usize).as_str());
-    let _ = documents::add_inital_docs(ram_dir.to_owned(), SEPARATED_DOCS);
+    unsafe {
+        let _ = documents::add_inital_docs(
+            ram_dir.to_owned(),
+            parsed_data
+                .index_data
+                .clone()
+                .into_iter()
+                .collect::<Vec<Vec<String>>>(),
+        );
+    }
 
     ram_dir
         .persist(&MmapDirectory::open(Path::new("data")).unwrap())
@@ -250,7 +285,8 @@ pub fn run_command(input: String) -> return_data {
         println!("Final HTML: {:?}", final_html);
         return_data {
             formula_list: FORMULA_LIST_CELL.clone(),
-            parsed_text: final_html,
+            sorted: final_html,
+            filtered: "".to_string(),
         }
     }
 }
