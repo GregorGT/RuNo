@@ -16,6 +16,7 @@ pub fn get_repositories_for_authenticated_user(token: &str) -> APIResult<Vec<Rep
 }
 
 use std::borrow::{Borrow, BorrowMut};
+use std::collections::LinkedList;
 use std::marker::PhantomData;
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 use std::time::Instant;
@@ -44,7 +45,7 @@ mod html;
 mod utils;
 
 static mut FORMULA_LIST_CELL: Vec<html::formula> = vec![];
-
+pub static mut ORIGINAL_DOC_ID_LIST: LinkedList<String> = LinkedList::new();
 //
 const LENGTH: i32 = 1;
 
@@ -74,19 +75,10 @@ pub fn run_command(input: String) -> return_data {
 
     let SEPARATED_DOCS = parsed_data.parsed_text;
 
-    unsafe {
-        ENTRY_DATA = SEPARATED_DOCS
-        // .clone()
-        // .into_iter()
-        // .enumerate()
-        // .map(|(index, x)| entry_data {
-        //     entry: index as u64,
-        //     nodes: x,
-        // })
-        // .collect::<Vec<entry_data>>();
-    }
+    unsafe { ENTRY_DATA = SEPARATED_DOCS }
 
     let all_html = parsed_data.tags;
+    println!("All HTML: {:?}", all_html);
     let mut sorting_formula_list = vec![];
 
     if sorting_fn.trim().len() > 1 {
@@ -117,6 +109,7 @@ pub fn run_command(input: String) -> return_data {
         let mut formula_list = formula_list.clone();
         formula_list.extend(sorting_formula_list.clone());
         formula_list.extend(filter_formula_list.clone());
+        println!("Formula List: {:?}", formula_list);
         FORMULA_LIST_CELL = formula_list.clone();
     }
 
@@ -206,7 +199,7 @@ pub fn run_command(input: String) -> return_data {
     );
 
     unsafe {
-        println!("Formula List: {:?}", FORMULA_LIST_CELL);
+        println!("Formula List: {:?}", FORMULA_LIST_CELL.len());
 
         let mut only_sorting_functions = FORMULA_LIST_CELL
             .clone()
@@ -249,7 +242,6 @@ pub fn run_command(input: String) -> return_data {
 
         // re arrange the all_html based on the entry id on only_sorting_functions
         let mut new_all_html = vec![];
-        let mut hr_class = vec![];
         // Clone all_html
         for formula in only_sorting_functions {
             // sort based on the entry id
@@ -259,33 +251,11 @@ pub fn run_command(input: String) -> return_data {
             new_all_html.push(all_html.clone()[index].clone());
             let mut is_hidden = false;
             //
-            only_filter_functions.iter().for_each(|x| {
-                if x.entry == formula.entry {
-                    println!("Hidden: {:?}", x.data);
-                    if x.data == TypeOr::Right(1.0) {
-                        is_hidden = true;
-                    }
-                }
-            });
-            hr_class.push(if is_hidden {
-                "<hr class=\"hidden\">"
-            } else {
-                "<hr>"
-            });
         }
 
-        let mut final_html = "".to_string();
-        for (index, x) in new_all_html.iter().enumerate() {
-            final_html += x;
-            if index != new_all_html.len() - 1 {
-                final_html += hr_class[index];
-            }
-        }
-
-        println!("Final HTML: {:?}", final_html);
         return_data {
             formula_list: FORMULA_LIST_CELL.clone(),
-            sorted: final_html,
+            sorted: "".to_string(),
             filtered: "".to_string(),
         }
     }
@@ -1584,6 +1554,7 @@ fn recursive_funcation_parser<'a>(
 
         rule => {
             println!("Unreachable Rule {:?}", rule);
+            println!("Unreachable Rule {:?}", pair.as_str());
             return TypeOr::None;
         }
     }

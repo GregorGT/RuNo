@@ -40,6 +40,8 @@ import { v4 } from "uuid";
 import { invoke } from "@tauri-apps/api/tauri";
 //@ts-ignore
 import UniqueId from "tiptap-unique-id";
+import Document from "@tiptap/extension-document";
+import HorizontalRule from "@tiptap/extension-horizontal-rule";
 
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const [loadEditor] = useAtom(loadEditorAtom);
@@ -58,21 +60,22 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const [normailEditorData, setNormalEditorData] = useState<string>("");
 
   const load_data_to_backend = async () => {
+    console.log(editor.getHTML());
     const return_data = (await invoke("run_command", {
       input: editor.getHTML(),
     })) as unknown;
-    console.log(return_data);
 
+    console.log(return_data);
     if (
       !return_data ||
       typeof return_data !== "object" ||
-      !("formula_list" in return_data) ||
-      !("parsed_text" in return_data) ||
-      typeof return_data.parsed_text !== "string"
+      !("formula_list" in return_data)
+      // !("parsed_text" in return_data) ||
+      // typeof return_data.parsed_text !== "string"
     )
       return;
 
-    editor.commands.setContent(return_data.parsed_text, true);
+    // editor.commands.setContent(return_data.parsed_text, true); TODO
 
     const formulas = return_data?.formula_list;
     if (Array.isArray(formulas)) {
@@ -83,17 +86,16 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       //   }
       // });
       const formula = formulaStore.getState();
+
       formulaStore.setState(
         [
           ...formula.map((item) => {
             const newItem = formulas.find((r: any) => r.id === item.id);
-            if (newItem) {
-              return {
-                ...item,
-                data: newItem.data,
-              };
-            }
-            return item;
+            console.log(newItem);
+            return {
+              ...item,
+              data: newItem.data,
+            };
           }),
         ],
         true
@@ -283,7 +285,40 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   );
 };
 
+const CustomDocument = Document.extend({
+  content: "horizontalRule block*",
+});
+const customHr = HorizontalRule.extend({
+  addNodeView() {
+    return ({
+      editor,
+      node,
+      getPos,
+      HTMLAttributes,
+      decorations,
+      extension,
+    }) => {
+      const template = document.createElement("template");
+
+      const dom = document.createElement("hr");
+      //set all the attributes to the dom element
+      Object.entries(HTMLAttributes).forEach(([key, value]) => {
+        dom.setAttribute(key, value);
+      });
+      const div = document.createElement("div");
+      template.innerHTML = `${dom.outerHTML + div.outerHTML}`;
+      const sibling = document.createElement("div");
+      let childs = template.content.childNodes;
+      ///dom set sibling to the hr
+
+      return {
+        dom,
+      };
+    };
+  },
+});
 const extensions = [
+  HorizontalRule,
   UniqueId.configure({
     attributeName: "id",
     types: [
@@ -306,6 +341,8 @@ const extensions = [
     ],
     createId: () => window.crypto.randomUUID(),
   }),
+  CustomDocument,
+
   Color.configure({ types: [TextStyle.name] }),
   //@ts-ignore
   TextStyle.configure(),
@@ -313,6 +350,8 @@ const extensions = [
     bulletList: false,
     listItem: false,
     orderedList: false,
+    document: false,
+    horizontalRule: false,
   }),
   Highlight.configure({ multicolor: true }),
   FontFamily,
@@ -352,10 +391,12 @@ export default function Editor({
     <div>
       <EditorProvider
         onUpdate={({ editor }) => {
-          setLocalEditorState(editor.getHTML());
-          setEditorState((state) => {
-            return { ...state, [editorName]: editor.getJSON() };
-          });
+          // setLocalEditorState(editor.getHTML());
+          // setEditorState((state) => {
+          //   return { ...state, [editorName]: editor.getJSON() };
+          // });
+          
+
         }}
         editorProps={{
           attributes: {

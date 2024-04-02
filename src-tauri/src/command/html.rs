@@ -2,13 +2,15 @@ use std::borrow::{Borrow, BorrowMut};
 use std::default::Default;
 use std::{clone, io, result, vec};
 
-use crate::command::TypeOr;
+use crate::command::{TypeOr, ORIGINAL_DOC_ID_LIST};
 use chrono::NaiveDateTime;
 use html5ever::parse_document;
-use html5ever::serialize::SerializeOpts;
+use html5ever::serialize::{Serialize, SerializeOpts, TraversalScope};
 use html5ever::tendril::TendrilSink;
-use rcdom::{Handle, NodeData, RcDom, SerializableHandle};
+use rcdom::{Handle, Node, NodeData, RcDom, SerializableHandle};
 use scraper::html;
+use std::collections::LinkedList;
+use tauri::utils::html::NodeRef;
 use uuid::Uuid;
 
 fn walk(
@@ -122,7 +124,7 @@ pub struct entry_data {
 pub struct parse_html_return {
     pub parsed_text: Vec<entry_data>,
     pub formula_list: Vec<formula>,
-    pub tags: Vec<String>,
+    pub tags: Vec<Vec<String>>,
     pub index_data: Vec<Vec<String>>,
 }
 
@@ -148,54 +150,57 @@ pub fn convert_to_filter_formula(formula: String, entry_no: u64) -> formula {
         isFilter: true,
     };
 }
-use std::collections::HashSet;
 
 pub static mut ENTRY_LIST: Vec<entry_data> = vec![];
 
-fn extract_hr_ids_recursive(node: Handle, hr_ids: &mut HashSet<String>) {
+pub fn extract_all_ids_recursive(
+    node: &Handle,
+    ids: &mut LinkedList<String>,
+    tags: &mut Vec<Vec<String>>,
+) {
     let node_data = node.data.borrow();
+
     if let NodeData::Element { name, attrs, .. } = &*node_data {
-        if name.local.to_lowercase() == "hr" {
+        /// valids tags are p ,div, hr, span, table
+        let valid_tags = ["p", "div", "hr", "span", "table", "formula"];
+
+        if valid_tags.contains(&&*name.local.to_lowercase().as_str()) {
             for attr in attrs.borrow().iter() {
-                unsafe {
-                    ENTRY_LIST.push(entry_data {
-                        entry: ENTRY_LIST.len() as u64,
-                        ids: vec![],
-                    });
+                if attr.name.local.to_lowercase() == "id" {
+                    ids.push_back(attr.value.to_string());
                 }
             }
-        } else if name.local.to_lowercase() == "head"
-            || name.local.to_lowercase() == "body"
-            || name.local.to_lowercase() == "html"
-        {
-            // do nothing
-        } else {
-            // remove <head></head> <body></body> tags
-            // data = data.replace("<head></head>", "");
 
-            // println!("Data: {:?}", bytes);
-            // convert bytes to string
-
-            if (name.local.to_lowercase() == "p" || name.local.to_lowercase() == "div") {
-                unsafe {
-                    //find id from attributes
-                    let mut id = "".to_string();
-                    for attr in attrs.borrow().iter() {
-                        if attr.name.local.to_lowercase() == "id" {
-                            id = attr.value.to_string();
-                        }
-                    }
-
-                    if (id.len() > 0) {
-                        ENTRY_LIST.last_mut().unwrap().ids.push(id);
-                    }
-                }
+            if name.local.to_lowercase() == "hr" {
+                tags.push(vec![]);
             }
+
+            // if tag is p get html content
+            // get html content
+            let mut dom = RcDom::default();
+            dom.document
+                .borrow_mut()
+                .children
+                .borrow_mut()
+                .push(node.clone());
+
+            let mut bytes = vec![];
+            html5ever::serialize::serialize::<_, SerializableHandle>(
+                &mut bytes,
+                &SerializableHandle::from(dom.document), // Fix: Pass a reference to dom.document
+                SerializeOpts::default(),
+            )
+            .unwrap();
+
+            //convert bytes to stirng
+            let data = String::from_utf8(bytes).unwrap();
+
+            //push to the last on tagss
+            tags.last_mut().unwrap().push(data);
         }
     }
-
     for child in node.children.borrow().iter() {
-        extract_hr_ids_recursive(child.clone(), hr_ids);
+        extract_all_ids_recursive(child, ids, tags);
     }
 }
 
@@ -206,29 +211,24 @@ pub fn parse_html(html: &str) -> parse_html_return {
 
     let dom = parse_document(RcDom::default(), Default::default()).one(html.to_string());
 
-    // Extract <hr> tag IDs recursively
-    let mut hr_ids = HashSet::new();
-    extract_hr_ids_recursive(dom.document, &mut hr_ids);
-
-    // Print the extracted IDs
-    println!("Extracted HR IDs: {:?}", hr_ids);
+    let mut linkdlist = LinkedList::new();
+    let mut tags: Vec<Vec<String>> = vec![];
+    extract_all_ids_recursive(&dom.document, &mut linkdlist, &mut tags);
 
     // ///////////////////
-    let delimiters = ["<hr>", "<hr/>", "<hr />", "<hr class=\"hidden\">"];
-    let final_string: String;
 
-    let saperated_hr = parse_document(RcDom::default(), Default::default()).one(html.to_string());
     // let tag_data = vec![];
+    println!("{:?}", tags);
 
     let mut formula_list: Vec<formula> = vec![];
     let mut index_data = vec![];
     let mut entry = 0;
-    let mut tags = html.split("<hr>").collect::<Vec<&str>>();
 
     unsafe {
         for tag in tags.iter() {
             let mut line = 0;
-            let dom = parse_document(RcDom::default(), Default::default()).one(tag.to_string());
+            let dom =
+                parse_document(RcDom::default(), Default::default()).one(tag.concat().to_string());
             let final_data = walk(&dom.document, false, &mut formula_list, &mut line, entry);
             index_data.push(final_data);
             entry += 1;
@@ -236,14 +236,14 @@ pub fn parse_html(html: &str) -> parse_html_return {
     }
 
     unsafe {
-        println!("Entry List: {:?}", ENTRY_LIST);
+        ORIGINAL_DOC_ID_LIST = linkdlist.clone();
     }
 
     unsafe {
         parse_html_return {
             parsed_text: ENTRY_LIST.clone(),
             formula_list,
-            tags: tags.iter().map(|x| x.to_string()).collect(),
+            tags: tags,
             index_data,
         }
     }
