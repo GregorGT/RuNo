@@ -153,9 +153,15 @@ pub fn convert_to_filter_formula(formula: String, entry_no: u64) -> formula {
 
 pub static mut ENTRY_LIST: Vec<entry_data> = vec![];
 
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd, Clone)]
+pub struct list_ids {
+    pub ids: LinkedList<String>,
+    pub entry: u64,
+}
+
 pub fn extract_all_ids_recursive(
     node: &Handle,
-    ids: &mut LinkedList<String>,
+    ids: &mut LinkedList<list_ids>,
     tags: &mut Vec<Vec<String>>,
 ) {
     let node_data = node.data.borrow();
@@ -165,16 +171,25 @@ pub fn extract_all_ids_recursive(
         let valid_tags = ["p", "div", "hr", "span", "table", "formula"];
 
         if valid_tags.contains(&&*name.local.to_lowercase().as_str()) {
-            for attr in attrs.borrow().iter() {
-                if attr.name.local.to_lowercase() == "id" {
-                    ids.push_back(attr.value.to_string());
-                }
-            }
-
             if name.local.to_lowercase() == "hr" {
                 tags.push(vec![]);
+                ids.push_back({
+                    list_ids {
+                        ids: LinkedList::new(),
+                        entry: ids.len() as u64,
+                    }
+                })
             }
 
+            for attr in attrs.borrow().iter() {
+                if attr.name.local.to_lowercase() == "id" {
+                    ids.back_mut()
+                        .unwrap()
+                        .ids
+                        .push_back(attr.value.to_string());
+                    // ids.push_back(attr.value.to_string());
+                }
+            }
             // if tag is p get html content
             // get html content
             let mut dom = RcDom::default();
@@ -236,7 +251,7 @@ pub fn parse_html(html: &str) -> parse_html_return {
     }
 
     unsafe {
-        ORIGINAL_DOC_ID_LIST = linkdlist.clone();
+        ORIGINAL_DOC_ID_LIST = linkdlist;
     }
 
     unsafe {

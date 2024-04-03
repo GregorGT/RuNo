@@ -13,6 +13,7 @@ function App() {
         <Entries />
         <TabComponent />
       </div>
+      <style id="editor_styles"></style>
     </div>
   );
 }

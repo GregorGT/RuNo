@@ -38,14 +38,14 @@ use tantivy::{doc, Directory, DocAddress, Index, ReloadPolicy, Result};
 use tantivy::{schema::*, Searcher};
 use try_catch::catch;
 
-use self::html::entry_data;
+use self::html::{entry_data, list_ids};
 
 mod documents;
 mod html;
 mod utils;
 
 static mut FORMULA_LIST_CELL: Vec<html::formula> = vec![];
-pub static mut ORIGINAL_DOC_ID_LIST: LinkedList<String> = LinkedList::new();
+pub static mut ORIGINAL_DOC_ID_LIST: LinkedList<list_ids> = LinkedList::new();
 //
 const LENGTH: i32 = 1;
 
@@ -53,20 +53,34 @@ const LENGTH: i32 = 1;
 pub struct return_data {
     formula_list: Vec<html::formula>,
     sorted: String,
-    filtered: String,
+    filtered: Vec<String>,
+    parsed_text: String,
 }
 
 static mut ENTRY_DATA: Vec<entry_data> = vec![];
 
 #[tauri::command]
-pub fn run_command(input: String) -> return_data {
+pub fn run_command(
+    input: String,
+    sorting: String,
+    sorting_up: bool,
+    filter: String,
+) -> return_data {
     let SINGLE_LINE_EXAMPLE: &str = input.as_str();
     println!("Input: {:?}", SINGLE_LINE_EXAMPLE);
 
-    let mut sorting_fn = r#"EVAL(!"ID: {NUMBER}")"#;
-    let input_filter_fn = r#"EVAL(!"ID: {NUMBER}") = 1"#;
+    let mut sorting_fn = if sorting.clone().trim() == "" {
+        r#"EVAL(!"ID: {NUMBER}")"#.to_string()
+    } else {
+        sorting.clone()
+    };
+    let input_filter_fn = if filter.trim() == "" {
+        r#"EVAL(!"ID: {NUMBER}") = 1"#.to_string()
+    } else {
+        filter.clone()
+    };
     let filterFn = format!("IF({}){{SUM(1)}}ELSE{{SUM(2)}}", input_filter_fn);
-    println!("Filter: {:?}", filterFn);
+    println!("Filter: {:?}", filterFn.to_string());
 
     let start_time = Instant::now();
 
@@ -78,10 +92,9 @@ pub fn run_command(input: String) -> return_data {
     unsafe { ENTRY_DATA = SEPARATED_DOCS }
 
     let all_html = parsed_data.tags;
-    println!("All HTML: {:?}", all_html);
     let mut sorting_formula_list = vec![];
 
-    if sorting_fn.trim().len() > 1 {
+    if sorting.trim().len() > 1 {
         sorting_formula_list = all_html
             .clone()
             .into_iter()
@@ -93,7 +106,7 @@ pub fn run_command(input: String) -> return_data {
     }
     let mut filter_formula_list = vec![];
 
-    if input_filter_fn.trim().len() > 1 {
+    if filter.trim().len() > 1 {
         filter_formula_list = all_html
             .clone()
             .into_iter()
@@ -242,6 +255,24 @@ pub fn run_command(input: String) -> return_data {
 
         // re arrange the all_html based on the entry id on only_sorting_functions
         let mut new_all_html = vec![];
+        if sorting.clone().trim() == "" {
+            new_all_html = all_html.clone()
+        }
+        let mut filtered_list = vec![];
+        // Print all the filter formula
+        println!("Filter Formula: {:?}", ORIGINAL_DOC_ID_LIST);
+        for formula in only_filter_functions {
+            if formula.data == TypeOr::Right(2.0) {
+                //  find saperated docs with the entry id
+                for entry in ORIGINAL_DOC_ID_LIST.clone() {
+                    if entry.entry == formula.entry {
+                        println!("Entry: {:?}", entry.ids);
+                        filtered_list.extend(entry.ids);
+                    }
+                }
+            }
+        }
+
         // Clone all_html
         for formula in only_sorting_functions {
             // sort based on the entry id
@@ -249,14 +280,23 @@ pub fn run_command(input: String) -> return_data {
             let index = formula.entry as usize;
 
             new_all_html.push(all_html.clone()[index].clone());
-            let mut is_hidden = false;
-            //
         }
+        if sorting_up && sorting.clone().trim() != "" {
+            //  Revese the list
+            new_all_html.reverse();
+        }
+
+        let mut parsed_text = "".to_string();
+        for text in new_all_html {
+            parsed_text += &text.concat();
+        }
+        println!("Parsed Text: {:?}", parsed_text);
 
         return_data {
             formula_list: FORMULA_LIST_CELL.clone(),
             sorted: "".to_string(),
-            filtered: "".to_string(),
+            filtered: filtered_list,
+            parsed_text,
         }
     }
 }
@@ -1551,7 +1591,10 @@ fn recursive_funcation_parser<'a>(
             }
             return TypeOr::Right(total);
         }
-
+        Rule::COMPARATOR_SIGN => {
+            // NO NEED TO IMPLIMENT IT HERE
+            return TypeOr::None;
+        }
         rule => {
             println!("Unreachable Rule {:?}", rule);
             println!("Unreachable Rule {:?}", pair.as_str());

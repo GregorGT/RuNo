@@ -32,7 +32,13 @@ import { useAtom, useAtomValue } from "jotai";
 import { nanoid } from "nanoid";
 import { useEffect, useState } from "react";
 import { editorKeys, editorStateAtom } from "../../state/editor";
-import { formulaAtom, formulaStore } from "../../state/formula";
+import {
+  filterFnAtom,
+  formulaAtom,
+  formulaStore,
+  sortingAtom,
+  sortingFnAtom,
+} from "../../state/formula";
 import { loadEditorAtom } from "../../state/load";
 import MathComponent from "../CustomRte/math.extension";
 import { tableAcions, textStyle } from "./const";
@@ -56,36 +62,51 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   if (!editor) {
     return null;
   }
+  // editor.on("transaction", ({ editor, transaction }) => {});
+
   const [filteredEditorData, setFilteredEditorData] = useState<string>("");
   const [normailEditorData, setNormalEditorData] = useState<string>("");
+  const sortingDir = useAtomValue(sortingAtom);
+  const sortingFn = useAtomValue(sortingFnAtom);
+  const filterFn = useAtomValue(filterFnAtom);
 
   const load_data_to_backend = async () => {
     console.log(editor.getHTML());
     const return_data = (await invoke("run_command", {
       input: editor.getHTML(),
+      sorting: sortingFn,
+      sortingUp: sortingDir === "asc",
+      filter: filterFn,
     })) as unknown;
 
-    console.log(return_data);
     if (
       !return_data ||
       typeof return_data !== "object" ||
-      !("formula_list" in return_data)
-      // !("parsed_text" in return_data) ||
-      // typeof return_data.parsed_text !== "string"
-    )
+      !("formula_list" in return_data) ||
+      !("parsed_text" in return_data) ||
+      typeof return_data.parsed_text !== "string" ||
+      !("filtered" in return_data) ||
+      !Array.isArray(return_data.filtered)
+    ) {
+      alert("Error in data");
       return;
+    }
 
-    // editor.commands.setContent(return_data.parsed_text, true); TODO
+    console.log(return_data.filtered);
+
+    editor.commands.setContent(return_data.parsed_text, true);
 
     const formulas = return_data?.formula_list;
+
     if (Array.isArray(formulas)) {
-      // ret?.map((item: any) => {
-      //   if (item.id && item.data && document) {
-      //     const element = document.getElementById(item.id);
-      //     if (element) element.innerText = item.data;
-      //   }
-      // });
       const formula = formulaStore.getState();
+
+      const cssList = return_data.filtered;
+
+      // css list contains ids to be hidden
+      document.getElementById("editor_styles")!.innerHTML = cssList
+        .map((id) => `[id="${id}"]{display: none;}`)
+        .join("\n");
 
       formulaStore.setState(
         [
@@ -114,7 +135,6 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       }}
     >
       <Button onClick={load_data_to_backend}>Load Data</Button>
-      <Switch onChange={(checked) => {}} />
 
       <Button
         onClick={async () => {
@@ -340,6 +360,8 @@ const extensions = [
       "highlight",
     ],
     createId: () => window.crypto.randomUUID(),
+    filterTransaction: (transaction: any) =>
+      !transaction.getMeta("preventUpdate"),
   }),
   CustomDocument,
 
@@ -395,8 +417,6 @@ export default function Editor({
           // setEditorState((state) => {
           //   return { ...state, [editorName]: editor.getJSON() };
           // });
-          
-
         }}
         editorProps={{
           attributes: {
