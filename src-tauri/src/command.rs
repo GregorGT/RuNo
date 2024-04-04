@@ -7,6 +7,8 @@ extern crate msgbox;
 
 use msgbox::IconType;
 use serde::Serialize;
+use std::panic;
+use tauri::Result;
 
 #[tauri::command]
 pub fn get_repositories_for_authenticated_user(token: &str) -> APIResult<Vec<Repository>> {
@@ -34,7 +36,7 @@ use std::{clone, fs, result, string, vec};
 use tantivy::collector::{Count, TopDocs};
 use tantivy::directory::{MmapDirectory, RamDirectory};
 use tantivy::query::{Exclude, Intersection, PhrasePrefixQuery, PhraseQuery};
-use tantivy::{doc, Directory, DocAddress, Index, ReloadPolicy, Result};
+use tantivy::{doc, Directory, DocAddress, Index, ReloadPolicy};
 use tantivy::{schema::*, Searcher};
 use try_catch::catch;
 
@@ -59,6 +61,35 @@ pub struct return_data {
 
 static mut ENTRY_DATA: Vec<entry_data> = vec![];
 
+static mut ENTRY_IDS: Vec<String> = vec![];
+
+#[tauri::command]
+pub fn assign_entry_id(entry_id: String, top_id: String) {
+    unsafe {
+        /// assigin entry id on the basis of top id
+        /// if top id is not present assign it to the end
+        let mut top_id_pos = ENTRY_IDS.iter().position(|x| x == &top_id);
+        if top_id_pos.is_none() {
+            top_id_pos = Some(ENTRY_IDS.len());
+        }
+        // if already we have the entry id then remove it
+        let pos = ENTRY_IDS.iter().position(|x| x == &entry_id);
+        if pos.is_some() {
+            ENTRY_IDS.remove(pos.unwrap());
+        }
+
+        let top_id_pos = top_id_pos.unwrap();
+        // assign entry id after the top id
+        ENTRY_IDS.insert(top_id_pos + 1, entry_id);
+    }
+}
+#[tauri::command]
+pub fn assign_default_entry_id(default_id: String) {
+    unsafe {
+        ENTRY_IDS = vec![default_id];
+    }
+}
+
 #[tauri::command]
 pub fn run_command(
     input: String,
@@ -66,6 +97,39 @@ pub fn run_command(
     sorting_up: bool,
     filter: String,
 ) -> return_data {
+    let result =
+        panic::catch_unwind(
+            || match main_command(input.clone(), sorting, sorting_up, filter) {
+                Ok(data) => data,
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    return return_data {
+                        formula_list: vec![],
+                        sorted: "".to_string(),
+                        filtered: vec![],
+                        parsed_text: "".to_string(),
+                    };
+                }
+            },
+        );
+    if result.is_err() {
+        msgbox::create("Error", "Error in the formula", IconType::Error);
+        return return_data {
+            formula_list: vec![],
+            sorted: "".to_string(),
+            filtered: vec![],
+            parsed_text: input.to_string(),
+        };
+    }
+    return result.unwrap();
+}
+
+pub fn main_command(
+    input: String,
+    sorting: String,
+    sorting_up: bool,
+    filter: String,
+) -> Result<return_data> {
     let SINGLE_LINE_EXAMPLE: &str = input.as_str();
     println!("Input: {:?}", SINGLE_LINE_EXAMPLE);
 
@@ -281,7 +345,7 @@ pub fn run_command(
 
             new_all_html.push(all_html.clone()[index].clone());
         }
-        if sorting_up && sorting.clone().trim() != "" {
+        if !sorting_up && sorting.clone().trim() != "" {
             //  Revese the list
             new_all_html.reverse();
         }
@@ -292,12 +356,12 @@ pub fn run_command(
         }
         println!("Parsed Text: {:?}", parsed_text);
 
-        return_data {
+        Ok(return_data {
             formula_list: FORMULA_LIST_CELL.clone(),
             sorted: "".to_string(),
             filtered: filtered_list,
             parsed_text,
-        }
+        })
     }
 }
 
@@ -310,7 +374,7 @@ fn parse_string(
     searcher: Searcher,
     schema: Schema,
     formula_list: Vec<html::formula>,
-) -> Result<TypeOr<String, f64, NaiveDateTime>> {
+) -> tantivy::Result<TypeOr<String, f64, NaiveDateTime>> {
     let pairs = MyParser::parse(Rule::Fn, formula.formula.as_str()).unwrap();
     let mut ans: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
     unsafe {
@@ -520,7 +584,7 @@ fn recursive_funcation_parser<'a>(
                             is_str = true;
                             exp = Regex::new(
                                 final_formula
-                                    .replace("{TEXT}", r"(?<text>[aA-zA]+)")
+                                    .replace("{TEXT}", r"(?<text>[^ \n]+)")
                                     .as_str(),
                             )
                             .unwrap();
@@ -537,7 +601,12 @@ fn recursive_funcation_parser<'a>(
                         } else if final_formula.find("{DATE}") != None {
                             is_date = true;
                             // price data 11/01/2020
-                            exp = Regex::new(final_formula.replace("{DATE}", r"(?<date>(0[1-9]|[12][0-9]|3[01])(\/|-)(0[1-9]|1[1,2])(\/|-)(19|20)\d{2})").as_str()).unwrap();
+                            exp = Regex::new(
+                                final_formula
+                                    .replace("{DATE}", r"(?<date>([^ \n]+))")
+                                    .as_str(),
+                            )
+                            .unwrap();
                             return_val = TypeOr::DateList([].to_vec());
                         } else {
                             exp = Regex::new(final_formula).unwrap();
@@ -656,6 +725,10 @@ fn recursive_funcation_parser<'a>(
 
                                                     }
                                                 } else if is_date {
+                                                    println!(
+                                                        "Eval Pair {:}",
+                                                        val.to_string().as_str()
+                                                    );
                                                     catch! {
                                                      try{
                                                          date_list.push(
@@ -682,7 +755,10 @@ fn recursive_funcation_parser<'a>(
                                     } else if is_date {
                                         // println!("Eval Pair {:}", eval_pair.as_str());
                                         // println!("Date: {:?}", result["date"].to_string());
+                                        println!("Eval Pair {:}", &result["date"].to_string());
+
                                         catch! {
+
                                          try{
                                             date_list.push(
                                                 parse(&result["date"].to_string()).unwrap().naive_utc(),
@@ -1669,7 +1745,7 @@ fn search_data(
     );
     let mut found_numbers_list: Vec<f64> = Vec::new();
     for (_, doc_address) in top_docs {
-        let retrieved_doc = searcher.doc(doc_address)?;
+        let retrieved_doc = searcher.doc(doc_address).unwrap();
         for field in retrieved_doc.get_all(body).into_iter() {
             let selectedField = field.as_text().unwrap();
             let result = make_regexp
