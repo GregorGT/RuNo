@@ -7,8 +7,9 @@ extern crate msgbox;
 
 use msgbox::IconType;
 use serde::Serialize;
+use std::cmp::Ordering;
 use std::panic;
-use tauri::Result;
+use tauri::{NativeImage, Result};
 
 #[tauri::command]
 pub fn get_repositories_for_authenticated_user(token: &str) -> APIResult<Vec<Repository>> {
@@ -23,7 +24,7 @@ use std::marker::PhantomData;
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 use std::time::Instant;
 
-use chrono::{DateTime, NaiveDateTime};
+use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, NaiveTime};
 use dateparser::parse;
 use html::formula;
 use once_cell::sync::OnceCell;
@@ -300,10 +301,16 @@ pub fn main_command(
                     let b = b.join("");
                     a.partial_cmp(&b).unwrap()
                 }
-                (TypeOr::DateValue(a), TypeOr::DateValue(b)) => a.partial_cmp(&b).unwrap(),
+                (TypeOr::DateValue(a), TypeOr::DateValue(b)) => check_same_date(a, b),
                 (TypeOr::DateList(a), TypeOr::DateList(b)) => {
                     let a = a.iter().map(|x| x.timestamp()).sum::<i64>();
                     let b = b.iter().map(|x| x.timestamp()).sum::<i64>();
+                    a.partial_cmp(&b).unwrap()
+                    //check a and b are same with the date using check
+                }
+                (TypeOr::DateList(a), TypeOr::DateValue(b)) => {
+                    let a = a.iter().map(|x| x.timestamp()).sum::<i64>();
+                    let b = b.timestamp();
                     a.partial_cmp(&b).unwrap()
                 }
                 _ => panic!("Error"),
@@ -732,7 +739,7 @@ fn recursive_funcation_parser<'a>(
                                                     catch! {
                                                      try{
                                                          date_list.push(
-                                                            parse(val.to_string().as_str())?.naive_utc(),
+                                                           get_date( parse(val.to_string().as_str())?.naive_utc()),
                                                         );
                                                     }catch err {
                                                     }
@@ -761,7 +768,7 @@ fn recursive_funcation_parser<'a>(
 
                                          try{
                                             date_list.push(
-                                                parse(&result["date"].to_string()).unwrap().naive_utc(),
+                                               get_date( parse(&result["date"].to_string()).unwrap().naive_utc()),
                                             );
                                         }catch err {
                                         }
@@ -1104,9 +1111,9 @@ fn recursive_funcation_parser<'a>(
                     if inner_pair.as_rule() == Rule::text {
                         for inner_pair in inner_pair.into_inner() {
                             if inner_pair.as_rule() == Rule::text_val {
-                                return TypeOr::DateValue(
+                                return TypeOr::DateValue(get_date(
                                     parse(inner_pair.as_str()).unwrap().naive_utc(),
-                                );
+                                ));
                             }
                         }
                     }
@@ -1116,7 +1123,9 @@ fn recursive_funcation_parser<'a>(
                     if inner_pair.as_rule() == Rule::text {
                         for inner_pair in inner_pair.into_inner() {
                             if inner_pair.as_rule() == Rule::text_val {
-                                date_vec.push(parse(inner_pair.as_str()).unwrap().naive_utc());
+                                date_vec.push(get_date(
+                                    parse(inner_pair.as_str()).unwrap().naive_utc(),
+                                ));
                             }
                         }
                     }
@@ -1244,6 +1253,16 @@ fn recursive_funcation_parser<'a>(
                             left_answer = TypeOr::Right(list[0]);
                         }
                     }
+                    if let (TypeOr::DateList(mut list)) = left_answer.clone() {
+                        if list.len() == 1 {
+                            left_answer = TypeOr::Right(list[0].timestamp() as f64);
+                        } else {
+                            left_answer =
+                                TypeOr::Right(list.into_iter().map(|x| x.timestamp() as f64).sum());
+                        }
+                    }
+                    println!("Left: {:?}", left_answer);
+                    println!("Right: {:?}", right_answer);
 
                     if isEQ {
                         final_ans = left_answer == right_answer;
@@ -1760,3 +1779,15 @@ fn search_data(
     Ok(TypeOr::RightList(found_numbers_list))
 }
 //
+
+fn check_same_date(dt1: NaiveDateTime, dt2: NaiveDateTime) -> Ordering {
+    // check for date month and year
+    let dt1 = NaiveDateTime::new(dt1.date(), NaiveTime::from_hms(0, 0, 0));
+    let dt2 = NaiveDateTime::new(dt2.date(), NaiveTime::from_hms(0, 0, 0));
+    // return ordering
+    dt1.partial_cmp(&dt2).unwrap()
+}
+
+fn get_date(dateTime: NaiveDateTime) -> NaiveDateTime {
+    NaiveDateTime::new(dateTime.date(), NaiveTime::from_hms(0, 0, 0))
+}
