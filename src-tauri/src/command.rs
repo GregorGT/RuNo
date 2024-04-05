@@ -1118,6 +1118,59 @@ fn recursive_funcation_parser<'a>(
             }
             return date_list;
         }
+        Rule::NUMBER => {
+            let len = pair.clone().into_inner().count();
+            let mut num_vec: Vec<f64> = [].to_vec();
+            if (len == 1) {
+                for inner_pair in pair.clone().into_inner() {
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                return TypeOr::Right(inner_pair.as_str().parse::<f64>().unwrap());
+                            }
+                        }
+                    }
+                }
+            } else {
+                for inner_pair in pair.into_inner() {
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                num_vec.push(inner_pair.as_str().parse::<f64>().unwrap());
+                            }
+                        }
+                    }
+                }
+            }
+            return TypeOr::RightList(num_vec);
+        }
+        Rule::TEXT => {
+            let len = pair.clone().into_inner().count();
+            let mut text_vec: Vec<String> = [].to_vec();
+            if (len == 1) {
+                for inner_pair in pair.clone().into_inner() {
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                return TypeOr::Left(inner_pair.as_str().to_string());
+                            }
+                        }
+                    }
+                }
+            } else {
+                for inner_pair in pair.into_inner() {
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                text_vec.push(inner_pair.as_str().to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            return TypeOr::LeftList(text_vec);
+        }
+
         Rule::TYPE => {
             let mut val: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
             for inner_pair in pair.into_inner() {
@@ -1245,6 +1298,14 @@ fn recursive_funcation_parser<'a>(
                                 TypeOr::Right(list.into_iter().map(|x| x.timestamp() as f64).sum());
                         }
                     }
+                    if let (TypeOr::LeftList(mut list), TypeOr::Left(mut list2)) =
+                        (left_answer.clone(), right_answer.clone())
+                    {
+                        if list.len() == 1 {
+                            left_answer = TypeOr::Left(list[0].to_string());
+                        }
+                    }
+
                     println!("Left: {:?}", left_answer);
                     println!("Right: {:?}", right_answer);
 

@@ -39,7 +39,10 @@ SUMIF  = { "SUMIF(" ~ COMPARATOR_COUNT ~ ")" }
 COUNTIF  = { "COUNTIF(" ~ COMPARATOR_COUNT ~ ")" }
 
 DATE = {"DATE(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
+NUMBER = { "NUMBER(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
+TEXT = { "TEXT(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
 
-Fn = { EVAL | SUM | MUL | COUNT | LEN | TYPE | CONCAT | IF | MIN | MAX | AVERAGE | TRIM | ROUND | IFERROR |SUMIF | COUNTIF  }
+
+Fn = { EVAL | SUM | MUL | COUNT | LEN | TYPE | CONCAT | IF | MIN | MAX | AVERAGE | TRIM | ROUND | IFERROR |SUMIF | COUNTIF | DATE | NUMBER | TEXT}
 
 
