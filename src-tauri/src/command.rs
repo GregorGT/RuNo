@@ -1,39 +1,23 @@
-use crate::api::{make_get_request, make_post_request};
-use crate::models::{
-    APIResult, Commit, Gist, GistInput, GithubUser, NewGistResponse, Repository, URL,
-};
-
 extern crate msgbox;
 
 use msgbox::IconType;
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::panic;
-use tauri::{NativeImage, Result};
+use tauri::Result;
 
-#[tauri::command]
-pub fn get_repositories_for_authenticated_user(token: &str) -> APIResult<Vec<Repository>> {
-    let response = make_get_request(URL::WithBaseUrl("user/repos?type=private"), Some(token))?;
-    let response: Vec<Repository> = serde_json::from_str(&response).unwrap();
-    Ok(response)
-}
-
-use std::borrow::{Borrow, BorrowMut};
 use std::collections::LinkedList;
-use std::marker::PhantomData;
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 use std::time::Instant;
 
-use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{NaiveDateTime, NaiveTime};
 use dateparser::parse;
-use html::formula;
-use once_cell::sync::OnceCell;
 use pest::iterators::Pair;
 use pest::Parser;
 use regex::Regex;
 use round::round;
 use std::path::Path;
-use std::{clone, fs, result, string, vec};
+use std::{fs, result, string, vec};
 use tantivy::collector::{Count, TopDocs};
 use tantivy::directory::{MmapDirectory, RamDirectory};
 use tantivy::query::{Exclude, Intersection, PhrasePrefixQuery, PhraseQuery};
