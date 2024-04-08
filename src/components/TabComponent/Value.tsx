@@ -1,10 +1,13 @@
-import { Checkbox } from "antd";
 import { useAtom, useAtomValue } from "jotai";
+import * as _ from "lodash";
 import { useEffect, useState } from "react";
-import { formulaAtom, selectedFormulaIdAtom } from "../../state/formula";
-
+import {
+  formulaAtom,
+  formulaStore,
+  selectedFormulaIdAtom,
+} from "../../state/formula";
 const Value = () => {
-  const [allFormula, setAllForumula] = useAtom(formulaAtom);
+  const [allFormula] = useAtom(formulaAtom);
   const selectedFormulaId = useAtomValue(selectedFormulaIdAtom);
 
   const setFormulaText = (text: string) => {
@@ -12,11 +15,11 @@ const Value = () => {
     const changed = currentFormula.map((item) => {
       if (item.id === selectedFormulaId) {
         item.formula = text;
+        console.log("item", item);
       }
       return item;
     });
-
-    return setAllForumula([...changed]);
+    return formulaStore.setState(_.cloneDeep(changed), true);
   };
 
   const [displayValue, setDisplayValue] = useState("");
@@ -44,6 +47,7 @@ const Value = () => {
         value={displayValue}
         onChange={(e) => {
           setDisplayValue(e.target.value);
+          setFormulaText(e.target.value);
         }}
       />
     </div>

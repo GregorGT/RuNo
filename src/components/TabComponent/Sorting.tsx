@@ -1,13 +1,11 @@
-import { PlusSquareOutlined } from "@ant-design/icons";
 import { Select } from "antd";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { sortingAtom, sortingFnAtom } from "../../state/formula";
-import { useEditor } from "@tiptap/react";
 
 const Sorting = () => {
   const [text, setText] = useState<string>("");
-  const [sortingFn, setSortingFn] = useAtom(sortingFnAtom);
+  const [_, setSortingFn] = useAtom(sortingFnAtom);
   const [option, setOption] = useAtom(sortingAtom);
   const [isChecked, setIsChecked] = useState(false);
 
@@ -43,7 +41,7 @@ const Sorting = () => {
             className="radio-input"
             type="checkbox"
             checked={isChecked}
-            onClick={(e) => {
+            onClick={() => {
               setIsChecked(!isChecked);
             }}
           />

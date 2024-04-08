@@ -1,13 +1,13 @@
 import { NodeViewWrapper } from "@tiptap/react";
 //@ts-ignore
-import { useAtom, useAtomValue } from "jotai";
+import { useAtomValue } from "jotai";
+import { useEffect, useState } from "react";
 import {
   formulaAtom,
   formulaStore,
   selectedFormulaIdAtom,
   selectedFormulaIdStore,
 } from "../../state/formula";
-import { useEffect, useState } from "react";
 
 export default (props: any) => {
   const currentId = props.node.attrs.id;
@@ -21,9 +21,24 @@ export default (props: any) => {
   const isCurrentSelected = currentId !== selectedFormulaIdStore.getState();
 
   useEffect(() => {
+    // formulaStore.subscribe((formulas) => {
+    //   const formula = formulas.find((f) => f.id == currentId);
+    //   // props.updateAttributes({
+    //   //   formula: formula?.formula || "",
+    //   //   data: formula?.data || "",
+    //   // });
+    //   setData(formula?.data || "");
+    // });
+  }, [formulaStore]);
+
+  useEffect(() => {
+    console.log("props", props);
     const formula = formulaStore.getState().find((f) => f.id == currentId);
-    props.node.attrs.formula = formula?.formula || "";
-    props.node.attrs.data = formula?.data || "";
+    props.updateAttributes({
+      formula: formula?.formula || "",
+      data: formula?.data || "",
+    });
+
     setData(formula?.data || "");
   }, [selectedFormulaId, allFormulas]);
 

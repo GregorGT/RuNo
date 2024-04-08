@@ -1,9 +1,6 @@
-import { PlusSquareOutlined } from "@ant-design/icons";
-import { Select } from "antd";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { filterFnAtom } from "../../state/formula";
-import { useEditor } from "@tiptap/react";
 
 const Filter = () => {
   const [isChecked, setIsChecked] = useState(false);

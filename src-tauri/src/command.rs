@@ -42,6 +42,7 @@ pub struct return_data {
     sorted: String,
     filtered: Vec<String>,
     parsed_text: String,
+    is_error: bool,
 }
 
 static mut ENTRY_DATA: Vec<entry_data> = vec![];
@@ -75,6 +76,41 @@ pub fn assign_default_entry_id(default_id: String) {
     }
 }
 
+/*
+
+    HTML Buffer
+    1. parse_html -> list of entry
+    2. we add sorting and filtering function to each entry
+    3. we collect all the formula functions and run them
+    4. we do sorting in the backend with parsed the html
+    5. we create list of ids to be hidden for filtering
+    6. we return sortedBuffer , filterdBuffer , ParsedText
+
+
+*/
+
+/*
+
+ Approch 2
+    HTML Buffer
+        1. Id in index to UUID of entry
+        2. filter + formula
+
+            10,000 entries
+            after filtering we have 5000 entries
+
+        3. sorting on filtered entries
+*/
+
+/*
+
+Entries  buffer
+
+
+
+
+*/
+
 #[tauri::command]
 pub fn run_command(
     input: String,
@@ -93,6 +129,7 @@ pub fn run_command(
                         sorted: "".to_string(),
                         filtered: vec![],
                         parsed_text: "".to_string(),
+                        is_error: true,
                     };
                 }
             },
@@ -103,6 +140,7 @@ pub fn run_command(
             formula_list: vec![],
             sorted: "".to_string(),
             filtered: vec![],
+            is_error: true,
             parsed_text: input.to_string(),
         };
     }
@@ -352,6 +390,7 @@ pub fn main_command(
             sorted: "".to_string(),
             filtered: filtered_list,
             parsed_text,
+            is_error: false,
         })
     }
 }
