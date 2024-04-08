@@ -21,26 +21,26 @@ export default (props: any) => {
   const isCurrentSelected = currentId !== selectedFormulaIdStore.getState();
 
   useEffect(() => {
-    // formulaStore.subscribe((formulas) => {
-    //   const formula = formulas.find((f) => f.id == currentId);
-    //   // props.updateAttributes({
-    //   //   formula: formula?.formula || "",
-    //   //   data: formula?.data || "",
-    //   // });
-    //   setData(formula?.data || "");
-    // });
+    formulaStore.subscribe((formulas) => {
+      const formula = formulas.find((f) => f.id == currentId);
+      props.updateAttributes({
+        formula: formula?.formula || "",
+        data: formula?.data || "",
+      });
+      setData(formula?.data || "");
+    });
   }, [formulaStore]);
 
-  useEffect(() => {
-    console.log("props", props);
-    const formula = formulaStore.getState().find((f) => f.id == currentId);
-    props.updateAttributes({
-      formula: formula?.formula || "",
-      data: formula?.data || "",
-    });
+  // useEffect(() => {
+  //   console.log("props", props);
+  //   const formula = formulaStore.getState().find((f) => f.id == currentId);
+  //   props.updateAttributes({
+  //     formula: formula?.formula || "",
+  //     data: formula?.data || "",
+  //   });
 
-    setData(formula?.data || "");
-  }, [selectedFormulaId, allFormulas]);
+  //   setData(formula?.data || "");
+  // }, [selectedFormulaId, allFormulas]);
 
   return (
     <>
