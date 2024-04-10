@@ -1,66 +1,173 @@
-use crate::api::{make_get_request, make_post_request};
-use crate::models::{
-    APIResult, Commit, Gist, GistInput, GithubUser, NewGistResponse, Repository, URL,
-};
-
 extern crate msgbox;
 
 use msgbox::IconType;
 use serde::Serialize;
+use std::cmp::Ordering;
+use std::panic;
+use tauri::Result;
 
-#[tauri::command]
-pub fn get_repositories_for_authenticated_user(token: &str) -> APIResult<Vec<Repository>> {
-    let response = make_get_request(URL::WithBaseUrl("user/repos?type=private"), Some(token))?;
-    let response: Vec<Repository> = serde_json::from_str(&response).unwrap();
-    Ok(response)
-}
-
-use std::borrow::{Borrow, BorrowMut};
-use std::marker::PhantomData;
+use std::collections::LinkedList;
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 use std::time::Instant;
 
-use chrono::{DateTime, NaiveDateTime};
+use chrono::{NaiveDateTime, NaiveTime};
 use dateparser::parse;
-use html::formula;
-use once_cell::sync::OnceCell;
 use pest::iterators::Pair;
 use pest::Parser;
 use regex::Regex;
 use round::round;
 use std::path::Path;
-use std::{clone, fs, result, string, vec};
+use std::{fs, result, string, vec};
 use tantivy::collector::{Count, TopDocs};
 use tantivy::directory::{MmapDirectory, RamDirectory};
 use tantivy::query::{Exclude, Intersection, PhrasePrefixQuery, PhraseQuery};
-use tantivy::{doc, Directory, DocAddress, Index, ReloadPolicy, Result};
+use tantivy::{doc, Directory, DocAddress, Index, ReloadPolicy};
 use tantivy::{schema::*, Searcher};
 use try_catch::catch;
+
+use self::html::{entry_data, list_ids};
 
 mod documents;
 mod html;
 mod utils;
 
 static mut FORMULA_LIST_CELL: Vec<html::formula> = vec![];
-
+pub static mut ORIGINAL_DOC_ID_LIST: LinkedList<list_ids> = LinkedList::new();
 //
 const LENGTH: i32 = 1;
 
 #[derive(Debug, serde::Serialize, PartialEq, PartialOrd)]
 pub struct return_data {
     formula_list: Vec<html::formula>,
+    sorted: String,
+    filtered: Vec<String>,
     parsed_text: String,
+    is_error: bool,
 }
 
+static mut ENTRY_DATA: Vec<entry_data> = vec![];
+
+static mut ENTRY_IDS: Vec<String> = vec![];
+
 #[tauri::command]
-pub fn run_command(input: String) -> return_data {
+pub fn assign_entry_id(entry_id: String, top_id: String) {
+    unsafe {
+        /// assigin entry id on the basis of top id
+        /// if top id is not present assign it to the end
+        let mut top_id_pos = ENTRY_IDS.iter().position(|x| x == &top_id);
+        if top_id_pos.is_none() {
+            top_id_pos = Some(ENTRY_IDS.len());
+        }
+        // if already we have the entry id then remove it
+        let pos = ENTRY_IDS.iter().position(|x| x == &entry_id);
+        if pos.is_some() {
+            ENTRY_IDS.remove(pos.unwrap());
+        }
+
+        let top_id_pos = top_id_pos.unwrap();
+        // assign entry id after the top id
+        ENTRY_IDS.insert(top_id_pos + 1, entry_id);
+    }
+}
+#[tauri::command]
+pub fn assign_default_entry_id(default_id: String) {
+    unsafe {
+        ENTRY_IDS = vec![default_id];
+    }
+}
+
+/*
+
+    HTML Buffer
+    1. parse_html -> list of entry
+    2. we add sorting and filtering function to each entry
+    3. we collect all the formula functions and run them
+    4. we do sorting in the backend with parsed the html
+    5. we create list of ids to be hidden for filtering
+    6. we return sortedBuffer , filterdBuffer , ParsedText
+
+
+*/
+
+/*
+
+ Approch 2
+    HTML Buffer
+        1. Id in index to UUID of entry
+        2. filter + formula
+
+            10,000 entries
+            after filtering we have 5000 entries
+
+        3. sorting on filtered entries
+*/
+
+/*
+
+Entries  buffer
+
+
+
+
+*/
+
+#[tauri::command]
+pub fn run_command(
+    input: String,
+    sorting: String,
+    sorting_up: bool,
+    filter: String,
+) -> return_data {
+    let result =
+        panic::catch_unwind(
+            || match main_command(input.clone(), sorting, sorting_up, filter) {
+                Ok(data) => data,
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    return return_data {
+                        formula_list: vec![],
+                        sorted: "".to_string(),
+                        filtered: vec![],
+                        parsed_text: "".to_string(),
+                        is_error: true,
+                    };
+                }
+            },
+        );
+    if result.is_err() {
+        msgbox::create("Error", "Error in the formula", IconType::Error);
+        return return_data {
+            formula_list: vec![],
+            sorted: "".to_string(),
+            filtered: vec![],
+            is_error: true,
+            parsed_text: input.to_string(),
+        };
+    }
+    return result.unwrap();
+}
+
+pub fn main_command(
+    input: String,
+    sorting: String,
+    sorting_up: bool,
+    filter: String,
+) -> Result<return_data> {
     let SINGLE_LINE_EXAMPLE: &str = input.as_str();
     println!("Input: {:?}", SINGLE_LINE_EXAMPLE);
 
-    let sortingFn = r#"EVAL(!"ID: {NUMBER}")"#;
-    let inputFilterFn = r#"EVAL(!"ID: {NUMBER}") = 1"#;
-    let filterFn = format!("IF({}){{SUM(1)}}ELSE{{SUM(2)}}", inputFilterFn);
-    println!("Filter: {:?}", filterFn);
+    let mut sorting_fn = if sorting.clone().trim() == "" {
+        r#"EVAL(!"ID: {NUMBER}")"#.to_string()
+    } else {
+        sorting.clone()
+    };
+    let input_filter_fn = if filter.trim() == "" {
+        r#"EVAL(!"ID: {NUMBER}") = 1"#.to_string()
+    } else {
+        filter.clone()
+    };
+    let filterFn = format!("IF({}){{SUM(1)}}ELSE{{SUM(2)}}", input_filter_fn);
+    println!("Filter: {:?}", filterFn.to_string());
 
     let start_time = Instant::now();
 
@@ -68,21 +175,32 @@ pub fn run_command(input: String) -> return_data {
         html::parse_html(SINGLE_LINE_EXAMPLE.repeat(LENGTH as usize).as_str());
 
     let SEPARATED_DOCS = parsed_data.parsed_text;
+
+    unsafe { ENTRY_DATA = SEPARATED_DOCS }
+
     let all_html = parsed_data.tags;
+    let mut sorting_formula_list = vec![];
 
-    let sorting_formula_list = all_html
-        .clone()
-        .into_iter()
-        .enumerate()
-        .map(|(index, x)| html::convert_to_sorting_formula(sortingFn.to_string(), index as u64))
-        .collect::<Vec<html::formula>>();
+    if sorting.trim().len() > 1 {
+        sorting_formula_list = all_html
+            .clone()
+            .into_iter()
+            .enumerate()
+            .map(|(index, x)| {
+                html::convert_to_sorting_formula(sorting_fn.to_string(), index as u64)
+            })
+            .collect::<Vec<html::formula>>();
+    }
+    let mut filter_formula_list = vec![];
 
-    let filter_formula_list = all_html
-        .clone()
-        .into_iter()
-        .enumerate()
-        .map(|(index, x)| html::convert_to_filter_formula(filterFn.to_string(), index as u64))
-        .collect::<Vec<html::formula>>();
+    if filter.trim().len() > 1 {
+        filter_formula_list = all_html
+            .clone()
+            .into_iter()
+            .enumerate()
+            .map(|(index, x)| html::convert_to_filter_formula(filterFn.to_string(), index as u64))
+            .collect::<Vec<html::formula>>();
+    }
 
     let formula_list = parsed_data.formula_list;
     //SET GLOBAL LIST FOR FORMULA
@@ -91,6 +209,7 @@ pub fn run_command(input: String) -> return_data {
         let mut formula_list = formula_list.clone();
         formula_list.extend(sorting_formula_list.clone());
         formula_list.extend(filter_formula_list.clone());
+        println!("Formula List: {:?}", formula_list);
         FORMULA_LIST_CELL = formula_list.clone();
     }
 
@@ -117,7 +236,16 @@ pub fn run_command(input: String) -> return_data {
     // START INDEXING
     let start_time = Instant::now();
     // let separated_docs = documents::break_html(EXAMPLE.repeat(LENGTH as usize).as_str());
-    let _ = documents::add_inital_docs(ram_dir.to_owned(), SEPARATED_DOCS);
+    unsafe {
+        let _ = documents::add_inital_docs(
+            ram_dir.to_owned(),
+            parsed_data
+                .index_data
+                .clone()
+                .into_iter()
+                .collect::<Vec<Vec<String>>>(),
+        );
+    }
 
     ram_dir
         .persist(&MmapDirectory::open(Path::new("data")).unwrap())
@@ -171,7 +299,7 @@ pub fn run_command(input: String) -> return_data {
     );
 
     unsafe {
-        println!("Formula List: {:?}", FORMULA_LIST_CELL);
+        println!("Formula List: {:?}", FORMULA_LIST_CELL.len());
 
         let mut only_sorting_functions = FORMULA_LIST_CELL
             .clone()
@@ -195,10 +323,16 @@ pub fn run_command(input: String) -> return_data {
                     let b = b.join("");
                     a.partial_cmp(&b).unwrap()
                 }
-                (TypeOr::DateValue(a), TypeOr::DateValue(b)) => a.partial_cmp(&b).unwrap(),
+                (TypeOr::DateValue(a), TypeOr::DateValue(b)) => check_same_date(a, b),
                 (TypeOr::DateList(a), TypeOr::DateList(b)) => {
                     let a = a.iter().map(|x| x.timestamp()).sum::<i64>();
                     let b = b.iter().map(|x| x.timestamp()).sum::<i64>();
+                    a.partial_cmp(&b).unwrap()
+                    //check a and b are same with the date using check
+                }
+                (TypeOr::DateList(a), TypeOr::DateValue(b)) => {
+                    let a = a.iter().map(|x| x.timestamp()).sum::<i64>();
+                    let b = b.timestamp();
                     a.partial_cmp(&b).unwrap()
                 }
                 _ => panic!("Error"),
@@ -214,7 +348,24 @@ pub fn run_command(input: String) -> return_data {
 
         // re arrange the all_html based on the entry id on only_sorting_functions
         let mut new_all_html = vec![];
-        let mut hr_class = vec![];
+        if sorting.clone().trim() == "" {
+            new_all_html = all_html.clone()
+        }
+        let mut filtered_list = vec![];
+        // Print all the filter formula
+        println!("Filter Formula: {:?}", ORIGINAL_DOC_ID_LIST);
+        for formula in only_filter_functions {
+            if formula.data == TypeOr::Right(2.0) {
+                //  find saperated docs with the entry id
+                for entry in ORIGINAL_DOC_ID_LIST.clone() {
+                    if entry.entry == formula.entry {
+                        println!("Entry: {:?}", entry.ids);
+                        filtered_list.extend(entry.ids);
+                    }
+                }
+            }
+        }
+
         // Clone all_html
         for formula in only_sorting_functions {
             // sort based on the entry id
@@ -222,36 +373,25 @@ pub fn run_command(input: String) -> return_data {
             let index = formula.entry as usize;
 
             new_all_html.push(all_html.clone()[index].clone());
-            let mut is_hidden = false;
-            //
-            only_filter_functions.iter().for_each(|x| {
-                if x.entry == formula.entry {
-                    println!("Hidden: {:?}", x.data);
-                    if x.data == TypeOr::Right(1.0) {
-                        is_hidden = true;
-                    }
-                }
-            });
-            hr_class.push(if is_hidden {
-                "<hr class=\"hidden\">"
-            } else {
-                "<hr>"
-            });
+        }
+        if !sorting_up && sorting.clone().trim() != "" {
+            //  Revese the list
+            new_all_html.reverse();
         }
 
-        let mut final_html = "".to_string();
-        for (index, x) in new_all_html.iter().enumerate() {
-            final_html += x;
-            if index != new_all_html.len() - 1 {
-                final_html += hr_class[index];
-            }
+        let mut parsed_text = "".to_string();
+        for text in new_all_html {
+            parsed_text += &text.concat();
         }
+        println!("Parsed Text: {:?}", parsed_text);
 
-        println!("Final HTML: {:?}", final_html);
-        return_data {
+        Ok(return_data {
             formula_list: FORMULA_LIST_CELL.clone(),
-            parsed_text: final_html,
-        }
+            sorted: "".to_string(),
+            filtered: filtered_list,
+            parsed_text,
+            is_error: false,
+        })
     }
 }
 
@@ -264,7 +404,7 @@ fn parse_string(
     searcher: Searcher,
     schema: Schema,
     formula_list: Vec<html::formula>,
-) -> Result<TypeOr<String, f64, NaiveDateTime>> {
+) -> tantivy::Result<TypeOr<String, f64, NaiveDateTime>> {
     let pairs = MyParser::parse(Rule::Fn, formula.formula.as_str()).unwrap();
     let mut ans: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
     unsafe {
@@ -474,7 +614,7 @@ fn recursive_funcation_parser<'a>(
                             is_str = true;
                             exp = Regex::new(
                                 final_formula
-                                    .replace("{TEXT}", r"(?<text>[aA-zA]+)")
+                                    .replace("{TEXT}", r"(?<text>[^ \n]+)")
                                     .as_str(),
                             )
                             .unwrap();
@@ -491,7 +631,12 @@ fn recursive_funcation_parser<'a>(
                         } else if final_formula.find("{DATE}") != None {
                             is_date = true;
                             // price data 11/01/2020
-                            exp = Regex::new(final_formula.replace("{DATE}", r"(?<date>(0[1-9]|[12][0-9]|3[01])(\/|-)(0[1-9]|1[1,2])(\/|-)(19|20)\d{2})").as_str()).unwrap();
+                            exp = Regex::new(
+                                final_formula
+                                    .replace("{DATE}", r"(?<date>([^ \n]+))")
+                                    .as_str(),
+                            )
+                            .unwrap();
                             return_val = TypeOr::DateList([].to_vec());
                         } else {
                             exp = Regex::new(final_formula).unwrap();
@@ -610,10 +755,14 @@ fn recursive_funcation_parser<'a>(
 
                                                     }
                                                 } else if is_date {
+                                                    println!(
+                                                        "Eval Pair {:}",
+                                                        val.to_string().as_str()
+                                                    );
                                                     catch! {
                                                      try{
                                                          date_list.push(
-                                                            parse(val.to_string().as_str())?.naive_utc(),
+                                                           get_date( parse(val.to_string().as_str())?.naive_utc()),
                                                         );
                                                     }catch err {
                                                     }
@@ -636,10 +785,13 @@ fn recursive_funcation_parser<'a>(
                                     } else if is_date {
                                         // println!("Eval Pair {:}", eval_pair.as_str());
                                         // println!("Date: {:?}", result["date"].to_string());
+                                        println!("Eval Pair {:}", &result["date"].to_string());
+
                                         catch! {
+
                                          try{
                                             date_list.push(
-                                                parse(&result["date"].to_string()).unwrap().naive_utc(),
+                                               get_date( parse(&result["date"].to_string()).unwrap().naive_utc()),
                                             );
                                         }catch err {
                                         }
@@ -982,9 +1134,9 @@ fn recursive_funcation_parser<'a>(
                     if inner_pair.as_rule() == Rule::text {
                         for inner_pair in inner_pair.into_inner() {
                             if inner_pair.as_rule() == Rule::text_val {
-                                return TypeOr::DateValue(
+                                return TypeOr::DateValue(get_date(
                                     parse(inner_pair.as_str()).unwrap().naive_utc(),
-                                );
+                                ));
                             }
                         }
                     }
@@ -994,7 +1146,9 @@ fn recursive_funcation_parser<'a>(
                     if inner_pair.as_rule() == Rule::text {
                         for inner_pair in inner_pair.into_inner() {
                             if inner_pair.as_rule() == Rule::text_val {
-                                date_vec.push(parse(inner_pair.as_str()).unwrap().naive_utc());
+                                date_vec.push(get_date(
+                                    parse(inner_pair.as_str()).unwrap().naive_utc(),
+                                ));
                             }
                         }
                     }
@@ -1003,6 +1157,59 @@ fn recursive_funcation_parser<'a>(
             }
             return date_list;
         }
+        Rule::NUMBER => {
+            let len = pair.clone().into_inner().count();
+            let mut num_vec: Vec<f64> = [].to_vec();
+            if (len == 1) {
+                for inner_pair in pair.clone().into_inner() {
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                return TypeOr::Right(inner_pair.as_str().parse::<f64>().unwrap());
+                            }
+                        }
+                    }
+                }
+            } else {
+                for inner_pair in pair.into_inner() {
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                num_vec.push(inner_pair.as_str().parse::<f64>().unwrap());
+                            }
+                        }
+                    }
+                }
+            }
+            return TypeOr::RightList(num_vec);
+        }
+        Rule::TEXT => {
+            let len = pair.clone().into_inner().count();
+            let mut text_vec: Vec<String> = [].to_vec();
+            if (len == 1) {
+                for inner_pair in pair.clone().into_inner() {
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                return TypeOr::Left(inner_pair.as_str().to_string());
+                            }
+                        }
+                    }
+                }
+            } else {
+                for inner_pair in pair.into_inner() {
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                text_vec.push(inner_pair.as_str().to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            return TypeOr::LeftList(text_vec);
+        }
+
         Rule::TYPE => {
             let mut val: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
             for inner_pair in pair.into_inner() {
@@ -1122,6 +1329,24 @@ fn recursive_funcation_parser<'a>(
                             left_answer = TypeOr::Right(list[0]);
                         }
                     }
+                    if let (TypeOr::DateList(mut list)) = left_answer.clone() {
+                        if list.len() == 1 {
+                            left_answer = TypeOr::Right(list[0].timestamp() as f64);
+                        } else {
+                            left_answer =
+                                TypeOr::Right(list.into_iter().map(|x| x.timestamp() as f64).sum());
+                        }
+                    }
+                    if let (TypeOr::LeftList(mut list), TypeOr::Left(mut list2)) =
+                        (left_answer.clone(), right_answer.clone())
+                    {
+                        if list.len() == 1 {
+                            left_answer = TypeOr::Left(list[0].to_string());
+                        }
+                    }
+
+                    println!("Left: {:?}", left_answer);
+                    println!("Right: {:?}", right_answer);
 
                     if isEQ {
                         final_ans = left_answer == right_answer;
@@ -1545,9 +1770,13 @@ fn recursive_funcation_parser<'a>(
             }
             return TypeOr::Right(total);
         }
-
+        Rule::COMPARATOR_SIGN => {
+            // NO NEED TO IMPLIMENT IT HERE
+            return TypeOr::None;
+        }
         rule => {
             println!("Unreachable Rule {:?}", rule);
+            println!("Unreachable Rule {:?}", pair.as_str());
             return TypeOr::None;
         }
     }
@@ -1619,7 +1848,7 @@ fn search_data(
     );
     let mut found_numbers_list: Vec<f64> = Vec::new();
     for (_, doc_address) in top_docs {
-        let retrieved_doc = searcher.doc(doc_address)?;
+        let retrieved_doc = searcher.doc(doc_address).unwrap();
         for field in retrieved_doc.get_all(body).into_iter() {
             let selectedField = field.as_text().unwrap();
             let result = make_regexp
@@ -1634,3 +1863,15 @@ fn search_data(
     Ok(TypeOr::RightList(found_numbers_list))
 }
 //
+
+fn check_same_date(dt1: NaiveDateTime, dt2: NaiveDateTime) -> Ordering {
+    // check for date month and year
+    let dt1 = NaiveDateTime::new(dt1.date(), NaiveTime::from_hms(0, 0, 0));
+    let dt2 = NaiveDateTime::new(dt2.date(), NaiveTime::from_hms(0, 0, 0));
+    // return ordering
+    dt1.partial_cmp(&dt2).unwrap()
+}
+
+fn get_date(dateTime: NaiveDateTime) -> NaiveDateTime {
+    NaiveDateTime::new(dateTime.date(), NaiveTime::from_hms(0, 0, 0))
+}

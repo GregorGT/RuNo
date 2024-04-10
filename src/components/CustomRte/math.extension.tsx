@@ -1,16 +1,9 @@
 import { mergeAttributes, Node } from "@tiptap/core";
-import {
-  getMarkType,
-  markPasteRule,
-  nodePasteRule,
-  ReactNodeViewRenderer,
-} from "@tiptap/react";
+import { ReactNodeViewRenderer } from "@tiptap/react";
 
-import Component from "./math.jsx";
-import { MarkType } from "@tiptap/pm/model";
-import { formulaStore } from "../../state/formula.js";
-import { nanoid } from "nanoid";
 import { v4 } from "uuid";
+import { formulaStore } from "../../state/formula.js";
+import Component from "./math.jsx";
 export default Node.create({
   name: "mathComponent",
   group: "inline",

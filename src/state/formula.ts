@@ -17,3 +17,7 @@ export const formulaAtom = atomWithStore(formulaStore);
 export const selectedFormulaIdAtom = atomWithStore<string | undefined>(
   selectedFormulaIdStore
 );
+
+export const filterFnAtom = atom<string | undefined>(undefined);
+export const sortingAtom = atom<"asc" | "desc">("asc");
+export const sortingFnAtom = atom<string | undefined>(undefined);

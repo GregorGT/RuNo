@@ -41,6 +41,7 @@ export default function TabComponent() {
         </div>
         <Tabs activeKey={activeTab} className="mb-3">
           {Contents.map((item) => (
+            //@ts-ignore
             <Tab eventKey={item.eventKey}>{item.content}</Tab>
           ))}
         </Tabs>

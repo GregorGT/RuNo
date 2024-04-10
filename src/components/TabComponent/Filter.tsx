@@ -1,11 +1,19 @@
-import { PlusSquareOutlined } from "@ant-design/icons";
-import { Select } from "antd";
-import { useState } from "react";
+import { useAtom } from "jotai";
+import { useEffect, useState } from "react";
+import { filterFnAtom } from "../../state/formula";
 
 const Filter = () => {
-  const [isCheckedA, setIsCheckedA] = useState(false);
-  const [isCheckedB, setIsCheckedB] = useState(false);
-  const [isCheckedFormula, setIsCheckedFormula] = useState(true);
+  const [isChecked, setIsChecked] = useState(false);
+  const [_, setFilterFunction] = useAtom(filterFnAtom);
+  const [text, setText] = useState<string>("");
+
+  useEffect(() => {
+    if (isChecked) {
+      setFilterFunction(text);
+    } else {
+      setFilterFunction("");
+    }
+  }, [isChecked, text]);
 
   return (
     <div className="filter">
@@ -15,70 +23,46 @@ const Filter = () => {
           Global
           <input
             className="radio-input"
-            checked={isCheckedFormula}
             type="checkbox"
             value="option2"
-            onClick={() => setIsCheckedFormula(true)}
+            checked
           />
         </div>
         <div className="flex items-center">
           Filtered
           <input
             className="radio-input"
-            checked={!isCheckedFormula}
             type="checkbox"
             value="option2"
-            onClick={() => setIsCheckedFormula(false)}
+            disabled
           />
         </div>
       </div>
       <div className="filter-content">
         <div className="filters">
-          <Select
-            className="or"
-            defaultValue="Or"
-            style={{ width: 120 }}
-            // onChange={(e) =>setOption(e)}
-            options={[
-              { value: "or", label: "OR" },
-              { value: "and", label: "AND" },
-            ]}
-          />
           <div className="flex-1">
+            <label className="label">Filter Function</label>
             <div className="flex items-center">
               <input
+                value={text}
+                onChange={(e) => {
+                  setText(e.target.value);
+                }}
+                placeholder="Filter function"
                 className="modified"
                 defaultValue="Date modified => 07/11/2023"
               />
               <input
                 className="radio-input"
-                checked={isCheckedA}
+                checked={isChecked}
                 type="checkbox"
                 value="option1"
-                onClick={() => setIsCheckedA(!isCheckedA)}
-              />
-            </div>
-            <div className="flex items-center">
-              <input
-                className="modified"
-                defaultValue="Date modified => 09/11/2023"
-              />
-              <input
-                className="radio-input"
-                checked={isCheckedB}
-                type="checkbox"
-                value="option2"
-                onClick={() => setIsCheckedB(!isCheckedB)}
+                onClick={() => setIsChecked(!isChecked)}
               />
             </div>
           </div>
         </div>
-        <div className="add-filter cursor-pointer">
-          <PlusSquareOutlined className="mx-2" />
-          Add filter
-        </div>
       </div>
-      <button className="add-btn mx-auto my-3">Add filter groups</button>
     </div>
   );
 };

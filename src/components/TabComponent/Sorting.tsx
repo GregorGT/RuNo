@@ -1,63 +1,52 @@
-import { PlusSquareOutlined } from "@ant-design/icons";
 import { Select } from "antd";
-import { useState } from "react";
+import { useAtom } from "jotai";
+import { useEffect, useState } from "react";
+import { sortingAtom, sortingFnAtom } from "../../state/formula";
 
 const Sorting = () => {
-  const [isCheckedA, setIsCheckedA] = useState(false);
-  const [isCheckedB, setIsCheckedB] = useState(false);
-  // const [option, setOption] = useState('Up')
+  const [text, setText] = useState<string>("");
+  const [_, setSortingFn] = useAtom(sortingFnAtom);
+  const [option, setOption] = useAtom(sortingAtom);
+  const [isChecked, setIsChecked] = useState(false);
+
+  useEffect(() => {
+    if (isChecked) {
+      setSortingFn(text);
+    } else {
+      setSortingFn("");
+    }
+  }, [isChecked, text]);
   return (
     <div className="flex-col">
       <div className="sorting">
         <div className="flex items-center">
           <Select
             className="sorting-select"
-            defaultValue="Up"
             style={{ width: 120 }}
-            // onChange={(e) =>setOption(e)}
+            onChange={(e) => setOption(e)}
+            value={option}
             options={[
-              { value: "up", label: "Up" },
-              { value: "down", label: "Down" },
+              { value: "asc", label: "Up" },
+              { value: "desc", label: "Down" },
             ]}
           />
           <input
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+            }}
             className="modified"
-            defaultValue="Date modified => 07/11/2023"
           />
           <input
             className="radio-input"
-            checked={isCheckedA}
             type="checkbox"
-            value="option1"
-            onClick={() => setIsCheckedA(!isCheckedA)}
+            checked={isChecked}
+            onClick={() => {
+              setIsChecked(!isChecked);
+            }}
           />
-        </div>
-        <div className="flex items-center">
-          <Select
-            className="sorting-select"
-            defaultValue="Up"
-            style={{ width: 120 }}
-            // onChange={(e) =>setOption(e)}
-            options={[
-              { value: "up", label: "Up" },
-              { value: "down", label: "Down" },
-            ]}
-          />
-          <input className="modified" defaultValue="Date modified" />
-          <input
-            className="radio-input"
-            checked={isCheckedB}
-            type="checkbox"
-            value="option2"
-            onClick={() => setIsCheckedB(!isCheckedB)}
-          />
-        </div>
-        <div className="add-option cursor-pointer">
-          <PlusSquareOutlined className="mx-2" />
-          Add Option
         </div>
       </div>
-      <button className="add-btn mx-auto my-3">Add sort group</button>
     </div>
   );
 };

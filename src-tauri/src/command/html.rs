@@ -2,11 +2,15 @@ use std::borrow::{Borrow, BorrowMut};
 use std::default::Default;
 use std::{clone, io, result, vec};
 
-use crate::command::TypeOr;
+use crate::command::{TypeOr, ORIGINAL_DOC_ID_LIST};
 use chrono::NaiveDateTime;
+use html5ever::parse_document;
+use html5ever::serialize::{Serialize, SerializeOpts, TraversalScope};
 use html5ever::tendril::TendrilSink;
-use html5ever::{parse_document, QualName};
-use rcdom::{Handle, NodeData, RcDom};
+use rcdom::{Handle, Node, NodeData, RcDom, SerializableHandle};
+use scraper::html;
+use std::collections::LinkedList;
+use tauri::utils::html::NodeRef;
 use uuid::Uuid;
 
 fn walk(
@@ -112,10 +116,16 @@ impl Clone for formula {
     }
 }
 
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd, Clone)]
+pub struct entry_data {
+    pub entry: u64,
+    pub ids: Vec<String>,
+}
 pub struct parse_html_return {
-    pub parsed_text: Vec<Vec<String>>,
+    pub parsed_text: Vec<entry_data>,
     pub formula_list: Vec<formula>,
-    pub tags: Vec<String>,
+    pub tags: Vec<Vec<String>>,
+    pub index_data: Vec<Vec<String>>,
 }
 
 pub fn convert_to_sorting_formula(formula: String, entry_no: u64) -> formula {
@@ -141,53 +151,115 @@ pub fn convert_to_filter_formula(formula: String, entry_no: u64) -> formula {
     };
 }
 
+pub static mut ENTRY_LIST: Vec<entry_data> = vec![];
+
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd, Clone)]
+pub struct list_ids {
+    pub ids: LinkedList<String>,
+    pub entry: u64,
+}
+
+pub fn extract_all_ids_recursive(
+    node: &Handle,
+    ids: &mut LinkedList<list_ids>,
+    tags: &mut Vec<Vec<String>>,
+) {
+    let node_data = node.data.borrow();
+
+    if let NodeData::Element { name, attrs, .. } = &*node_data {
+        /// valids tags are p ,div, hr, span, table
+        let valid_tags = ["p", "div", "hr", "span", "table", "formula"];
+
+        if valid_tags.contains(&&*name.local.to_lowercase().as_str()) {
+            if name.local.to_lowercase() == "hr" {
+                tags.push(vec![]);
+                ids.push_back({
+                    list_ids {
+                        ids: LinkedList::new(),
+                        entry: ids.len() as u64,
+                    }
+                })
+            }
+
+            for attr in attrs.borrow().iter() {
+                if attr.name.local.to_lowercase() == "id" {
+                    ids.back_mut()
+                        .unwrap()
+                        .ids
+                        .push_back(attr.value.to_string());
+                    // ids.push_back(attr.value.to_string());
+                }
+            }
+            // if tag is p get html content
+            // get html content
+            let mut dom = RcDom::default();
+            dom.document
+                .borrow_mut()
+                .children
+                .borrow_mut()
+                .push(node.clone());
+
+            let mut bytes = vec![];
+            html5ever::serialize::serialize::<_, SerializableHandle>(
+                &mut bytes,
+                &SerializableHandle::from(dom.document), // Fix: Pass a reference to dom.document
+                SerializeOpts::default(),
+            )
+            .unwrap();
+
+            //convert bytes to stirng
+            let data = String::from_utf8(bytes).unwrap();
+
+            //push to the last on tagss
+            tags.last_mut().unwrap().push(data);
+        }
+    }
+    for child in node.children.borrow().iter() {
+        extract_all_ids_recursive(child, ids, tags);
+    }
+}
+
 pub fn parse_html(html: &str) -> parse_html_return {
-    // split the html by <hr> tag
-    // split by <hr> <hr/> and <hr />
-
-    let delimiters = ["<hr>", "<hr/>", "<hr />", "<hr class=\"hidden\">"];
-    let final_string: String;
-
-    // split by <hr> <hr/> and <hr /> or <hr class="hidden">
-
-    // let mut tags = Vec::new();
-
-    // let mut current_word = String::new();
-
-    // for c in html.chars() {
-    //     let c_str = c.to_string();
-    //     if delimiters.contains(&c_str.as_str()) {
-    //         if !current_word.is_empty() {
-    //             tags.push(current_word.clone());
-    //             current_word.clear();
-    //         }
-    //     } else {
-    //         current_word.push(c);
-    //     }
-    // }
-
-    // if !current_word.is_empty() {
-    //     tags.push(current_word);
-    // }
-
-    // println!("{:?}", tags.len());
-
-    let tags = html.split("<hr>").collect::<Vec<&str>>();
-
-    let mut parsed_text = vec![];
-    let mut formula_list: Vec<formula> = vec![];
-    let mut entry = 0;
-    for tag in tags.iter() {
-        let mut line = 0;
-        let dom = parse_document(RcDom::default(), Default::default()).one(tag.to_string());
-        let final_data = walk(&dom.document, false, &mut formula_list, &mut line, entry);
-        parsed_text.push(final_data);
-        entry += 1;
+    unsafe {
+        ENTRY_LIST = vec![];
     }
 
-    parse_html_return {
-        parsed_text,
-        formula_list,
-        tags: tags.iter().map(|x| x.to_string()).collect(),
+    let dom = parse_document(RcDom::default(), Default::default()).one(html.to_string());
+
+    let mut linkdlist = LinkedList::new();
+    let mut tags: Vec<Vec<String>> = vec![];
+    extract_all_ids_recursive(&dom.document, &mut linkdlist, &mut tags);
+
+    // ///////////////////
+
+    // let tag_data = vec![];
+    println!("{:?}", tags);
+
+    let mut formula_list: Vec<formula> = vec![];
+    let mut index_data = vec![];
+    let mut entry = 0;
+
+    unsafe {
+        for tag in tags.iter() {
+            let mut line = 0;
+            let dom =
+                parse_document(RcDom::default(), Default::default()).one(tag.concat().to_string());
+            let final_data = walk(&dom.document, false, &mut formula_list, &mut line, entry);
+            index_data.push(final_data);
+            entry += 1;
+        }
+    }
+
+    unsafe {
+        ORIGINAL_DOC_ID_LIST = linkdlist;
+    }
+
+    unsafe {
+        parse_html_return {
+            parsed_text: ENTRY_LIST.clone(),
+            formula_list,
+            tags: tags,
+            index_data,
+        }
     }
 }
