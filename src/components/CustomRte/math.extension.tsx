@@ -26,16 +26,46 @@ export default Node.create({
     return {
       id: {
         default: id,
+        parseHTML(element) {
+          if (element.getAttribute("id")) {
+            const allFormula = formulaStore.getState();
+            if (!allFormula.find((f) => f.id === element.getAttribute("id"))) {
+              formulaStore.setState(
+                [
+                  ...allFormula,
+                  {
+                    id: element.getAttribute("id") || "",
+                    data: element.getAttribute("data") || "",
+                    formula: element.getAttribute("formula") || "",
+                  },
+                ],
+                true
+              );
+            }
+          }
+          return element.getAttribute("id") || "";
+        },
       },
       formula: {
         default: "",
+        parseHTML(element) {
+          return element.getAttribute("formula") || "";
+        },
       },
       value: {
         default: "",
+        parseHTML(element) {
+          return element.getAttribute("value") || "";
+        },
       },
-      result: { default: "" },
-      isLocal: {
-        default: false,
+      result: {
+        default: "",
+        parseHTML(element) {
+          return element.getAttribute("result") || "";
+        },
+      },
+      data: {
+        default: "",
       },
       ["data-type"]: {
         default: "math-component",
@@ -48,6 +78,8 @@ export default Node.create({
       {
         tag: "formula",
         attrs: {
+          formula: "formula",
+          value: "value",
           "data-type": "math-component",
         },
       },

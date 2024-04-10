@@ -3800,6 +3800,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "try-catch",
+ "uuid",
 ]
 
 [[package]]
@@ -4154,9 +4155,9 @@ checksum = "7fcfc827f90e53a02eaef5e535ee14266c1d569214c6aa70133a624d8a3164ba"
 
 [[package]]
 name = "uuid"
-version = "1.5.0"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88ad59a7560b41a70d191093a945f0b87bc1deeda46fb237479708a1d6b6cdfc"
+checksum = "a183cf7feeba97b4dd1c0d46788634f6221d87fa961b305bed08c851829efcc0"
 dependencies = [
  "getrandom 0.2.11",
  "serde",

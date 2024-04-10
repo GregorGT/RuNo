@@ -46,32 +46,51 @@ static mut FORMULA_LIST_CELL: Vec<html::formula> = vec![];
 //
 const LENGTH: i32 = 1;
 
-// const SINGLE_LINE_EXAMPLE: &str = r#"<p>hello test some 15.5</p><p>hello test some 16.2</p><p>eval some **<formula id="6f8b240b-196a-410d-893f-b5cbe1b769ff">MIN(EVAL("test some {NUMBER}"),177)</formula></p><hr><p>dasd</p><p>my name</p><p>my pc</p><p><formula id="fddde677-e326-4dcd-8333-f81fced7cce5">SUM(EVAL("eval some {NUMBER}"),1)</formula><formula id="fddde677-e326-4dcd-8533-981fced7cce5">TRIM(EVAL("my {TEXT}"))</formula></p><p>
-// <formula id="fddde677-e326-4dcd-8333-981fced7cce5">TRIM("one   ")</formula>
-// </p><p>
-// <formula id="f5dde677-e326-4dcd-8333-981fced7cce5">AVERAGE(EVAL("test some {NUMBER}"),177)</formula>
-// </p>"#;
-// const SINGLE_LINE_EXAMPLE: &str = r#"<p>hello test some 15</p><p>hello test some 16</p><hr><p><formula id="fddde677-e326-4dcd-8333-f81fced7cce2">SUM(EVAL("hello test some {NUMBER}"),1,EVAL("hello test some {NUMBER}"))</formula></p><p>dasd</p><p>dasdas</p><p><formula id="fddde677-e326-4dcd-8343-f81fced7cce5">SUM(EVAL("eval some {NUMBER}"),0)</formula></p><p>eval some <formula id="6f89240b-196a-410d-893f-b5cbe1b769fg">SUM(10,20)</formula></p>"#;
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd)]
+pub struct return_data {
+    formula_list: Vec<html::formula>,
+    parsed_text: String,
+}
 
-// SUM(EVAL(!"dog price {NUMBER}"))
-// const SINGLE_LINE_EXAMPLE: &str = r#"<p>hello test some 15</p><p>hello test some 16</p><p><formula id="f6d6ee64-2c7f-47df-a91e-641017824f3d">IFERROR(SUM(EVAL("hello test some {NUMBER}"))){SUM(1,2)}ELSE{SUM(1)}</formula><hr>"#;
 #[tauri::command]
-pub fn run_command(input: String) -> Vec<html::formula> {
+pub fn run_command(input: String) -> return_data {
     let SINGLE_LINE_EXAMPLE: &str = input.as_str();
     println!("Input: {:?}", SINGLE_LINE_EXAMPLE);
 
-    const simple_string: &str = r#"EVAL("new rust"."some text name")"#; //
+    let sortingFn = r#"EVAL(!"ID: {NUMBER}")"#;
+    let inputFilterFn = r#"EVAL(!"ID: {NUMBER}") = 1"#;
+    let filterFn = format!("IF({}){{SUM(1)}}ELSE{{SUM(2)}}", inputFilterFn);
+    println!("Filter: {:?}", filterFn);
+
     let start_time = Instant::now();
 
-    const simple_string_veh_parameter: &str = r#"SUM(1)"#;
     let parsed_data: html::parse_html_return =
         html::parse_html(SINGLE_LINE_EXAMPLE.repeat(LENGTH as usize).as_str());
 
     let SEPARATED_DOCS = parsed_data.parsed_text;
+    let all_html = parsed_data.tags;
+
+    let sorting_formula_list = all_html
+        .clone()
+        .into_iter()
+        .enumerate()
+        .map(|(index, x)| html::convert_to_sorting_formula(sortingFn.to_string(), index as u64))
+        .collect::<Vec<html::formula>>();
+
+    let filter_formula_list = all_html
+        .clone()
+        .into_iter()
+        .enumerate()
+        .map(|(index, x)| html::convert_to_filter_formula(filterFn.to_string(), index as u64))
+        .collect::<Vec<html::formula>>();
+
     let formula_list = parsed_data.formula_list;
-    println!("Formula List: {:?}", formula_list.len());
     //SET GLOBAL LIST FOR FORMULA
     unsafe {
+        // merge formula list and sorting formula list
+        let mut formula_list = formula_list.clone();
+        formula_list.extend(sorting_formula_list.clone());
+        formula_list.extend(filter_formula_list.clone());
         FORMULA_LIST_CELL = formula_list.clone();
     }
 
@@ -150,8 +169,89 @@ pub fn run_command(input: String) -> Vec<html::formula> {
         "Time taken For Query: {:?}",
         end_query_time.duration_since(start_query_time)
     );
+
     unsafe {
-        return FORMULA_LIST_CELL.clone();
+        println!("Formula List: {:?}", FORMULA_LIST_CELL);
+
+        let mut only_sorting_functions = FORMULA_LIST_CELL
+            .clone()
+            .into_iter()
+            .filter(|x| x.isSorting)
+            .collect::<Vec<html::formula>>();
+
+        only_sorting_functions.sort_by(|a, b| {
+            let a = a.data.clone();
+            let b = b.data.clone();
+            match (a, b) {
+                (TypeOr::Right(a), TypeOr::Right(b)) => a.partial_cmp(&b).unwrap(),
+                (TypeOr::RightList(a), TypeOr::RightList(b)) => {
+                    let a = a.iter().sum::<f64>();
+                    let b = b.iter().sum::<f64>();
+                    a.partial_cmp(&b).unwrap()
+                }
+                (TypeOr::Left(a), TypeOr::Left(b)) => a.partial_cmp(&b).unwrap(),
+                (TypeOr::LeftList(a), TypeOr::LeftList(b)) => {
+                    let a = a.join("");
+                    let b = b.join("");
+                    a.partial_cmp(&b).unwrap()
+                }
+                (TypeOr::DateValue(a), TypeOr::DateValue(b)) => a.partial_cmp(&b).unwrap(),
+                (TypeOr::DateList(a), TypeOr::DateList(b)) => {
+                    let a = a.iter().map(|x| x.timestamp()).sum::<i64>();
+                    let b = b.iter().map(|x| x.timestamp()).sum::<i64>();
+                    a.partial_cmp(&b).unwrap()
+                }
+                _ => panic!("Error"),
+            }
+        });
+
+        //const filter functions
+        let only_filter_functions = FORMULA_LIST_CELL
+            .clone()
+            .into_iter()
+            .filter(|x| x.isFilter)
+            .collect::<Vec<html::formula>>();
+
+        // re arrange the all_html based on the entry id on only_sorting_functions
+        let mut new_all_html = vec![];
+        let mut hr_class = vec![];
+        // Clone all_html
+        for formula in only_sorting_functions {
+            // sort based on the entry id
+            // get the index element from all_html
+            let index = formula.entry as usize;
+
+            new_all_html.push(all_html.clone()[index].clone());
+            let mut is_hidden = false;
+            //
+            only_filter_functions.iter().for_each(|x| {
+                if x.entry == formula.entry {
+                    println!("Hidden: {:?}", x.data);
+                    if x.data == TypeOr::Right(1.0) {
+                        is_hidden = true;
+                    }
+                }
+            });
+            hr_class.push(if is_hidden {
+                "<hr class=\"hidden\">"
+            } else {
+                "<hr>"
+            });
+        }
+
+        let mut final_html = "".to_string();
+        for (index, x) in new_all_html.iter().enumerate() {
+            final_html += x;
+            if index != new_all_html.len() - 1 {
+                final_html += hr_class[index];
+            }
+        }
+
+        println!("Final HTML: {:?}", final_html);
+        return_data {
+            formula_list: FORMULA_LIST_CELL.clone(),
+            parsed_text: final_html,
+        }
     }
 }
 
@@ -203,7 +303,7 @@ fn parse_string(
     Ok(TypeOr::None)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, PartialOrd)]
 enum TypeOr<S, T, Y> {
     Left(S),
     Right(T),
@@ -349,7 +449,7 @@ fn recursive_funcation_parser<'a>(
                                     searcher.clone(),
                                     schema.clone(),
                                     vec![formula.entry],
-                                    index == 1,
+                                    false,
                                 )
                                 .unwrap()
                             }
@@ -391,9 +491,8 @@ fn recursive_funcation_parser<'a>(
                         } else if final_formula.find("{DATE}") != None {
                             is_date = true;
                             // price data 11/01/2020
-
-                            exp = Regex::new(final_formula.replace("{DATE}", r"(?<date>\^(0?[1-9]|1[0-2])[\/](0?[1-9]|[12]\d|3[01])[\/](19|20)\d{2}$)").as_str()).unwrap();
-                            return_val = TypeOr::LeftList([].to_vec());
+                            exp = Regex::new(final_formula.replace("{DATE}", r"(?<date>(0[1-9]|[12][0-9]|3[01])(\/|-)(0[1-9]|1[1,2])(\/|-)(19|20)\d{2})").as_str()).unwrap();
+                            return_val = TypeOr::DateList([].to_vec());
                         } else {
                             exp = Regex::new(final_formula).unwrap();
                         }
@@ -425,10 +524,8 @@ fn recursive_funcation_parser<'a>(
                                     .get_all(schema.get_field("body").unwrap())
                                     .into_iter()
                                 {
-                                    println!("Field: {:?}", field);
                                     // LOOP THROUGH ALL THE RETRIEVED DOCS
                                     let mut finding_string = field.as_text().unwrap();
-                                    println!("Finding String: {:?}", finding_string);
                                     let mut non_unwrapped_result_uuid =
                                         uuid_regexp.captures(finding_string);
 
@@ -439,7 +536,6 @@ fn recursive_funcation_parser<'a>(
                                         Some(caps) => {
                                             found_uuid = true;
                                             found_uuid_value = caps[1].to_string();
-                                            println!("Has Value: {:?}", &caps[1]);
                                             // non_unwrapped_result_uuid.unwrap()
                                         }
                                         None => {
@@ -454,7 +550,6 @@ fn recursive_funcation_parser<'a>(
                                     if found_uuid {
                                         let result = found_uuid_value;
                                         //TREE TRAVERSAL FOR FORMULA
-                                        println!("Result: {:?}", result);
                                         let current_formula_search: Option<&html::formula>;
 
                                         unsafe {
@@ -507,7 +602,6 @@ fn recursive_funcation_parser<'a>(
                                                         try{
 
                                                         let num = val.to_string().parse::<f64>()?;
-                                                            println!("Number: {:?}", num);
 
                                                         number_list.push(num);
                                                         }catch err {
@@ -531,22 +625,25 @@ fn recursive_funcation_parser<'a>(
                                     }
 
                                     let mut non_unwrapped_result = exp.captures(finding_string);
-                                    println!("Non Unwrapped Result: {:?}", non_unwrapped_result);
                                     if (non_unwrapped_result.is_none()) {
                                         continue;
                                     }
                                     let result = non_unwrapped_result.unwrap();
-                                    println!("Result: {:?}", result);
                                     if is_str {
-                                        println!("Text: {:?}", result["text"].to_string());
                                         string_list.push(result["text"].to_string());
                                     } else if is_num {
-                                        println!("Number: {:?}", result["number"].to_string());
-
                                         number_list.push(result["number"].parse::<f64>().unwrap());
                                     } else if is_date {
-                                        date_list
-                                            .push(result["date"].parse::<NaiveDateTime>().unwrap());
+                                        // println!("Eval Pair {:}", eval_pair.as_str());
+                                        // println!("Date: {:?}", result["date"].to_string());
+                                        catch! {
+                                         try{
+                                            date_list.push(
+                                                parse(&result["date"].to_string()).unwrap().naive_utc(),
+                                            );
+                                        }catch err {
+                                        }
+                                        }
                                     }
                                 }
 
@@ -601,7 +698,6 @@ fn recursive_funcation_parser<'a>(
                     formula_list.clone(),
                     formula.clone(),
                 );
-                println!("Ans: {:?}", ans);
                 match ans {
                     TypeOr::Right(value) => final_sum += value,
                     TypeOr::RightList(value) => {
@@ -650,7 +746,6 @@ fn recursive_funcation_parser<'a>(
                 if inner_pair.as_rule() == Rule::text {
                     // val -= 2.0;
                 }
-                println!("Ans: {:?}", ans);
 
                 match ans {
                     TypeOr::LeftList(value) => {
@@ -741,7 +836,6 @@ fn recursive_funcation_parser<'a>(
                     formula_list.clone(),
                     formula.clone(),
                 );
-                println!("Ans: {:?}", ans);
                 match ans {
                     TypeOr::Right(value) => {
                         if value < val {
@@ -809,7 +903,6 @@ fn recursive_funcation_parser<'a>(
                     formula.clone(),
                 );
 
-                println!("Ans: {:?}", ans);
                 match ans {
                     TypeOr::Right(value) => val = TypeOr::Right(round(value as f64, 0) as f64),
                     TypeOr::RightList(value) => {
@@ -848,7 +941,6 @@ fn recursive_funcation_parser<'a>(
             }
             return TypeOr::Right(total / count);
         }
-
         Rule::MUL => {
             let mut final_sum = 1.0;
             for inner_pair in pair.into_inner() {
@@ -879,6 +971,37 @@ fn recursive_funcation_parser<'a>(
                 }
             }
             return TypeOr::Left("".to_string());
+        }
+        Rule::DATE => {
+            //length of inner pair
+            let len = pair.clone().into_inner().count();
+            let mut date_list = TypeOr::DateList([].to_vec());
+            let mut date_vec: Vec<NaiveDateTime> = [].to_vec();
+            if (len == 1) {
+                for inner_pair in pair.clone().into_inner() {
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                return TypeOr::DateValue(
+                                    parse(inner_pair.as_str()).unwrap().naive_utc(),
+                                );
+                            }
+                        }
+                    }
+                }
+            } else {
+                for inner_pair in pair.into_inner() {
+                    if inner_pair.as_rule() == Rule::text {
+                        for inner_pair in inner_pair.into_inner() {
+                            if inner_pair.as_rule() == Rule::text_val {
+                                date_vec.push(parse(inner_pair.as_str()).unwrap().naive_utc());
+                            }
+                        }
+                    }
+                }
+                return TypeOr::DateList(date_vec);
+            }
+            return date_list;
         }
         Rule::TYPE => {
             let mut val: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
@@ -919,7 +1042,6 @@ fn recursive_funcation_parser<'a>(
                         formula.clone(),
                     );
                     if ans == TypeOr::None {
-                        println!("Error: {:?}", ans);
                         has_error = true;
                     }
                     has_first_calculated = true;
@@ -944,24 +1066,33 @@ fn recursive_funcation_parser<'a>(
         Rule::IF => {
             let mut final_ans = false;
             for inner_pair in pair.into_inner() {
+                let mut isEQ = false;
+                let mut isNEQ = false;
+                let mut isGT = false;
+                let mut isLT = false;
+                let mut isGTE = false;
+                let mut isLTE = false;
+
                 if inner_pair.as_rule() == Rule::COMPARATOR {
                     let mut is_left = true;
                     let mut left_answer: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
                     let mut right_answer: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
-                    let mut isEQ = false;
-                    let mut isNEQ = false;
-                    let mut isGT = false;
-                    let mut isLT = false;
-                    let mut isGTE = false;
-                    let mut isLTE = false;
+
                     for compare_pair in inner_pair.clone().into_inner() {
-                        let ans = recursive_funcation_parser(
+                        let mut ans = recursive_funcation_parser(
                             compare_pair.clone(),
                             searcher.clone(),
                             schema.clone(),
                             formula_list.clone(),
                             formula.clone(),
                         );
+                        match ans.clone() {
+                            TypeOr::DateValue(val) => {
+                                ans = TypeOr::Right(val.and_utc().timestamp() as f64);
+                            }
+                            _ => {}
+                        }
+
                         if (is_left) {
                             left_answer = ans;
                             is_left = false;
@@ -970,7 +1101,7 @@ fn recursive_funcation_parser<'a>(
                         }
                         if compare_pair.as_rule() == Rule::COMPARATOR_SIGN {
                             let sign = compare_pair.as_str();
-                            if sign == "==" {
+                            if sign == "==" || sign == "=" {
                                 isEQ = true;
                             } else if sign == "!=" {
                                 isNEQ = true;
@@ -983,6 +1114,12 @@ fn recursive_funcation_parser<'a>(
                             } else if sign == "<=" {
                                 isLTE = true;
                             }
+                        }
+                    }
+
+                    if let (TypeOr::RightList(mut list)) = left_answer.clone() {
+                        if list.len() == 1 {
+                            left_answer = TypeOr::Right(list[0]);
                         }
                     }
 
@@ -1037,7 +1174,6 @@ fn recursive_funcation_parser<'a>(
                             final_ans = false;
                         }
                     } else if isLTE {
-                        println!("Left: {:?}", isLTE);
                         if let (TypeOr::RightList(left_list), TypeOr::RightList(right_list)) =
                             (left_answer.clone(), right_answer.clone())
                         {
@@ -1048,15 +1184,12 @@ fn recursive_funcation_parser<'a>(
                         } else if let (TypeOr::Right(left_list), TypeOr::Right(right_list)) =
                             (left_answer.clone(), right_answer.clone())
                         {
-                            println!("Left: {:?}", left_list <= right_list);
                             final_ans = left_list <= right_list;
                         } else {
                             final_ans = false;
                         }
                     }
                 }
-                println!("Final Ans: {:?}", final_ans);
-                println!("Rule IF: {:?}", inner_pair.as_rule());
 
                 if final_ans && inner_pair.as_rule() == Rule::Fn {
                     return recursive_funcation_parser(
@@ -1089,13 +1222,19 @@ fn recursive_funcation_parser<'a>(
                     let mut isGTE = false;
                     let mut isLTE = false;
                     for compare_pair in inner_pair.clone().into_inner() {
-                        let ans = recursive_funcation_parser(
+                        let mut ans = recursive_funcation_parser(
                             compare_pair.clone(),
                             searcher.clone(),
                             schema.clone(),
                             formula_list.clone(),
                             formula.clone(),
                         );
+                        match ans.clone() {
+                            TypeOr::DateValue(val) => {
+                                ans = TypeOr::Right(val.and_utc().timestamp() as f64);
+                            }
+                            _ => {}
+                        }
                         if (is_left) {
                             left_answer = ans;
                             is_left = false;
@@ -1119,6 +1258,10 @@ fn recursive_funcation_parser<'a>(
                             }
                         }
                     }
+
+                    if let (TypeOr::DateList(left_list), TypeOr::DateList(right_list)) =
+                        (left_answer.clone(), right_answer.clone())
+                    {}
 
                     if isEQ {
                         if let (TypeOr::RightList(left_list), TypeOr::Right(right_list)) =
@@ -1257,19 +1400,12 @@ fn recursive_funcation_parser<'a>(
                             formula_list.clone(),
                             formula.clone(),
                         );
-                        // match ans.clone() {
-                        //     TypeOr::Right(val) => {
-                        //         if compare_pair.as_rule() == Rule::number {
-                        //             ans = TypeOr::RightList([val].to_vec());
-                        //         }
-                        //     }
-                        //     TypeOr::Left(val) => {
-                        //         if compare_pair.as_rule() == Rule::text {
-                        //             ans = TypeOr::LeftList([val].to_vec());
-                        //         }
-                        //     }
-                        //     _ => {}
-                        // }
+                        match ans.clone() {
+                            TypeOr::DateValue(val) => {
+                                ans = TypeOr::Right(val.and_utc().timestamp() as f64);
+                            }
+                            _ => {}
+                        }
 
                         if (is_left) {
                             left_answer = ans;
@@ -1410,8 +1546,8 @@ fn recursive_funcation_parser<'a>(
             return TypeOr::Right(total);
         }
 
-        _ => {
-            print!("Unreachable");
+        rule => {
+            println!("Unreachable Rule {:?}", rule);
             return TypeOr::None;
         }
     }
@@ -1497,3 +1633,4 @@ fn search_data(
     }
     Ok(TypeOr::RightList(found_numbers_list))
 }
+//

@@ -26,6 +26,7 @@ import {
   Divider,
   Button as IconButton,
   Select,
+  Switch,
 } from "antd";
 import { useAtom, useAtomValue } from "jotai";
 import { nanoid } from "nanoid";
@@ -34,7 +35,6 @@ import { editorKeys, editorStateAtom } from "../../state/editor";
 import { formulaAtom, formulaStore } from "../../state/formula";
 import { loadEditorAtom } from "../../state/load";
 import MathComponent from "../CustomRte/math.extension";
-import SearchAndReplace from "../CustomRte/search";
 import { tableAcions, textStyle } from "./const";
 import { v4 } from "uuid";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -52,6 +52,55 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   if (!editor) {
     return null;
   }
+  const [filteredEditorData, setFilteredEditorData] = useState<string>("");
+  const [normailEditorData, setNormalEditorData] = useState<string>("");
+
+  const load_data_to_backend = async () => {
+    const return_data = (await invoke("run_command", {
+      input: editor.getHTML(),
+    })) as unknown;
+    console.log(return_data);
+
+    if (
+      !return_data ||
+      typeof return_data !== "object" ||
+      !("formula_list" in return_data) ||
+      !("parsed_text" in return_data) ||
+      typeof return_data.parsed_text !== "string"
+    )
+      return;
+
+    editor.commands.setContent(return_data.parsed_text, true);
+
+    const formulas = return_data?.formula_list;
+    if (Array.isArray(formulas)) {
+      // ret?.map((item: any) => {
+      //   if (item.id && item.data && document) {
+      //     const element = document.getElementById(item.id);
+      //     if (element) element.innerText = item.data;
+      //   }
+      // });
+      const formula = formulaStore.getState();
+      formulaStore.setState(
+        [
+          ...formula.map((item) => {
+            const newItem = formulas.find((r: any) => r.id === item.id);
+            if (newItem) {
+              return {
+                ...item,
+                data: newItem.data,
+              };
+            }
+            return item;
+          }),
+        ],
+        true
+      );
+
+      // focus back to the editor
+      editor.commands.focus();
+    }
+  };
 
   return (
     <div
@@ -60,44 +109,28 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         margin: "20px",
       }}
     >
+      <Button onClick={load_data_to_backend}>Load Data</Button>
+      <Switch onChange={(checked) => {}} />
+
       <Button
         onClick={async () => {
-          const ret = await invoke("run_command", { input: editor.getHTML() });
-          console.log(ret);
-          console.log(allFormula);
+          const html2 = `<p>price dog 10</p><p>price dog 20</p><p></p><hr><p>ID: 1</p><p>price dog 10</p><p><formula id="e04b3496-dc9f-414c-b99f-8bd698aef573" formula="SUM(EVAL(&quot;ID: 1&quot;.&quot;price dog {NUMBER}&quot;))" value="" result="" data="10" data-type="math-component"></formula></p><p><formula id="d48956a1-c04e-42e0-8c52-0a974e1d1778" formula="MUL(EVAL(!&quot;price dog {NUMBER}&quot;),10)" value="" result="" data="100" data-type="math-component"></formula></p><p></p>`;
+          const html = `<p>price dog 10</p><p><formula id="67c08692-b977-45b4-a1b0-ebf1a56efcf8" formula="SUM(1,3)" value="" result="" islocal="false" data-type="math-component"></formula></p>`;
 
-          if (Array.isArray(ret)) {
-            ret?.map((item: any) => {
-              if (item.id && item.data && document) {
-                const element = document.getElementById(item.id);
-                if (element) element.innerText = item.data;
-              }
-            });
-            setFormulaValues((formula) => {
-              return formula.map((item) => {
-                const newItem = ret.find((r: any) => r.id === item.id);
-                if (newItem) {
-                  return {
-                    ...item,
-                    result: newItem.data,
-                  };
-                }
-                return item;
-              });
-            });
-          }
+          editor.commands.setContent(
+            `<p>price dog 10</p><p>price dog 20</p><p></p><hr><p>ID: 1</p><p>price dog 10</p><p><formula id="e04b3496-dc9f-414c-b99f-8bd698aef573" formula="SUM(EVAL(&quot;ID: 1&quot;.&quot;price dog {NUMBER}&quot;))" value="" result="" data="10" data-type="math-component"></formula></p><p><formula id="d48956a1-c04e-42e0-8c52-0a974e1d1778" formula="MUL(EVAL(!&quot;price dog {NUMBER}&quot;),10)" value="" result="" data="100" data-type="math-component"></formula></p><p></p><p></p><hr><p>hisaujda</p><p>Dnkasjndkjsad</p>`,
+            true
+          );
         }}
       >
-        Load Data
+        Paste Data
       </Button>
       <Button
-        onClick={() => {
-          const data =
-            '<p>price dog 10</p><hr><p>Entry: x</p><p></p><p>price dog 20</p><p></p><p>price dog <formula id="f13188e7-6610-43de-909e-e4648c31c9ee" formula="SUM(EVAL(&quot;Entry: x&quot;.&quot;price dog {NUMBER}&quot;))" value="20" result="" islocal="false" data-type="math-component"></formula></p><p></p><hr><p>total price: <formula id="8e692ebd-a5cf-4098-98a0-683530b35891" formula="SUM(EVAL(&quot;price dog {NUMBER}&quot;))" value="30" result="" islocal="false" data-type="math-component"></formula></p><p></p>';
-          editor.commands.setContent(data, true);
+        onClick={async () => {
+          console.log(editor.getHTML());
         }}
       >
-        Predefined Data
+        LOG
       </Button>
       <div className="d-flex gap-2  ">
         <Select
@@ -191,6 +224,11 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
             while (formulaStore.getState().find((f) => f.id === id)) {
               id = v4();
             }
+            const currentData = formulaStore.getState();
+            formulaStore.setState(
+              [...currentData, { id, data: "", formula: "" }],
+              true
+            );
             editor
               .chain()
               .insertContent({
@@ -261,10 +299,6 @@ const extensions = [
   TableHeader,
   TableCell,
   MathComponent,
-  SearchAndReplace.configure({
-    searchResultClass: "search-result",
-    disableRegex: false,
-  }),
 ];
 
 const content = `

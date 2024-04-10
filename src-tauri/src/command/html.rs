@@ -2,12 +2,12 @@ use std::borrow::{Borrow, BorrowMut};
 use std::default::Default;
 use std::{clone, io, result, vec};
 
+use crate::command::TypeOr;
 use chrono::NaiveDateTime;
 use html5ever::tendril::TendrilSink;
 use html5ever::{parse_document, QualName};
 use rcdom::{Handle, NodeData, RcDom};
-
-use crate::command::TypeOr;
+use uuid::Uuid;
 
 fn walk(
     handle: &Handle,
@@ -58,6 +58,8 @@ fn walk(
                     entry: entry,
                     id: id.clone(),
                     data: TypeOr::NotCalculated,
+                    isSorting: false,
+                    isFilter: false,
                 });
 
                 return vec![id.to_string()];
@@ -85,13 +87,15 @@ fn walk(
     }
     result
 }
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd)]
 pub struct formula {
     pub line: u64,
     pub formula: String,
     pub entry: u64,
     pub id: String,
     pub data: TypeOr<String, f64, NaiveDateTime>,
+    pub isSorting: bool,
+    pub isFilter: bool,
 }
 
 impl Clone for formula {
@@ -102,6 +106,8 @@ impl Clone for formula {
             entry: self.entry,
             id: self.id.clone(),
             data: self.data.clone(),
+            isSorting: self.isSorting,
+            isFilter: self.isFilter,
         }
     }
 }
@@ -109,14 +115,63 @@ impl Clone for formula {
 pub struct parse_html_return {
     pub parsed_text: Vec<Vec<String>>,
     pub formula_list: Vec<formula>,
+    pub tags: Vec<String>,
+}
+
+pub fn convert_to_sorting_formula(formula: String, entry_no: u64) -> formula {
+    return formula {
+        line: 0,
+        formula: formula,
+        entry: entry_no,
+        id: Uuid::new_v4().to_string(),
+        data: TypeOr::NotCalculated,
+        isSorting: true,
+        isFilter: false,
+    };
+}
+pub fn convert_to_filter_formula(formula: String, entry_no: u64) -> formula {
+    return formula {
+        line: 0,
+        formula: formula,
+        entry: entry_no,
+        id: Uuid::new_v4().to_string(),
+        data: TypeOr::NotCalculated,
+        isSorting: false,
+        isFilter: true,
+    };
 }
 
 pub fn parse_html(html: &str) -> parse_html_return {
     // split the html by <hr> tag
     // split by <hr> <hr/> and <hr />
 
-    let split = ["<hr>", "<hr/>", "<hr />"];
+    let delimiters = ["<hr>", "<hr/>", "<hr />", "<hr class=\"hidden\">"];
     let final_string: String;
+
+    // split by <hr> <hr/> and <hr /> or <hr class="hidden">
+
+    // let mut tags = Vec::new();
+
+    // let mut current_word = String::new();
+
+    // for c in html.chars() {
+    //     let c_str = c.to_string();
+    //     if delimiters.contains(&c_str.as_str()) {
+    //         if !current_word.is_empty() {
+    //             tags.push(current_word.clone());
+    //             current_word.clear();
+    //         }
+    //     } else {
+    //         current_word.push(c);
+    //     }
+    // }
+
+    // if !current_word.is_empty() {
+    //     tags.push(current_word);
+    // }
+
+    // println!("{:?}", tags.len());
+
     let tags = html.split("<hr>").collect::<Vec<&str>>();
 
     let mut parsed_text = vec![];
@@ -133,5 +188,6 @@ pub fn parse_html(html: &str) -> parse_html_return {
     parse_html_return {
         parsed_text,
         formula_list,
+        tags: tags.iter().map(|x| x.to_string()).collect(),
     }
 }
