@@ -12,6 +12,6 @@ let get_new_list = (number: number) => {
   return example;
 };
 
-export let final_list = [...new Array(350)]
+export let final_list = [...new Array(1000 / 3)]
   .map((_, i) => get_new_list(i))
   .join("");
