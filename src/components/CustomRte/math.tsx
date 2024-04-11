@@ -29,11 +29,11 @@ export default (props: any) => {
       });
       setData(formula?.data || "");
     });
-  }, [formulaStore]);
+  }, []);
 
   // useEffect(() => {
   //   console.log("props", props);
-  //   const formula = formulaStore.getState().find((f) => f.id == currentId);
+  //   const formula = formulaStore.  getState().find((f) => f.id == currentId);
   //   props.updateAttributes({
   //     formula: formula?.formula || "",
   //     data: formula?.data || "",

@@ -180,7 +180,6 @@ pub fn main_command(
 
     let all_html = parsed_data.tags;
     let mut sorting_formula_list = vec![];
-
     if sorting.trim().len() > 1 {
         sorting_formula_list = all_html
             .clone()
@@ -211,6 +210,7 @@ pub fn main_command(
         formula_list.extend(filter_formula_list.clone());
         println!("Formula List: {:?}", formula_list);
         FORMULA_LIST_CELL = formula_list.clone();
+        
     }
 
     let end_time = Instant::now();
