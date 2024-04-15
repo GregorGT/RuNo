@@ -210,7 +210,6 @@ pub fn main_command(
         formula_list.extend(filter_formula_list.clone());
         println!("Formula List: {:?}", formula_list);
         FORMULA_LIST_CELL = formula_list.clone();
-        
     }
 
     let end_time = Instant::now();
@@ -1115,6 +1114,42 @@ fn recursive_funcation_parser<'a>(
             }
             return TypeOr::Right(final_sum);
         }
+        Rule::DIV => {
+            let mut final_sum = 1.0;
+            let mut is_first = true;
+            for inner_pair in pair.into_inner() {
+                let ans = recursive_funcation_parser(
+                    inner_pair,
+                    searcher.clone(),
+                    schema.clone(),
+                    formula_list.clone(),
+                    formula.clone(),
+                );
+                match ans {
+                    TypeOr::Right(value) => {
+                        if is_first {
+                            final_sum = value;
+                            is_first = false;
+                        } else {
+                            final_sum /= value;
+                        }
+                    }
+                    TypeOr::RightList(value) => {
+                        for i in value {
+                            if is_first {
+                                final_sum = i;
+                                is_first = false;
+                            } else {
+                                final_sum /= i;
+                            }
+                        }
+                    }
+                    any => return TypeOr::None,
+                }
+            }
+            return TypeOr::Right(final_sum);
+        }
+
         Rule::number => return TypeOr::Right(pair.as_str().parse::<f64>().unwrap()),
         Rule::text => {
             for inner_pair in pair.into_inner() {

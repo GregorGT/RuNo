@@ -9,6 +9,8 @@ CHAIN_PATTREN   =  { EVAL_PATTREN ~ ("." ~ EVAL_PATTREN)* }
 EVAL            =  { "EVAL(" ~ CHAIN_PATTREN+ ~ ")" }
 SUM             =  { "SUM(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
 MUL             =  { "MUL(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
+DIV             =  { "DIV(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
+// 
 COMPARATOR_SIGN =  { "="  | "<=" | ">=" | ">"| "<" }
 COMPARATOR = { ( Fn | DATE ) ~ WHITESPACE* ~ COMPARATOR_SIGN ~ WHITESPACE* ~ (Fn | number | text | DATE) }
 
@@ -43,6 +45,6 @@ NUMBER = { "NUMBER(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
 TEXT = { "TEXT(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
 
 
-Fn = { EVAL | SUM | MUL | COUNT | LEN | TYPE | CONCAT | IF | MIN | MAX | AVERAGE | TRIM | ROUND | IFERROR |SUMIF | COUNTIF | DATE | NUMBER | TEXT}
+Fn = { EVAL | SUM | MUL | COUNT | LEN | TYPE | CONCAT | IF | MIN | MAX | AVERAGE | TRIM | ROUND | IFERROR |SUMIF | COUNTIF | DATE | NUMBER | TEXT |DIV}
 
 
