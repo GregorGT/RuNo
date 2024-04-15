@@ -14,3 +14,13 @@ export const loadEditorAtom = atom<loadExportDataFormatType>({
   VALUE: "",
   HEADER: "",
 });
+
+export const exportEditorFunction = atom<{
+  fn: () => string;
+  load: (data: string) => void;
+}>({
+  fn: () => {
+    return "";
+  },
+  load: (data) => {},
+});

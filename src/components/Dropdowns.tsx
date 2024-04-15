@@ -2,14 +2,37 @@ import { writeTextFile } from "@tauri-apps/api/fs";
 import { downloadDir } from "@tauri-apps/api/path";
 import type { MenuProps } from "antd";
 import { Dropdown, notification } from "antd";
-import { useAtom } from "jotai/react";
+import { useAtom, useAtomValue } from "jotai/react";
 import { editorStateAtom } from "../state/editor";
-import { loadEditorAtom } from "../state/load";
+import { exportEditorFunction, loadEditorAtom } from "../state/load";
 import "./Components.scss";
+import { filterFnAtom, sortingAtom, sortingFnAtom } from "../state/formula";
 
 export default function Dropdowns() {
   const [editorState, setState] = useAtom(editorStateAtom);
   const [_, loadEditor] = useAtom(loadEditorAtom);
+  const getEditorValue = useAtomValue(exportEditorFunction);
+  const [filterValue, setFilterValue] = useAtom(filterFnAtom);
+  const [sortingDirection, setSortingDirection] = useAtom(sortingAtom);
+  const [sortingFn, setSortingFn] = useAtom(sortingFnAtom);
+
+  const save_data = () => {
+    const data = {
+      editorData: getEditorValue.fn(),
+      filter: filterValue,
+      sorting: sortingFn,
+      direction: sortingDirection,
+    };
+    return data;
+  };
+  const load_data = (json: string) => {
+    console.log(json);
+    const { editorData, filter, sorting, direction } = JSON.parse(json);
+    getEditorValue.load(editorData);
+    setFilterValue(filter);
+    setSortingFn(sorting);
+    setSortingDirection(direction);
+  };
 
   const fileItems: MenuProps["items"] = [
     { key: 1, label: "Load" },
@@ -45,11 +68,13 @@ export default function Dropdowns() {
           items: fileItems,
           onClick: async (e) => {
             if (e.key === "2") {
+              console.log(getEditorValue.fn());
+              const path = `${await downloadDir()}export-${new Date().getTime()}.json`;
               await writeTextFile({
-                path: `${await downloadDir()}/export-${new Date().getTime()}.json`,
-                contents: JSON.stringify(editorState),
+                path,
+                contents: JSON.stringify(save_data()),
               });
-              showNotificaiton("File Saved");
+              showNotificaiton(`File Saved as ${path}`);
             }
             if (e.key === "1") {
               // Open File Picker
@@ -59,11 +84,11 @@ export default function Dropdowns() {
               input.onchange = (e) => {
                 const target = e.target as HTMLInputElement;
                 const file: File = (target.files as FileList)[0];
+                console.log(file);
                 const reader = new FileReader();
                 reader.readAsText(file);
                 reader.onload = () => {
-                  loadEditor(JSON.parse(reader.result as string));
-                  setState(JSON.parse(reader.result as string));
+                  load_data(reader.result as string);
                   showNotificaiton("File Loaded");
                 };
               };

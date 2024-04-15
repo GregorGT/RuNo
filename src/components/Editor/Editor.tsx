@@ -38,7 +38,7 @@ import {
   sortingAtom,
   sortingFnAtom,
 } from "../../state/formula";
-import { loadEditorAtom } from "../../state/load";
+import { exportEditorFunction, loadEditorAtom } from "../../state/load";
 import MathComponent from "../CustomRte/math.extension";
 import { tableAcions, textStyle } from "./const";
 //@ts-ignore
@@ -69,6 +69,15 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const sortingDir = useAtomValue(sortingAtom);
   const sortingFn = useAtomValue(sortingFnAtom);
   const filterFn = useAtomValue(filterFnAtom);
+  const [_, setEditorExportFunction] = useAtom(exportEditorFunction);
+  useEffect(() => {
+    setEditorExportFunction({
+      fn: () => editor.getHTML(),
+      load: (data) => {
+        editor.commands.setContent(data, true);
+      },
+    });
+  }, [editor]);
 
   const load_data_to_backend = async () => {
     try {
