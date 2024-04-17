@@ -1,21 +1,17 @@
 import { Select } from "antd";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { sortingAtom, sortingFnAtom } from "../../state/formula";
+import {
+  isSortingEnable,
+  sortingAtom,
+  sortingFnAtom,
+} from "../../state/formula";
 
 const Sorting = () => {
-  const [text, setText] = useState<string>("");
-  const [_, setSortingFn] = useAtom(sortingFnAtom);
+  const [text, setText] = useAtom(sortingFnAtom);
   const [option, setOption] = useAtom(sortingAtom);
-  const [isChecked, setIsChecked] = useState(false);
+  const [sortingEnable, setIsSortingEnable] = useAtom(isSortingEnable);
 
-  useEffect(() => {
-    if (isChecked) {
-      setSortingFn(text);
-    } else {
-      setSortingFn("");
-    }
-  }, [isChecked, text]);
   return (
     <div className="flex-col">
       <div className="sorting">
@@ -40,9 +36,9 @@ const Sorting = () => {
           <input
             className="radio-input"
             type="checkbox"
-            checked={isChecked}
+            checked={sortingEnable}
             onClick={() => {
-              setIsChecked(!isChecked);
+              setIsSortingEnable(!sortingEnable);
             }}
           />
         </div>

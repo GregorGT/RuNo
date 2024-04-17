@@ -20,27 +20,27 @@ export default (props: any) => {
   /// ON mount if all formula is empty then we will add a new formula
   const isCurrentSelected = currentId !== selectedFormulaIdStore.getState();
 
-  useEffect(() => {
-    formulaStore.subscribe((formulas) => {
-      const formula = formulas.find((f) => f.id == currentId);
-      props.updateAttributes({
-        formula: formula?.formula || "",
-        data: formula?.data || "",
-      });
-      setData(formula?.data || "");
-    });
-  }, []);
-
   // useEffect(() => {
-  //   console.log("props", props);
-  //   const formula = formulaStore.  getState().find((f) => f.id == currentId);
-  //   props.updateAttributes({
-  //     formula: formula?.formula || "",
-  //     data: formula?.data || "",
+  //   formulaStore.subscribe((formulas) => {
+  //     const formula = formulas.find((f) => f.id == currentId);
+  //     props.updateAttributes({
+  //       formula: formula?.formula || "",
+  //       data: formula?.data || "",
+  //     });
+  //     setData(formula?.data || "");
   //   });
+  // }, []);
 
-  //   setData(formula?.data || "");
-  // }, [selectedFormulaId, allFormulas]);
+  useEffect(() => {
+    console.log("props", props);
+    const formula = formulaStore.getState().find((f) => f.id == currentId);
+    props.updateAttributes({
+      formula: formula?.formula || "",
+      data: formula?.data || "",
+    });
+
+    setData(formula?.data || "");
+  }, [selectedFormulaId, allFormulas]);
 
   return (
     <>

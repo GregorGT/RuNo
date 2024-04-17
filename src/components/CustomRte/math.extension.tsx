@@ -22,8 +22,8 @@ export default Node.create({
         parseHTML(element) {
           if (element.getAttribute("id")) {
             const allFormula = formulaStore.getState();
-            if (!allFormula.find((f) => f.id === element.getAttribute("id"))) {
-              formulaStore.setState(
+            if (!allFormula?.find((f) => f.id === element.getAttribute("id"))) {
+              formulaStore?.setState(
                 [
                   ...allFormula,
                   {

@@ -6,7 +6,15 @@ import { useAtom, useAtomValue } from "jotai/react";
 import { editorStateAtom } from "../state/editor";
 import { exportEditorFunction, loadEditorAtom } from "../state/load";
 import "./Components.scss";
-import { filterFnAtom, sortingAtom, sortingFnAtom } from "../state/formula";
+import {
+  filterFnAtom,
+  formulaStore,
+  isFilterEnable,
+  isSortingEnable,
+  selectedFormulaIdStore,
+  sortingAtom,
+  sortingFnAtom,
+} from "../state/formula";
 
 export default function Dropdowns() {
   const [editorState, setState] = useAtom(editorStateAtom);
@@ -15,23 +23,38 @@ export default function Dropdowns() {
   const [filterValue, setFilterValue] = useAtom(filterFnAtom);
   const [sortingDirection, setSortingDirection] = useAtom(sortingAtom);
   const [sortingFn, setSortingFn] = useAtom(sortingFnAtom);
-
+  const [filterEnabled, setFilterEnabled] = useAtom(isFilterEnable);
+  const [sortingEnabled, setSortingEnabled] = useAtom(isSortingEnable);
   const save_data = () => {
     const data = {
       editorData: getEditorValue.fn(),
       filter: filterValue,
       sorting: sortingFn,
       direction: sortingDirection,
+      isFilterEnable: filterEnabled,
+      isSortingEnable: sortingEnabled,
+      formulas: formulaStore.getState(),
     };
     return data;
   };
   const load_data = (json: string) => {
-    console.log(json);
-    const { editorData, filter, sorting, direction } = JSON.parse(json);
+    const {
+      editorData,
+      filter,
+      sorting,
+      direction,
+      isFilterEnable = false,
+      isSortingEnable = false,
+      formulas = [],
+    } = JSON.parse(json);
+    selectedFormulaIdStore.setState(undefined, true);
     getEditorValue.load(editorData);
     setFilterValue(filter);
     setSortingFn(sorting);
     setSortingDirection(direction);
+    setFilterEnabled(isFilterEnable);
+    setSortingEnabled(isSortingEnable);
+    formulaStore.setState(formulas, true);
   };
 
   const fileItems: MenuProps["items"] = [
@@ -68,7 +91,6 @@ export default function Dropdowns() {
           items: fileItems,
           onClick: async (e) => {
             if (e.key === "2") {
-              console.log(getEditorValue.fn());
               const path = `${await downloadDir()}export-${new Date().getTime()}.json`;
               await writeTextFile({
                 path,

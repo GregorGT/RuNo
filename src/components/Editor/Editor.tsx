@@ -35,6 +35,8 @@ import { editorKeys, editorStateAtom } from "../../state/editor";
 import {
   filterFnAtom,
   formulaStore,
+  isFilterEnable,
+  isSortingEnable,
   sortingAtom,
   sortingFnAtom,
 } from "../../state/formula";
@@ -68,13 +70,15 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   // const [normailEditorData, setNormalEditorData] = useState<string>("");
   const sortingDir = useAtomValue(sortingAtom);
   const sortingFn = useAtomValue(sortingFnAtom);
+  const sortingEnabled = useAtomValue(isSortingEnable);
+  const filterEnabled = useAtomValue(isFilterEnable);
   const filterFn = useAtomValue(filterFnAtom);
   const [_, setEditorExportFunction] = useAtom(exportEditorFunction);
   useEffect(() => {
     setEditorExportFunction({
       fn: () => editor.getHTML(),
       load: (data) => {
-        editor.commands.setContent(data, true);
+        editor.commands.setContent(data);
       },
     });
   }, [editor]);
@@ -84,9 +88,9 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       console.log("loading data to backend");
       const return_data = (await invoke("run_command", {
         input: editor.getHTML(),
-        sorting: sortingFn,
+        sorting: sortingEnabled ? sortingFn : "",
         sortingUp: sortingDir === "asc",
-        filter: filterFn,
+        filter: filterEnabled ? filterFn : "",
       })) as unknown;
 
       //@ts-ignore
@@ -103,12 +107,10 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         !("filtered" in return_data) ||
         !Array.isArray(return_data.filtered)
       ) {
-        console.log("error", return_data);
         return;
       }
-      console.log("return_data", return_data);
 
-      editor.commands.setContent(return_data?.parsed_text, true);
+      editor.commands.setContent(return_data?.parsed_text, false);
 
       const formulas = return_data?.formula_list;
 
@@ -168,21 +170,6 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
     >
       <Button onClick={load_data_to_backend}>Load Data</Button>
 
-      <Button
-        onClick={async () => {
-          setLoadingData(true);
-        }}
-        loading={loadingData}
-      >
-        {loadingData ? "Loading" : "Load Example"}
-      </Button>
-      <Button
-        onClick={async () => {
-          console.log(editor.getHTML());
-        }}
-      >
-        LOG
-      </Button>
       <div className="d-flex gap-2  ">
         <Select
           style={{ fontSize: 10 }}
