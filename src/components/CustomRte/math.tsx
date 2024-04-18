@@ -20,6 +20,24 @@ export default (props: any) => {
   /// ON mount if all formula is empty then we will add a new formula
   const isCurrentSelected = currentId !== selectedFormulaIdStore.getState();
 
+  useEffect(() => {
+    //  Check if the formula is already present in the store
+    const formula = formulaStore?.getState().find((f) => f.id == currentId);
+    if (!formula) {
+      formulaStore.setState(
+        [
+          ...formulaStore.getState(),
+          {
+            id: currentId,
+            formula: props.node.attrs.formula || "",
+            data: props.node.attrs.data || "",
+          },
+        ],
+        true
+      );
+    }
+  }, []);
+
   // useEffect(() => {
   //   formulaStore.subscribe((formulas) => {
   //     const formula = formulas.find((f) => f.id == currentId);
