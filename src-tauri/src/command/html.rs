@@ -171,6 +171,10 @@ pub fn extract_all_ids_recursive(
         let valid_tags = ["p", "div", "hr", "span", "table", "formula"];
 
         if valid_tags.contains(&&*name.local.to_lowercase().as_str()) {
+            if name.local.to_lowercase() == "div" {
+                println!("DIV: {:?}", attrs.borrow().iter().collect::<Vec<_>>());
+            }
+
             if name.local.to_lowercase() == "hr" {
                 tags.push(vec![]);
                 ids.push_back({
@@ -224,16 +228,18 @@ pub fn parse_html(html: &str) -> parse_html_return {
         ENTRY_LIST = vec![];
     }
 
+    println!("HTML: {:?}", html);
     let dom = parse_document(RcDom::default(), Default::default()).one(html.to_string());
 
     let mut linkdlist = LinkedList::new();
     let mut tags: Vec<Vec<String>> = vec![];
     extract_all_ids_recursive(&dom.document, &mut linkdlist, &mut tags);
 
+    println!("{:?}", linkdlist);
     // ///////////////////
 
     // let tag_data = vec![];
-    println!("{:?}", tags);
+    // println!("{:?}", tags);
 
     let mut formula_list: Vec<formula> = vec![];
     let mut index_data = vec![];

@@ -118,7 +118,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         const formula = formulaStore.getState();
 
         const cssList = return_data.filtered;
-
+        console.log(cssList);
         // css list contains ids to be hidden
         document.getElementById("editor_styles")!.innerHTML = cssList
           .map((id) => `[id="${id}"]{display: none;}`)
@@ -355,7 +355,10 @@ const tableExtend = Table.extend({
   renderHTML({ HTMLAttributes }) {
     return [
       "div",
-      { class: "table-responsive", id: crypto.randomUUID() },
+      {
+        class: "table-responsive",
+        id: HTMLAttributes?.id ?? crypto.randomUUID(),
+      },
       ["table", HTMLAttributes, ["tbody", 0]],
     ];
   },

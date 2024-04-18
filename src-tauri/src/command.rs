@@ -154,7 +154,6 @@ pub fn main_command(
     filter: String,
 ) -> Result<return_data> {
     let SINGLE_LINE_EXAMPLE: &str = input.as_str();
-    println!("Input: {:?}", SINGLE_LINE_EXAMPLE);
 
     let mut sorting_fn = if sorting.clone().trim() == "" {
         r#"EVAL(!"ID: {NUMBER}")"#.to_string()
@@ -167,7 +166,6 @@ pub fn main_command(
         filter.clone()
     };
     let filterFn = format!("IF({}){{SUM(1)}}ELSE{{SUM(2)}}", input_filter_fn);
-    println!("Filter: {:?}", filterFn.to_string());
 
     let start_time = Instant::now();
 
@@ -208,7 +206,6 @@ pub fn main_command(
         let mut formula_list = formula_list.clone();
         formula_list.extend(sorting_formula_list.clone());
         formula_list.extend(filter_formula_list.clone());
-        println!("Formula List: {:?}", formula_list);
         FORMULA_LIST_CELL = formula_list.clone();
     }
 
@@ -298,8 +295,6 @@ pub fn main_command(
     );
 
     unsafe {
-        println!("Formula List: {:?}", FORMULA_LIST_CELL.len());
-
         let mut only_sorting_functions = FORMULA_LIST_CELL
             .clone()
             .into_iter()
@@ -352,13 +347,12 @@ pub fn main_command(
         }
         let mut filtered_list = vec![];
         // Print all the filter formula
-        println!("Filter Formula: {:?}", ORIGINAL_DOC_ID_LIST);
+        // println!("Filter Formula: {:?}", ORIGINAL_DOC_ID_LIST);
         for formula in only_filter_functions {
             if formula.data == TypeOr::Right(2.0) {
                 //  find saperated docs with the entry id
                 for entry in ORIGINAL_DOC_ID_LIST.clone() {
                     if entry.entry == formula.entry {
-                        println!("Entry: {:?}", entry.ids);
                         filtered_list.extend(entry.ids);
                     }
                 }
@@ -382,7 +376,6 @@ pub fn main_command(
         for text in new_all_html {
             parsed_text += &text.concat();
         }
-        println!("Parsed Text: {:?}", parsed_text);
 
         Ok(return_data {
             formula_list: FORMULA_LIST_CELL.clone(),
@@ -646,7 +639,6 @@ fn recursive_funcation_parser<'a>(
                             .replace("{TEXT}", uuid_regexp)
                             .replace("{DATE}", uuid_regexp);
                         let uuid_regexp = Regex::new(&uuid_regexp_formula).unwrap();
-                        println!("Final Formula: {:?}", uuid_regexp_formula);
                         let mut number_list: Vec<f64> = vec![];
                         let mut string_list: Vec<String> = vec![];
                         let mut date_list: Vec<NaiveDateTime> = vec![];
@@ -754,10 +746,6 @@ fn recursive_funcation_parser<'a>(
 
                                                     }
                                                 } else if is_date {
-                                                    println!(
-                                                        "Eval Pair {:}",
-                                                        val.to_string().as_str()
-                                                    );
                                                     catch! {
                                                      try{
                                                          date_list.push(
@@ -784,7 +772,6 @@ fn recursive_funcation_parser<'a>(
                                     } else if is_date {
                                         // println!("Eval Pair {:}", eval_pair.as_str());
                                         // println!("Date: {:?}", result["date"].to_string());
-                                        println!("Eval Pair {:}", &result["date"].to_string());
 
                                         catch! {
 
@@ -1379,9 +1366,6 @@ fn recursive_funcation_parser<'a>(
                             left_answer = TypeOr::Left(list[0].to_string());
                         }
                     }
-
-                    println!("Left: {:?}", left_answer);
-                    println!("Right: {:?}", right_answer);
 
                     if isEQ {
                         final_ans = left_answer == right_answer;
