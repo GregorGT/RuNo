@@ -351,6 +351,15 @@ const CustomDocument = Document.extend({
 //     };
 //   },
 // });
+const tableExtend = Table.extend({
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "div",
+      { class: "table-responsive", id: crypto.randomUUID() },
+      ["table", HTMLAttributes, ["tbody", 0]],
+    ];
+  },
+});
 const extensions = [
   HorizontalRule,
   UniqueId.configure({
@@ -358,6 +367,7 @@ const extensions = [
     types: [
       "paragraph",
       "heading",
+      "div",
       "orderedList",
       "bulletList",
       "listItem",
@@ -372,6 +382,8 @@ const extensions = [
       "underline",
       "textStyle",
       "highlight",
+      "tableWrapper",
+      "Table",
     ],
     createId: () => window.crypto.randomUUID(),
     filterTransaction: (transaction: any) =>
@@ -391,9 +403,7 @@ const extensions = [
   }),
   Highlight.configure({ multicolor: true }),
   FontFamily,
-  Table.configure({
-    resizable: true,
-  }),
+  tableExtend.configure({}),
   TableRow,
   TableHeader,
   TableCell,
