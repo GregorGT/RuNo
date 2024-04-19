@@ -13,6 +13,8 @@ use std::collections::LinkedList;
 use tauri::utils::html::NodeRef;
 use uuid::Uuid;
 
+use super::ENTRY_IDS;
+
 fn walk(
     handle: &Handle,
     is_in_line: bool,
@@ -158,6 +160,28 @@ pub struct list_ids {
     pub ids: LinkedList<String>,
     pub entry: u64,
 }
+static mut HIGHEST_ENTRY: i64 = -1;
+
+pub fn get_highest_data_index_recursive(node: &Handle) {
+    let node_data = node.data.borrow();
+    if let NodeData::Element { name, attrs, .. } = &*node_data {
+        if name.local.to_lowercase() == "hr" {
+            attrs.borrow().iter().for_each(|attr| {
+                if attr.name.local.to_lowercase() == "data-index" {
+                    unsafe {
+                        let value = attr.value.parse::<i64>().unwrap();
+                        if value + 1 > HIGHEST_ENTRY {
+                            HIGHEST_ENTRY = value + 1;
+                        }
+                    }
+                }
+            });
+        }
+    }
+    for child in node.children.borrow().iter() {
+        get_highest_data_index_recursive(child);
+    }
+}
 
 pub fn extract_all_ids_recursive(
     node: &Handle,
@@ -194,6 +218,20 @@ pub fn extract_all_ids_recursive(
                     // ids.push_back(attr.value.to_string());
                 }
             }
+            let current_hr_id = ids.back().unwrap().ids.front().unwrap().to_string();
+            // change attribute value of HR
+
+            let mut index = 0;
+            unsafe {
+                //loop through entry ids
+                for entry in ENTRY_IDS.iter() {
+                    if entry.to_string() == current_hr_id.to_string() {
+                        break;
+                    }
+                    index += 1;
+                }
+            }
+
             // if tag is p get html content
             // get html content
             let mut dom = RcDom::default();
@@ -215,7 +253,17 @@ pub fn extract_all_ids_recursive(
             let data = String::from_utf8(bytes).unwrap();
 
             //push to the last on tagss
-            tags.last_mut().unwrap().push(data);
+            // tags.last_mut().unwrap().push(data);
+            //find mutable at index and push data
+
+            if index < tags.len() {
+                tags[index].push(data);
+            } else {
+                while index >= tags.len() {
+                    tags.push(vec![]);
+                }
+                tags[index].push(data);
+            }
         }
     }
     for child in node.children.borrow().iter() {
@@ -226,13 +274,18 @@ pub fn extract_all_ids_recursive(
 pub fn parse_html(html: &str) -> parse_html_return {
     unsafe {
         ENTRY_LIST = vec![];
+        HIGHEST_ENTRY = -1;
     }
 
-    println!("HTML: {:?}", html);
     let dom = parse_document(RcDom::default(), Default::default()).one(html.to_string());
 
     let mut linkdlist = LinkedList::new();
     let mut tags: Vec<Vec<String>> = vec![];
+    get_highest_data_index_recursive(&dom.document);
+    unsafe {
+        println!("HIGHEST ENTRY: {:?}", HIGHEST_ENTRY);
+    }
+
     extract_all_ids_recursive(&dom.document, &mut linkdlist, &mut tags);
 
     println!("{:?}", linkdlist);

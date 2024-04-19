@@ -49,6 +49,7 @@ import HorizontalRule from "@tiptap/extension-horizontal-rule";
 //@ts-ignore
 import UniqueId from "tiptap-unique-id";
 import { final_list } from "../../helper";
+import { triggerFocus } from "antd/es/input/Input";
 
 let example = final_list;
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
@@ -85,6 +86,24 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 
   const load_data_to_backend = async () => {
     try {
+      let top_id = "";
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "horizontalRule") {
+          if (node.attrs.dataIndex === -1) {
+            invoke("assign_entry_id", {
+              entryId: node.attrs.id,
+              topId: top_id,
+            }).then(console.log);
+            top_id = node.attrs.id;
+          }
+          document
+            .getElementById(node.attrs.id)
+            ?.setAttribute("data-index", "1");
+        }
+      });
+
+      ///
+      console.log(editor.getHTML());
       console.log("loading data to backend");
       const return_data = (await invoke("run_command", {
         input: editor.getHTML(),
@@ -109,7 +128,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       ) {
         return;
       }
-
+      console.log(return_data.parsed_text);
       editor.commands.setContent(return_data?.parsed_text, false);
 
       const formulas = return_data?.formula_list;
@@ -322,35 +341,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 const CustomDocument = Document.extend({
   content: "horizontalRule block*",
 });
-// const customHr = HorizontalRule.extend({
-//   addNodeView() {
-//     return ({
-//       editor,
-//       node,
-//       getPos,
-//       HTMLAttributes,
-//       decorations,
-//       extension,
-//     }) => {
-//       const template = document.createElement("template");
 
-//       const dom = document.createElement("hr");
-//       //set all the attributes to the dom element
-//       Object.entries(HTMLAttributes).forEach(([key, value]) => {
-//         dom.setAttribute(key, value);
-//       });
-//       const div = document.createElement("div");
-//       template.innerHTML = `${dom.outerHTML + div.outerHTML}`;
-//       const sibling = document.createElement("div");
-//       let childs = template.content.childNodes;
-//       ///dom set sibling to the hr
-
-//       return {
-//         dom,
-//       };
-//     };
-//   },
-// });
 const tableExtend = Table.extend({
   renderHTML({ HTMLAttributes }) {
     return [
@@ -363,8 +354,29 @@ const tableExtend = Table.extend({
     ];
   },
 });
+const newHR = HorizontalRule.extend({
+  addAttributes() {
+    return {
+      dataIndex: {
+        default: -1,
+        parseHTML: (element) => {
+          console.log("Att", element.getAttribute("data-index"));
+          return element.getAttribute("data-index");
+        },
+
+        // Take the attribute values
+        renderHTML: (attributes) => {
+          // … and return an object with HTML attributes.
+          return {
+            "data-index": attributes.dataIndex,
+          };
+        },
+      },
+    };
+  },
+});
 const extensions = [
-  HorizontalRule,
+  newHR,
   UniqueId.configure({
     attributeName: "id",
     types: [
@@ -448,6 +460,23 @@ export default function Editor({
             id: "editor",
             style: `max-height:${height}px`,
           },
+        }}
+        onUpdate={({ transaction, editor }) => {
+          let top_id = "";
+          transaction.doc?.descendants((node, pos) => {
+            if (node.type.name === "horizontalRule") {
+              if (node.attrs.dataIndex === -1) {
+                invoke("assign_entry_id", {
+                  entryId: node.attrs.id,
+                  topId: top_id,
+                }).then(console.log);
+                top_id = node.attrs.id;
+              }
+              document
+                .getElementById(node.attrs.id)
+                ?.setAttribute("data-index", "1");
+            }
+          });
         }}
         editable={true}
         children={<></>}

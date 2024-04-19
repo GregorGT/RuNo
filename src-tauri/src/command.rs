@@ -52,27 +52,20 @@ static mut ENTRY_IDS: Vec<String> = vec![];
 #[tauri::command]
 pub fn assign_entry_id(entry_id: String, top_id: String) {
     unsafe {
-        /// assigin entry id on the basis of top id
-        /// if top id is not present assign it to the end
-        let mut top_id_pos = ENTRY_IDS.iter().position(|x| x == &top_id);
-        if top_id_pos.is_none() {
-            top_id_pos = Some(ENTRY_IDS.len());
+        if (top_id == "") {
+            ENTRY_IDS.push(entry_id);
+        } else {
+            // Add entry id after top_id
+            let mut index = 0;
+            for (i, id) in ENTRY_IDS.iter().enumerate() {
+                if id == &top_id {
+                    index = i;
+                    break;
+                }
+            }
+            ENTRY_IDS.insert(index + 1, entry_id);
         }
-        // if already we have the entry id then remove it
-        let pos = ENTRY_IDS.iter().position(|x| x == &entry_id);
-        if pos.is_some() {
-            ENTRY_IDS.remove(pos.unwrap());
-        }
-
-        let top_id_pos = top_id_pos.unwrap();
-        // assign entry id after the top id
-        ENTRY_IDS.insert(top_id_pos + 1, entry_id);
-    }
-}
-#[tauri::command]
-pub fn assign_default_entry_id(default_id: String) {
-    unsafe {
-        ENTRY_IDS = vec![default_id];
+        println!("Entry Ids: {:?}", ENTRY_IDS);
     }
 }
 
@@ -359,11 +352,25 @@ pub fn main_command(
             }
         }
 
+        // // list all the index based on the EntryID and ORIGINAL DOC ID LIST
+        // let mut original_shape = vec![];
+        // let doc_list = ORIGINAL_DOC_ID_LIST.clone();
+        // let mut a = 0;
+        // ENTRY_IDS.iter().for_each(|x| {
+        //     for entry in doc_list.clone() {
+        //         if entry.ids.clone().front().unwrap().to_string() == x.to_string() {
+        //             original_shape.push(a);
+        //             a += 1;
+        //         }
+        //     }
+        // });
+        // println!("Original Shape: {:?}", original_shape);
+
         // Clone all_html
-        for formula in only_sorting_functions {
+        for sort in only_sorting_functions {
             // sort based on the entry id
             // get the index element from all_html
-            let index = formula.entry as usize;
+            let index = sort.entry as usize;
 
             new_all_html.push(all_html.clone()[index].clone());
         }
