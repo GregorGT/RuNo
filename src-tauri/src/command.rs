@@ -52,19 +52,36 @@ static mut ENTRY_IDS: Vec<String> = vec![];
 #[tauri::command]
 pub fn assign_entry_id(entry_id: String, top_id: String) {
     unsafe {
+        // FInd entry id in the list
+        for entry in ENTRY_IDS.clone() {
+            if entry == entry_id {
+                return;
+            }
+        }
+
         if (top_id == "") {
             ENTRY_IDS.push(entry_id);
         } else {
             // Add entry id after top_id
             let mut index = 0;
+            let mut top_id_found = false;
             for (i, id) in ENTRY_IDS.iter().enumerate() {
                 if id == &top_id {
                     index = i;
+                    top_id_found = true;
                     break;
                 }
             }
-            ENTRY_IDS.insert(index + 1, entry_id);
-        }
+
+            if !top_id_found {
+                ENTRY_IDS.push(top_id);
+                ENTRY_IDS.push(entry_id);
+            } else {
+                ENTRY_IDS.insert(index + 1, entry_id);
+            }
+        } // REmove duplicate entry id
+        ENTRY_IDS.dedup();
+
         println!("Entry Ids: {:?}", ENTRY_IDS);
     }
 }
@@ -170,6 +187,7 @@ pub fn main_command(
     unsafe { ENTRY_DATA = SEPARATED_DOCS }
 
     let all_html = parsed_data.tags;
+    print!("All HTML: {:?}", all_html.len());
     let mut sorting_formula_list = vec![];
     if sorting.trim().len() > 1 {
         sorting_formula_list = all_html
@@ -1373,6 +1391,9 @@ fn recursive_funcation_parser<'a>(
                             left_answer = TypeOr::Left(list[0].to_string());
                         }
                     }
+
+                    println!("Left Answer: {:?}", left_answer);
+                    println!("Right Answer: {:?}", right_answer);
 
                     if isEQ {
                         final_ans = left_answer == right_answer;

@@ -89,13 +89,11 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       let top_id = "";
       editor.state.doc.descendants((node, pos) => {
         if (node.type.name === "horizontalRule") {
-          if (node.attrs.dataIndex === -1) {
-            invoke("assign_entry_id", {
-              entryId: node.attrs.id,
-              topId: top_id,
-            }).then(console.log);
-            top_id = node.attrs.id;
-          }
+          invoke("assign_entry_id", {
+            entryId: node.attrs.id,
+            topId: top_id,
+          }).then(console.log);
+          top_id = node.attrs.id;
           document
             .getElementById(node.attrs.id)
             ?.setAttribute("data-index", "1");

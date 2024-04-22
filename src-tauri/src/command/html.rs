@@ -201,26 +201,49 @@ pub fn extract_all_ids_recursive(
 
             if name.local.to_lowercase() == "hr" {
                 tags.push(vec![]);
+                // value of id
+                let id = attrs
+                    .borrow()
+                    .iter()
+                    .find(|x| x.name.local.to_lowercase() == "id")
+                    .unwrap()
+                    .value
+                    .to_string();
+
+                // location of id in ENTRY_IDS
+                let mut index = 0;
+                unsafe {
+                    for entry in ENTRY_IDS.iter() {
+                        if entry.to_string() == id {
+                            break;
+                        }
+                        index += 1;
+                    }
+                }
+
+                let mut ll = LinkedList::new();
+                ll.push_back(id);
                 ids.push_back({
                     list_ids {
-                        ids: LinkedList::new(),
-                        entry: ids.len() as u64,
+                        ids: ll,
+                        entry: index as u64,
                     }
                 })
-            }
-
-            for attr in attrs.borrow().iter() {
-                if attr.name.local.to_lowercase() == "id" {
-                    ids.back_mut()
-                        .unwrap()
-                        .ids
-                        .push_back(attr.value.to_string());
-                    // ids.push_back(attr.value.to_string());
+            } else {
+                for attr in attrs.borrow().iter() {
+                    if attr.name.local.to_lowercase() == "id" {
+                        ids.back_mut()
+                            .unwrap()
+                            .ids
+                            .push_back(attr.value.to_string());
+                        // ids.push_back(attr.value.to_string());
+                    }
                 }
             }
+
             let current_hr_id = ids.back().unwrap().ids.front().unwrap().to_string();
             // change attribute value of HR
-
+            println!("CURRENT HR ID: {:?}", current_hr_id);
             let mut index = 0;
             unsafe {
                 //loop through entry ids
@@ -281,7 +304,7 @@ pub fn parse_html(html: &str) -> parse_html_return {
 
     let mut linkdlist = LinkedList::new();
     let mut tags: Vec<Vec<String>> = vec![];
-    get_highest_data_index_recursive(&dom.document);
+    // get_highest_data_index_recursive(&dom.document);
     unsafe {
         println!("HIGHEST ENTRY: {:?}", HIGHEST_ENTRY);
     }
