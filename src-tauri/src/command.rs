@@ -50,6 +50,13 @@ static mut ENTRY_DATA: Vec<entry_data> = vec![];
 static mut ENTRY_IDS: Vec<String> = vec![];
 
 #[tauri::command]
+pub fn clear_entry_id() {
+    unsafe {
+        ENTRY_IDS = vec![];
+    }
+}
+
+#[tauri::command]
 pub fn assign_entry_id(entry_id: String, top_id: String) {
     unsafe {
         // FInd entry id in the list

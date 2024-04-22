@@ -79,6 +79,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
     setEditorExportFunction({
       fn: () => editor.getHTML(),
       load: (data) => {
+        invoke("clear_entry_id");
         editor.commands.setContent(data);
       },
     });
@@ -459,23 +460,23 @@ export default function Editor({
             style: `max-height:${height}px`,
           },
         }}
-        onUpdate={({ transaction, editor }) => {
-          let top_id = "";
-          transaction.doc?.descendants((node, pos) => {
-            if (node.type.name === "horizontalRule") {
-              if (node.attrs.dataIndex === -1) {
-                invoke("assign_entry_id", {
-                  entryId: node.attrs.id,
-                  topId: top_id,
-                }).then(console.log);
-                top_id = node.attrs.id;
-              }
-              document
-                .getElementById(node.attrs.id)
-                ?.setAttribute("data-index", "1");
-            }
-          });
-        }}
+        // onUpdate={({ transaction, editor }) => {
+        //   let top_id = "";
+        //   transaction.doc?.descendants((node, pos) => {
+        //     if (node.type.name === "horizontalRule") {
+        //       if (node.attrs.dataIndex === -1) {
+        //         invoke("assign_entry_id", {
+        //           entryId: node.attrs.id,
+        //           topId: top_id,
+        //         }).then(console.log);
+        //         top_id = node.attrs.id;
+        //       }
+        //       document
+        //         .getElementById(node.attrs.id)
+        //         ?.setAttribute("data-index", "1");
+        //     }
+        //   });
+        // }}
         editable={true}
         children={<></>}
         slotBefore={showToolbar && <MenuBar editorName={editorName} />}
