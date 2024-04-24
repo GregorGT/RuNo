@@ -13,6 +13,8 @@ use std::collections::LinkedList;
 use tauri::utils::html::NodeRef;
 use uuid::Uuid;
 
+use super::ENTRY_IDS;
+
 fn walk(
     handle: &Handle,
     is_in_line: bool,
@@ -158,6 +160,28 @@ pub struct list_ids {
     pub ids: LinkedList<String>,
     pub entry: u64,
 }
+static mut HIGHEST_ENTRY: i64 = -1;
+
+pub fn get_highest_data_index_recursive(node: &Handle) {
+    let node_data = node.data.borrow();
+    if let NodeData::Element { name, attrs, .. } = &*node_data {
+        if name.local.to_lowercase() == "hr" {
+            attrs.borrow().iter().for_each(|attr| {
+                if attr.name.local.to_lowercase() == "data-index" {
+                    unsafe {
+                        let value = attr.value.parse::<i64>().unwrap();
+                        if value + 1 > HIGHEST_ENTRY {
+                            HIGHEST_ENTRY = value + 1;
+                        }
+                    }
+                }
+            });
+        }
+    }
+    for child in node.children.borrow().iter() {
+        get_highest_data_index_recursive(child);
+    }
+}
 
 pub fn extract_all_ids_recursive(
     node: &Handle,
@@ -171,25 +195,66 @@ pub fn extract_all_ids_recursive(
         let valid_tags = ["p", "div", "hr", "span", "table", "formula"];
 
         if valid_tags.contains(&&*name.local.to_lowercase().as_str()) {
-            if name.local.to_lowercase() == "hr" {
-                tags.push(vec![]);
-                ids.push_back({
-                    list_ids {
-                        ids: LinkedList::new(),
-                        entry: ids.len() as u64,
-                    }
-                })
+            if name.local.to_lowercase() == "div" {
+                println!("DIV: {:?}", attrs.borrow().iter().collect::<Vec<_>>());
             }
 
-            for attr in attrs.borrow().iter() {
-                if attr.name.local.to_lowercase() == "id" {
-                    ids.back_mut()
-                        .unwrap()
-                        .ids
-                        .push_back(attr.value.to_string());
-                    // ids.push_back(attr.value.to_string());
+            if name.local.to_lowercase() == "hr" {
+                tags.push(vec![]);
+                // value of id
+                let id = attrs
+                    .borrow()
+                    .iter()
+                    .find(|x| x.name.local.to_lowercase() == "id")
+                    .unwrap()
+                    .value
+                    .to_string();
+
+                // location of id in ENTRY_IDS
+                let mut index = 0;
+                unsafe {
+                    for entry in ENTRY_IDS.iter() {
+                        if entry.to_string() == id {
+                            break;
+                        }
+                        index += 1;
+                    }
+                }
+
+                let mut ll = LinkedList::new();
+                ll.push_back(id);
+                ids.push_back({
+                    list_ids {
+                        ids: ll,
+                        entry: index as u64,
+                    }
+                })
+            } else {
+                for attr in attrs.borrow().iter() {
+                    if attr.name.local.to_lowercase() == "id" {
+                        ids.back_mut()
+                            .unwrap()
+                            .ids
+                            .push_back(attr.value.to_string());
+                        // ids.push_back(attr.value.to_string());
+                    }
                 }
             }
+
+            let current_hr_id = ids.back().unwrap().ids.front().unwrap().to_string();
+            // change attribute value of HR
+            println!("CURRENT HR ID: {:?}", current_hr_id);
+            let mut index = 0;
+            unsafe {
+                //loop through entry ids
+                for entry in ENTRY_IDS.iter() {
+                    if entry.to_string() == current_hr_id.to_string() {
+                        break;
+                    }
+                    index += 1;
+                }
+            }
+
             // if tag is p get html content
             // get html content
             let mut dom = RcDom::default();
@@ -211,7 +276,17 @@ pub fn extract_all_ids_recursive(
             let data = String::from_utf8(bytes).unwrap();
 
             //push to the last on tagss
-            tags.last_mut().unwrap().push(data);
+            // tags.last_mut().unwrap().push(data);
+            //find mutable at index and push data
+
+            if index < tags.len() {
+                tags[index].push(data);
+            } else {
+                while index >= tags.len() {
+                    tags.push(vec![]);
+                }
+                tags[index].push(data);
+            }
         }
     }
     for child in node.children.borrow().iter() {
@@ -222,18 +297,25 @@ pub fn extract_all_ids_recursive(
 pub fn parse_html(html: &str) -> parse_html_return {
     unsafe {
         ENTRY_LIST = vec![];
+        HIGHEST_ENTRY = -1;
     }
 
     let dom = parse_document(RcDom::default(), Default::default()).one(html.to_string());
 
     let mut linkdlist = LinkedList::new();
     let mut tags: Vec<Vec<String>> = vec![];
+    // get_highest_data_index_recursive(&dom.document);
+    unsafe {
+        println!("HIGHEST ENTRY: {:?}", HIGHEST_ENTRY);
+    }
+
     extract_all_ids_recursive(&dom.document, &mut linkdlist, &mut tags);
 
+    println!("{:?}", linkdlist);
     // ///////////////////
 
     // let tag_data = vec![];
-    println!("{:?}", tags);
+    // println!("{:?}", tags);
 
     let mut formula_list: Vec<formula> = vec![];
     let mut index_data = vec![];

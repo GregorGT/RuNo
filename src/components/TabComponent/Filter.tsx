@@ -1,19 +1,10 @@
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { filterFnAtom } from "../../state/formula";
+import { filterFnAtom, isFilterEnable } from "../../state/formula";
 
 const Filter = () => {
-  const [isChecked, setIsChecked] = useState(false);
-  const [_, setFilterFunction] = useAtom(filterFnAtom);
-  const [text, setText] = useState<string>("");
-
-  useEffect(() => {
-    if (isChecked) {
-      setFilterFunction(text);
-    } else {
-      setFilterFunction("");
-    }
-  }, [isChecked, text]);
+  const [isChecked, setIsChecked] = useAtom(isFilterEnable);
+  const [text, setText] = useAtom(filterFnAtom);
 
   return (
     <div className="filter">
@@ -50,7 +41,6 @@ const Filter = () => {
                 }}
                 placeholder="Filter function"
                 className="modified"
-                defaultValue="Date modified => 07/11/2023"
               />
               <input
                 className="radio-input"

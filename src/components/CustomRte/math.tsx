@@ -21,26 +21,44 @@ export default (props: any) => {
   const isCurrentSelected = currentId !== selectedFormulaIdStore.getState();
 
   useEffect(() => {
-    formulaStore.subscribe((formulas) => {
-      const formula = formulas.find((f) => f.id == currentId);
-      props.updateAttributes({
-        formula: formula?.formula || "",
-        data: formula?.data || "",
-      });
-      setData(formula?.data || "");
-    });
-  }, [formulaStore]);
+    //  Check if the formula is already present in the store
+    const formula = formulaStore?.getState().find((f) => f.id == currentId);
+    if (!formula) {
+      formulaStore.setState(
+        [
+          ...formulaStore.getState(),
+          {
+            id: currentId,
+            formula: props.node.attrs.formula || "",
+            data: props.node.attrs.data || "",
+          },
+        ],
+        true
+      );
+    }
+  }, []);
 
   // useEffect(() => {
-  //   console.log("props", props);
-  //   const formula = formulaStore.getState().find((f) => f.id == currentId);
-  //   props.updateAttributes({
-  //     formula: formula?.formula || "",
-  //     data: formula?.data || "",
+  //   formulaStore.subscribe((formulas) => {
+  //     const formula = formulas.find((f) => f.id == currentId);
+  //     props.updateAttributes({
+  //       formula: formula?.formula || "",
+  //       data: formula?.data || "",
+  //     });
+  //     setData(formula?.data || "");
   //   });
+  // }, []);
 
-  //   setData(formula?.data || "");
-  // }, [selectedFormulaId, allFormulas]);
+  useEffect(() => {
+    console.log("props", props);
+    const formula = formulaStore.getState().find((f) => f.id == currentId);
+    props.updateAttributes({
+      formula: formula?.formula || "",
+      data: formula?.data || "",
+    });
+
+    setData(formula?.data || "");
+  }, [selectedFormulaId, allFormulas]);
 
   return (
     <>

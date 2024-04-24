@@ -50,29 +50,46 @@ static mut ENTRY_DATA: Vec<entry_data> = vec![];
 static mut ENTRY_IDS: Vec<String> = vec![];
 
 #[tauri::command]
-pub fn assign_entry_id(entry_id: String, top_id: String) {
+pub fn clear_entry_id() {
     unsafe {
-        /// assigin entry id on the basis of top id
-        /// if top id is not present assign it to the end
-        let mut top_id_pos = ENTRY_IDS.iter().position(|x| x == &top_id);
-        if top_id_pos.is_none() {
-            top_id_pos = Some(ENTRY_IDS.len());
-        }
-        // if already we have the entry id then remove it
-        let pos = ENTRY_IDS.iter().position(|x| x == &entry_id);
-        if pos.is_some() {
-            ENTRY_IDS.remove(pos.unwrap());
-        }
-
-        let top_id_pos = top_id_pos.unwrap();
-        // assign entry id after the top id
-        ENTRY_IDS.insert(top_id_pos + 1, entry_id);
+        ENTRY_IDS = vec![];
     }
 }
+
 #[tauri::command]
-pub fn assign_default_entry_id(default_id: String) {
+pub fn assign_entry_id(entry_id: String, top_id: String) {
     unsafe {
-        ENTRY_IDS = vec![default_id];
+        // FInd entry id in the list
+        for entry in ENTRY_IDS.clone() {
+            if entry == entry_id {
+                return;
+            }
+        }
+
+        if (top_id == "") {
+            ENTRY_IDS.push(entry_id);
+        } else {
+            // Add entry id after top_id
+            let mut index = 0;
+            let mut top_id_found = false;
+            for (i, id) in ENTRY_IDS.iter().enumerate() {
+                if id == &top_id {
+                    index = i;
+                    top_id_found = true;
+                    break;
+                }
+            }
+
+            if !top_id_found {
+                ENTRY_IDS.push(top_id);
+                ENTRY_IDS.push(entry_id);
+            } else {
+                ENTRY_IDS.insert(index + 1, entry_id);
+            }
+        } // REmove duplicate entry id
+        ENTRY_IDS.dedup();
+
+        println!("Entry Ids: {:?}", ENTRY_IDS);
     }
 }
 
@@ -154,7 +171,6 @@ pub fn main_command(
     filter: String,
 ) -> Result<return_data> {
     let SINGLE_LINE_EXAMPLE: &str = input.as_str();
-    println!("Input: {:?}", SINGLE_LINE_EXAMPLE);
 
     let mut sorting_fn = if sorting.clone().trim() == "" {
         r#"EVAL(!"ID: {NUMBER}")"#.to_string()
@@ -167,7 +183,6 @@ pub fn main_command(
         filter.clone()
     };
     let filterFn = format!("IF({}){{SUM(1)}}ELSE{{SUM(2)}}", input_filter_fn);
-    println!("Filter: {:?}", filterFn.to_string());
 
     let start_time = Instant::now();
 
@@ -179,8 +194,8 @@ pub fn main_command(
     unsafe { ENTRY_DATA = SEPARATED_DOCS }
 
     let all_html = parsed_data.tags;
+    print!("All HTML: {:?}", all_html.len());
     let mut sorting_formula_list = vec![];
-
     if sorting.trim().len() > 1 {
         sorting_formula_list = all_html
             .clone()
@@ -209,7 +224,6 @@ pub fn main_command(
         let mut formula_list = formula_list.clone();
         formula_list.extend(sorting_formula_list.clone());
         formula_list.extend(filter_formula_list.clone());
-        println!("Formula List: {:?}", formula_list);
         FORMULA_LIST_CELL = formula_list.clone();
     }
 
@@ -299,8 +313,6 @@ pub fn main_command(
     );
 
     unsafe {
-        println!("Formula List: {:?}", FORMULA_LIST_CELL.len());
-
         let mut only_sorting_functions = FORMULA_LIST_CELL
             .clone()
             .into_iter()
@@ -353,24 +365,37 @@ pub fn main_command(
         }
         let mut filtered_list = vec![];
         // Print all the filter formula
-        println!("Filter Formula: {:?}", ORIGINAL_DOC_ID_LIST);
+        // println!("Filter Formula: {:?}", ORIGINAL_DOC_ID_LIST);
         for formula in only_filter_functions {
             if formula.data == TypeOr::Right(2.0) {
                 //  find saperated docs with the entry id
                 for entry in ORIGINAL_DOC_ID_LIST.clone() {
                     if entry.entry == formula.entry {
-                        println!("Entry: {:?}", entry.ids);
                         filtered_list.extend(entry.ids);
                     }
                 }
             }
         }
 
+        // // list all the index based on the EntryID and ORIGINAL DOC ID LIST
+        // let mut original_shape = vec![];
+        // let doc_list = ORIGINAL_DOC_ID_LIST.clone();
+        // let mut a = 0;
+        // ENTRY_IDS.iter().for_each(|x| {
+        //     for entry in doc_list.clone() {
+        //         if entry.ids.clone().front().unwrap().to_string() == x.to_string() {
+        //             original_shape.push(a);
+        //             a += 1;
+        //         }
+        //     }
+        // });
+        // println!("Original Shape: {:?}", original_shape);
+
         // Clone all_html
-        for formula in only_sorting_functions {
+        for sort in only_sorting_functions {
             // sort based on the entry id
             // get the index element from all_html
-            let index = formula.entry as usize;
+            let index = sort.entry as usize;
 
             new_all_html.push(all_html.clone()[index].clone());
         }
@@ -383,7 +408,6 @@ pub fn main_command(
         for text in new_all_html {
             parsed_text += &text.concat();
         }
-        println!("Parsed Text: {:?}", parsed_text);
 
         Ok(return_data {
             formula_list: FORMULA_LIST_CELL.clone(),
@@ -647,7 +671,6 @@ fn recursive_funcation_parser<'a>(
                             .replace("{TEXT}", uuid_regexp)
                             .replace("{DATE}", uuid_regexp);
                         let uuid_regexp = Regex::new(&uuid_regexp_formula).unwrap();
-                        println!("Final Formula: {:?}", uuid_regexp_formula);
                         let mut number_list: Vec<f64> = vec![];
                         let mut string_list: Vec<String> = vec![];
                         let mut date_list: Vec<NaiveDateTime> = vec![];
@@ -755,10 +778,6 @@ fn recursive_funcation_parser<'a>(
 
                                                     }
                                                 } else if is_date {
-                                                    println!(
-                                                        "Eval Pair {:}",
-                                                        val.to_string().as_str()
-                                                    );
                                                     catch! {
                                                      try{
                                                          date_list.push(
@@ -785,7 +804,6 @@ fn recursive_funcation_parser<'a>(
                                     } else if is_date {
                                         // println!("Eval Pair {:}", eval_pair.as_str());
                                         // println!("Date: {:?}", result["date"].to_string());
-                                        println!("Eval Pair {:}", &result["date"].to_string());
 
                                         catch! {
 
@@ -1115,6 +1133,42 @@ fn recursive_funcation_parser<'a>(
             }
             return TypeOr::Right(final_sum);
         }
+        Rule::DIV => {
+            let mut final_sum = 1.0;
+            let mut is_first = true;
+            for inner_pair in pair.into_inner() {
+                let ans = recursive_funcation_parser(
+                    inner_pair,
+                    searcher.clone(),
+                    schema.clone(),
+                    formula_list.clone(),
+                    formula.clone(),
+                );
+                match ans {
+                    TypeOr::Right(value) => {
+                        if is_first {
+                            final_sum = value;
+                            is_first = false;
+                        } else {
+                            final_sum /= value;
+                        }
+                    }
+                    TypeOr::RightList(value) => {
+                        for i in value {
+                            if is_first {
+                                final_sum = i;
+                                is_first = false;
+                            } else {
+                                final_sum /= i;
+                            }
+                        }
+                    }
+                    any => return TypeOr::None,
+                }
+            }
+            return TypeOr::Right(final_sum);
+        }
+
         Rule::number => return TypeOr::Right(pair.as_str().parse::<f64>().unwrap()),
         Rule::text => {
             for inner_pair in pair.into_inner() {
@@ -1345,8 +1399,8 @@ fn recursive_funcation_parser<'a>(
                         }
                     }
 
-                    println!("Left: {:?}", left_answer);
-                    println!("Right: {:?}", right_answer);
+                    println!("Left Answer: {:?}", left_answer);
+                    println!("Right Answer: {:?}", right_answer);
 
                     if isEQ {
                         final_ans = left_answer == right_answer;

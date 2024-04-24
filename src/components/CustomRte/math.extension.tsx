@@ -11,37 +11,36 @@ export default Node.create({
   inline: true,
 
   addAttributes() {
-    let id = v4();
-    while (formulaStore.getState().find((f) => f.id === id)) {
-      id = v4();
-    }
-
     return {
       id: {
-        default: id,
+        default: "",
         parseHTML(element) {
-          if (element.getAttribute("id")) {
-            const allFormula = formulaStore.getState();
-            if (!allFormula.find((f) => f.id === element.getAttribute("id"))) {
-              formulaStore.setState(
-                [
-                  ...allFormula,
-                  {
-                    id: element.getAttribute("id") || "",
-                    data: element.getAttribute("data") || "",
-                    formula: element.getAttribute("formula") || "",
-                  },
-                ],
-                true
-              );
-            }
-          }
           return element.getAttribute("id") || "";
         },
       },
       formula: {
         default: "",
         parseHTML(element) {
+          console.log("THS", this);
+          let id = v4();
+          if (false) {
+            console.log("formulaStore.getState()", formulaStore.getState());
+            let lid = element.getAttribute("id") ?? id;
+            if (formulaStore.getState().find((f) => f.id === lid)) {
+              lid = id;
+            }
+            formulaStore.setState(
+              [
+                ...(formulaStore.getState() ?? []),
+                {
+                  id: lid,
+                  formula: element.getAttribute("formula") || "",
+                  data: element.getAttribute("data") || "",
+                },
+              ],
+              true
+            );
+          }
           return element.getAttribute("formula") || "";
         },
       },
@@ -59,6 +58,9 @@ export default Node.create({
       },
       data: {
         default: "",
+        parseHTML(element) {
+          return element.getAttribute("data") || "";
+        },
       },
       ["data-type"]: {
         default: "math-component",

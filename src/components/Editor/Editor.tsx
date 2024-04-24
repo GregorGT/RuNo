@@ -29,16 +29,18 @@ import {
   Select,
 } from "antd";
 import { useAtom, useAtomValue } from "jotai";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { v4 } from "uuid";
 import { editorKeys, editorStateAtom } from "../../state/editor";
 import {
   filterFnAtom,
   formulaStore,
+  isFilterEnable,
+  isSortingEnable,
   sortingAtom,
   sortingFnAtom,
 } from "../../state/formula";
-import { loadEditorAtom } from "../../state/load";
+import { exportEditorFunction, loadEditorAtom } from "../../state/load";
 import MathComponent from "../CustomRte/math.extension";
 import { tableAcions, textStyle } from "./const";
 //@ts-ignore
@@ -46,11 +48,10 @@ import Document from "@tiptap/extension-document";
 import HorizontalRule from "@tiptap/extension-horizontal-rule";
 //@ts-ignore
 import UniqueId from "tiptap-unique-id";
+import { final_list } from "../../helper";
+import { triggerFocus } from "antd/es/input/Input";
 
-let example = `
-
-<hr id="1a349b4f-cc75-4b00-95a2-59a43c95ac14"><p id="fe6696c6-49a1-4b7a-92e8-196e8f789cfa"></p><p id="174ebf96-ef5b-4b59-be7c-008afc8febc5"></p><p id="4d082af1-90ba-4e85-8a9f-a613522bc05d"></p><p id="b1aeb74d-c38e-47e9-826b-b3b6b1fcc181"><formula id="004bb83c-8204-44dc-abaa-b1783ddc83fd" formula="MUL(10,20)" value="" result="" data="200" data-type="math-component"></formula></p><p id="ad11d311-a8cc-46dd-ac99-a64ee061eb3f">price dog 120</p><hr id="38bd9821-afed-4fa3-a48b-8cad90ffadbe"><p id="1b867696-3d9d-48cb-aeca-900b172b27a3">price dog 20</p><p id="10b38523-617f-4c2e-93ca-f2e145d94d42">price dog 30</p><p id="5af66e44-8431-49c3-8b96-2bd4cf44ddfc">total price <formula id="5a0929c0-29ae-4463-ae74-494b2861f41e" formula="SUM(EVAL(!&quot;price dog {NUMBER}”),10)" value="" result="" data="50" data-type="math-component"></formula></p><hr id="748249a3-15d5-447b-84d1-787d44edb29c"><p id="c44fc448-82a3-45f8-938a-23869449d591">some dog price</p>`;
-
+let example = final_list;
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const [loadEditor] = useAtom(loadEditorAtom);
   const { editor } = useCurrentEditor();
@@ -70,16 +71,44 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   // const [normailEditorData, setNormalEditorData] = useState<string>("");
   const sortingDir = useAtomValue(sortingAtom);
   const sortingFn = useAtomValue(sortingFnAtom);
+  const sortingEnabled = useAtomValue(isSortingEnable);
+  const filterEnabled = useAtomValue(isFilterEnable);
   const filterFn = useAtomValue(filterFnAtom);
+  const [_, setEditorExportFunction] = useAtom(exportEditorFunction);
+  useEffect(() => {
+    setEditorExportFunction({
+      fn: () => editor.getHTML(),
+      load: (data) => {
+        invoke("clear_entry_id");
+        editor.commands.setContent(data);
+      },
+    });
+  }, [editor]);
 
   const load_data_to_backend = async () => {
     try {
+      let top_id = "";
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "horizontalRule") {
+          invoke("assign_entry_id", {
+            entryId: node.attrs.id,
+            topId: top_id,
+          }).then(console.log);
+          top_id = node.attrs.id;
+          document
+            .getElementById(node.attrs.id)
+            ?.setAttribute("data-index", "1");
+        }
+      });
+
+      ///
+      console.log(editor.getHTML());
       console.log("loading data to backend");
       const return_data = (await invoke("run_command", {
         input: editor.getHTML(),
-        sorting: sortingFn,
+        sorting: sortingEnabled ? sortingFn : "",
         sortingUp: sortingDir === "asc",
-        filter: filterFn,
+        filter: filterEnabled ? filterFn : "",
       })) as unknown;
 
       //@ts-ignore
@@ -96,12 +125,10 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         !("filtered" in return_data) ||
         !Array.isArray(return_data.filtered)
       ) {
-        console.log("error", return_data);
         return;
       }
-      console.log("return_data", return_data);
-
-      editor.commands.setContent(return_data?.parsed_text, true);
+      console.log(return_data.parsed_text);
+      editor.commands.setContent(return_data?.parsed_text, false);
 
       const formulas = return_data?.formula_list;
 
@@ -109,7 +136,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         const formula = formulaStore.getState();
 
         const cssList = return_data.filtered;
-
+        console.log(cssList);
         // css list contains ids to be hidden
         document.getElementById("editor_styles")!.innerHTML = cssList
           .map((id) => `[id="${id}"]{display: none;}`)
@@ -138,6 +165,19 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       console.log(e);
     }
   };
+  const [loadingData, setLoadingData] = useState(false);
+  // On loading data true make the set command run
+
+  const set_data = useCallback(() => {
+    if (loadingData) {
+      console.log("loading data");
+      editor.commands.setContent(example, true);
+    }
+  }, [loadingData]);
+
+  useEffect(() => {
+    set_data();
+  }, [loadingData]);
 
   return (
     <div
@@ -148,23 +188,6 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
     >
       <Button onClick={load_data_to_backend}>Load Data</Button>
 
-      <Button
-        onClick={async () => {
-          // const html2 = `<p>price dog 10</p><p>price dog 20</p><p></p><hr><p>ID: 1</p><p>price dog 10</p><p><formula id="e04b3496-dc9f-414c-b99f-8bd698aef573" formula="SUM(EVAL(&quot;ID: 1&quot;.&quot;price dog {NUMBER}&quot;))" value="" result="" data="10" data-type="math-component"></formula></p><p><formula id="d48956a1-c04e-42e0-8c52-0a974e1d1778" formula="MUL(EVAL(!&quot;price dog {NUMBER}&quot;),10)" value="" result="" data="100" data-type="math-component"></formula></p><p></p>`;
-          // const html = `<p>price dog 10</p><p><formula id="67c08692-b977-45b4-a1b0-ebf1a56efcf8" formula="SUM(1,3)" value="" result="" islocal="false" data-type="math-component"></formula></p>`;
-
-          editor.commands.setContent(example, true);
-        }}
-      >
-        Paste Data
-      </Button>
-      <Button
-        onClick={async () => {
-          console.log(editor.getHTML());
-        }}
-      >
-        LOG
-      </Button>
       <div className="d-flex gap-2  ">
         <Select
           style={{ fontSize: 10 }}
@@ -317,42 +340,48 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 const CustomDocument = Document.extend({
   content: "horizontalRule block*",
 });
-// const customHr = HorizontalRule.extend({
-//   addNodeView() {
-//     return ({
-//       editor,
-//       node,
-//       getPos,
-//       HTMLAttributes,
-//       decorations,
-//       extension,
-//     }) => {
-//       const template = document.createElement("template");
 
-//       const dom = document.createElement("hr");
-//       //set all the attributes to the dom element
-//       Object.entries(HTMLAttributes).forEach(([key, value]) => {
-//         dom.setAttribute(key, value);
-//       });
-//       const div = document.createElement("div");
-//       template.innerHTML = `${dom.outerHTML + div.outerHTML}`;
-//       const sibling = document.createElement("div");
-//       let childs = template.content.childNodes;
-//       ///dom set sibling to the hr
+const tableExtend = Table.extend({
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "div",
+      {
+        class: "table-responsive",
+        id: HTMLAttributes?.id ?? crypto.randomUUID(),
+      },
+      ["table", HTMLAttributes, ["tbody", 0]],
+    ];
+  },
+});
+const newHR = HorizontalRule.extend({
+  addAttributes() {
+    return {
+      dataIndex: {
+        default: -1,
+        parseHTML: (element) => {
+          console.log("Att", element.getAttribute("data-index"));
+          return element.getAttribute("data-index");
+        },
 
-//       return {
-//         dom,
-//       };
-//     };
-//   },
-// });
+        // Take the attribute values
+        renderHTML: (attributes) => {
+          // … and return an object with HTML attributes.
+          return {
+            "data-index": attributes.dataIndex,
+          };
+        },
+      },
+    };
+  },
+});
 const extensions = [
-  HorizontalRule,
+  newHR,
   UniqueId.configure({
     attributeName: "id",
     types: [
       "paragraph",
       "heading",
+      "div",
       "orderedList",
       "bulletList",
       "listItem",
@@ -367,6 +396,8 @@ const extensions = [
       "underline",
       "textStyle",
       "highlight",
+      "tableWrapper",
+      "Table",
     ],
     createId: () => window.crypto.randomUUID(),
     filterTransaction: (transaction: any) =>
@@ -386,9 +417,7 @@ const extensions = [
   }),
   Highlight.configure({ multicolor: true }),
   FontFamily,
-  Table.configure({
-    resizable: true,
-  }),
+  tableExtend.configure({}),
   TableRow,
   TableHeader,
   TableCell,
@@ -431,6 +460,23 @@ export default function Editor({
             style: `max-height:${height}px`,
           },
         }}
+        // onUpdate={({ transaction, editor }) => {
+        //   let top_id = "";
+        //   transaction.doc?.descendants((node, pos) => {
+        //     if (node.type.name === "horizontalRule") {
+        //       if (node.attrs.dataIndex === -1) {
+        //         invoke("assign_entry_id", {
+        //           entryId: node.attrs.id,
+        //           topId: top_id,
+        //         }).then(console.log);
+        //         top_id = node.attrs.id;
+        //       }
+        //       document
+        //         .getElementById(node.attrs.id)
+        //         ?.setAttribute("data-index", "1");
+        //     }
+        //   });
+        // }}
         editable={true}
         children={<></>}
         slotBefore={showToolbar && <MenuBar editorName={editorName} />}

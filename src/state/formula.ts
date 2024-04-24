@@ -21,3 +21,5 @@ export const selectedFormulaIdAtom = atomWithStore<string | undefined>(
 export const filterFnAtom = atom<string | undefined>(undefined);
 export const sortingAtom = atom<"asc" | "desc">("asc");
 export const sortingFnAtom = atom<string | undefined>(undefined);
+export const isSortingEnable = atom<boolean>(false);
+export const isFilterEnable = atom<boolean>(false);

@@ -25,7 +25,7 @@ const Value = () => {
   const [displayValue, setDisplayValue] = useState("");
   useEffect(() => {
     if (selectedFormulaId) {
-      const formula = allFormula.find((item) => item.id === selectedFormulaId);
+      const formula = allFormula?.find((item) => item.id === selectedFormulaId);
       setDisplayValue(formula?.formula || "");
     }
   }, [allFormula, selectedFormulaId]);
