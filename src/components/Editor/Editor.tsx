@@ -128,7 +128,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         return;
       }
       console.log(return_data.parsed_text);
-      editor.commands.setContent(return_data?.parsed_text, false);
+     // editor.commands.setContent(return_data?.parsed_text, false);
 
       const formulas = return_data?.formula_list;
 
@@ -186,8 +186,8 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         margin: "20px",
       }}
     >
-      <Button onClick={load_data_to_backend}>Load Data</Button>
 
+      <Button onClick={load_data_to_backend}>Update</Button>
       <div className="d-flex gap-2  ">
         <Select
           style={{ fontSize: 10 }}

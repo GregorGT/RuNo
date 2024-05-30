@@ -16,7 +16,6 @@ export default function TabComponent() {
 
   return (
     <div className="right-side">
-      <div className="top-space" />
       <div className="tab-component"></div>
       <div className="tab-component">
         <div className="buttons">

@@ -89,7 +89,8 @@ pub fn assign_entry_id(entry_id: String, top_id: String) {
         } // REmove duplicate entry id
         ENTRY_IDS.dedup();
 
-        println!("Entry Ids: {:?}", ENTRY_IDS);
+
+     //   println!("Entry Ids: {:?}", ENTRY_IDS);
     }
 }
 
@@ -1399,8 +1400,8 @@ fn recursive_funcation_parser<'a>(
                         }
                     }
 
-                    println!("Left Answer: {:?}", left_answer);
-                    println!("Right Answer: {:?}", right_answer);
+                  //  println!("Left Answer: {:?}", left_answer);
+                  //  println!("Right Answer: {:?}", right_answer);
 
                     if isEQ {
                         final_ans = left_answer == right_answer;

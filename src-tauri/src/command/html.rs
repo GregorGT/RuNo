@@ -196,7 +196,7 @@ pub fn extract_all_ids_recursive(
 
         if valid_tags.contains(&&*name.local.to_lowercase().as_str()) {
             if name.local.to_lowercase() == "div" {
-                println!("DIV: {:?}", attrs.borrow().iter().collect::<Vec<_>>());
+              //  println!("DIV: {:?}", attrs.borrow().iter().collect::<Vec<_>>());
             }
 
             if name.local.to_lowercase() == "hr" {
@@ -243,7 +243,7 @@ pub fn extract_all_ids_recursive(
 
             let current_hr_id = ids.back().unwrap().ids.front().unwrap().to_string();
             // change attribute value of HR
-            println!("CURRENT HR ID: {:?}", current_hr_id);
+           // println!("CURRENT HR ID: {:?}", current_hr_id);
             let mut index = 0;
             unsafe {
                 //loop through entry ids
@@ -306,12 +306,13 @@ pub fn parse_html(html: &str) -> parse_html_return {
     let mut tags: Vec<Vec<String>> = vec![];
     // get_highest_data_index_recursive(&dom.document);
     unsafe {
-        println!("HIGHEST ENTRY: {:?}", HIGHEST_ENTRY);
+       // println!("HIGHEST ENTRY: {:?}", HIGHEST_ENTRY);
     }
 
     extract_all_ids_recursive(&dom.document, &mut linkdlist, &mut tags);
 
-    println!("{:?}", linkdlist);
+    //
+    // println!("{:?}", linkdlist);
     // ///////////////////
 
     // let tag_data = vec![];
