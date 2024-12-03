@@ -3,6 +3,34 @@
 version = 3
 
 [[package]]
+name = "RuNo"
+version = "0.0.0"
+dependencies = [
+ "chrono",
+ "dateparser",
+ "html5ever 0.26.0",
+ "indicatif",
+ "markup5ever 0.11.0",
+ "markup5ever_rcdom",
+ "msgbox",
+ "once_cell",
+ "pest",
+ "pest_derive",
+ "rand 0.8.5",
+ "regex",
+ "reqwest",
+ "round",
+ "scraper",
+ "serde",
+ "serde_json",
+ "tantivy",
+ "tauri",
+ "tauri-build",
+ "try-catch",
+ "uuid",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -340,9 +368,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.35"
+version = "0.4.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eaf5903dcbc0a39312feb77df2ff4c76387d591b9fc7b04a238dcf8bb62639a"
+checksum = "a21f936df1771bf62b77f047b726c4625ff2e8aa607c01ec06e5a05bd8463401"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -3774,33 +3802,6 @@ dependencies = [
  "futf",
  "mac",
  "utf-8",
-]
-
-[[package]]
-name = "testing"
-version = "0.0.0"
-dependencies = [
- "chrono",
- "dateparser",
- "html5ever 0.26.0",
- "indicatif",
- "markup5ever 0.11.0",
- "markup5ever_rcdom",
- "msgbox",
- "once_cell",
- "pest",
- "pest_derive",
- "regex",
- "reqwest",
- "round",
- "scraper",
- "serde",
- "serde_json",
- "tantivy",
- "tauri",
- "tauri-build",
- "try-catch",
- "uuid",
 ]
 
 [[package]]

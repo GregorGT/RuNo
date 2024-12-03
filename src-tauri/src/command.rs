@@ -4,6 +4,7 @@ use msgbox::IconType;
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::panic;
+use tauri::api::path::local_data_dir;
 use tauri::Result;
 
 use std::collections::LinkedList;
@@ -89,7 +90,7 @@ pub fn assign_entry_id(entry_id: String, top_id: String) {
         } // REmove duplicate entry id
         ENTRY_IDS.dedup();
 
-        println!("Entry Ids: {:?}", ENTRY_IDS);
+        //   println!("Entry Ids: {:?}", ENTRY_IDS);
     }
 }
 
@@ -237,11 +238,20 @@ pub fn main_command(
     // return;
 
     /////// celar all the content of data dir
-    let is_dir = Path::new("data").exists();
-    if is_dir {
-        fs::remove_dir_all("data").unwrap()
+    ///
+    let local_data_dir_path = (local_data_dir().unwrap()).join("scridig");
+    // let _ = local_data_dir_path.join("scridig");
+    // let path = Path::new(local_data_dir_path);
+
+    if local_data_dir_path.exists() {
+        fs::remove_dir_all(local_data_dir_path.clone()).unwrap()
     }
-    fs::create_dir_all("data").unwrap();
+
+    if !local_data_dir_path.exists() {
+        fs::create_dir_all(local_data_dir_path.clone())?;
+    }
+
+    // fs::create_dir_all(local_data_dir_path).unwrap();
 
     // Ram storage
     let ram_dir = RamDirectory::create();
@@ -262,7 +272,7 @@ pub fn main_command(
     }
 
     ram_dir
-        .persist(&MmapDirectory::open(Path::new("data")).unwrap())
+        .persist(&MmapDirectory::open(local_data_dir_path).unwrap())
         .unwrap();
     ram_dir.sync_directory().unwrap();
     let end_time = Instant::now();
@@ -1399,8 +1409,8 @@ fn recursive_funcation_parser<'a>(
                         }
                     }
 
-                    println!("Left Answer: {:?}", left_answer);
-                    println!("Right Answer: {:?}", right_answer);
+                    //  println!("Left Answer: {:?}", left_answer);
+                    //  println!("Right Answer: {:?}", right_answer);
 
                     if isEQ {
                         final_ans = left_answer == right_answer;
