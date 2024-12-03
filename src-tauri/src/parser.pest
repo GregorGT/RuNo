@@ -1,0 +1,50 @@
+number          =  { ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+){,1} }
+text_val        =  { (!"\"" ~ ANY)* }
+text            =  { "\"" ~ text_val ~ "\"" }
+WHITESPACE      = _{ " " }
+FINDING_PATTREN =  { (!"\"" ~ ANY)* }
+IS_LOCAL        =  { "!" }
+EVAL_PATTREN    =  { IS_LOCAL{,1} ~ "\"" ~ FINDING_PATTREN ~ "\"" }
+CHAIN_PATTREN   =  { EVAL_PATTREN ~ ("." ~ EVAL_PATTREN)* }
+EVAL            =  { "EVAL(" ~ CHAIN_PATTREN+ ~ ")" }
+SUM             =  { "SUM(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
+MUL             =  { "MUL(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
+DIV             =  { "DIV(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
+// 
+COMPARATOR_SIGN =  { "="  | "<=" | ">=" | ">"| "<" }
+COMPARATOR = { ( Fn | DATE ) ~ WHITESPACE* ~ COMPARATOR_SIGN ~ WHITESPACE* ~ (Fn | number | text | DATE) }
+
+COMPARATOR_COUNT = { (Fn | number | text | DATE) ~ WHITESPACE* ~ COMPARATOR_SIGN ~ WHITESPACE* ~ (number |text |DATE) }
+
+COUNT = { "COUNT(" ~ WHITESPACE* ~ EVAL ~ WHITESPACE* ~ ")" }
+// DONE
+LEN = { "LEN(" ~ WHITESPACE* ~ (Fn | text) ~ WHITESPACE* ~ ")" }
+// DONE
+TYPE = { "TYPE(" ~ WHITESPACE* ~ (Fn | number | text | DATE) ~ WHITESPACE* ~ ")" }
+// DONE
+CONCAT = { "CONCAT(" ~ WHITESPACE* ~ ((text | Fn) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
+// DONE
+IF  = { "IF(" ~ COMPARATOR ~ "){" ~ Fn ~ "}ELSE{" ~ Fn ~ "}" }
+MIN = { "MIN(" ~ WHITESPACE* ~ ((number | EVAL) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
+// DONE
+MAX = { "MAX(" ~ WHITESPACE* ~ ((number | EVAL) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
+// DONE
+AVERAGE = { "AVERAGE(" ~ WHITESPACE* ~ ((number | EVAL) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
+// DONE
+TRIM = { "TRIM(" ~ WHITESPACE* ~ ((text | EVAL) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
+// DONE
+ROUND = { "ROUND(" ~ WHITESPACE* ~ (number | EVAL) ~ WHITESPACE* ~ ")" }
+// DONE
+IFERROR = { "IFERROR(" ~ Fn ~ "){" ~ WHITESPACE* ~ Fn ~ WHITESPACE* ~ "}ELSE{" ~ WHITESPACE* ~ Fn ~ WHITESPACE* ~ "}" }
+
+SUMIF  = { "SUMIF(" ~ COMPARATOR_COUNT ~ ")" }
+COUNTIF  = { "COUNTIF(" ~ COMPARATOR_COUNT ~ ")" }
+
+DATE = {"DATE(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
+NUMBER = { "NUMBER(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
+TEXT = { "TEXT(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
+
+
+Fn = { EVAL | SUM | MUL | COUNT | LEN | TYPE | CONCAT | IF | MIN | MAX | AVERAGE | TRIM | ROUND | IFERROR |SUMIF | COUNTIF | DATE | NUMBER | TEXT |DIV}
+
+

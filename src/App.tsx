@@ -1,9 +1,8 @@
-import Header from "./components/Header";
+import "./App.scss";
 import Dropdowns from "./components/Dropdowns";
 import Entries from "./components/Entries";
+import Header from "./components/Header";
 import TabComponent from "./components/TabComponent";
-import "./App.scss";
-import { ConfigProvider } from "antd";
 
 function App() {
   return (
@@ -14,6 +13,7 @@ function App() {
         <Entries />
         <TabComponent />
       </div>
+      <style id="editor_styles"></style>
     </div>
   );
 }

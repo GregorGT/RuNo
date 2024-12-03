@@ -1,4 +1,4 @@
-import { atom, useAtom } from "jotai";
+import { atom } from "jotai";
 
 export type loadExportDataFormatType = {
   ENTRIES: String;
@@ -13,4 +13,14 @@ export const loadEditorAtom = atom<loadExportDataFormatType>({
   VALUE_FORMULA: "",
   VALUE: "",
   HEADER: "",
+});
+
+export const exportEditorFunction = atom<{
+  fn: () => string;
+  load: (data: string) => void;
+}>({
+  fn: () => {
+    return "";
+  },
+  load: (data) => {},
 });

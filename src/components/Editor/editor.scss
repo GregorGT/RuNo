@@ -10,6 +10,20 @@
   > * + * {
     margin-top: 0.75em;
   }
+  .search-result {
+    background-color: rgba(189, 255, 183, 0.5);
+
+    // &-current {
+    //   background-color: rgba(13, 255, 0, 0.5);
+    // }
+  }
+  .hidden {
+    display: none;
+  }
+  p {
+    margin-bottom: 0;
+    margin-top: 0;
+  }
 
   ul,
   ol {
@@ -57,7 +71,7 @@
 
   hr {
     border: none;
-    border-top: 2px solid rgba(#0d0d0d, 0.1);
+    border-top: 4px solid rgba(#0d0d0d, 0.8);
     margin: 2rem 0;
   }
   table {

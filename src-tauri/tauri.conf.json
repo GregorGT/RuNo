@@ -6,8 +6,8 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "testing",
-    "version": "0.0.0"
+    "productName": "ScriDig",
+    "version": "1.0.0"
   },
   "tauri": {
     "allowlist": {
@@ -36,7 +36,7 @@
         "icons/128x128.png",
         "icons/128x128@2x.png",
         "icons/icon.icns",
-        "icons/icon.ico"
+        "icons/icon_.ico"
       ]
     },
     "security": {
@@ -46,7 +46,7 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "testing",
+        "title": "ScriDig 1.0 - 06.2024",
         "width": 800,
         "height": 600
       }

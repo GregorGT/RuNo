@@ -1,58 +1,81 @@
-import { dialog } from "@tauri-apps/api";
 import { NodeViewWrapper } from "@tiptap/react";
-import React, { useEffect, useState } from "react";
 //@ts-ignore
-import math from "mathjs-expression-parser";
-import { Input, Modal } from "antd";
+import { useAtomValue } from "jotai";
+import { useEffect, useState } from "react";
+import {
+  formulaAtom,
+  formulaStore,
+  selectedFormulaIdAtom,
+  selectedFormulaIdStore,
+} from "../../state/formula";
 
 export default (props: any) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formula, setFormula] = useState(props.node.attrs.formula);
+  const currentId = props.node.attrs.id;
+  const allFormulas = useAtomValue(formulaAtom);
+  const [data, setData] = useState("");
+  const selectedFormulaId = useAtomValue(selectedFormulaIdAtom);
+  const askFormula = () => {
+    selectedFormulaIdStore.setState(currentId);
+  };
+  /// ON mount if all formula is empty then we will add a new formula
+  const isCurrentSelected = currentId !== selectedFormulaIdStore.getState();
 
   useEffect(() => {
-    setFormula(props.node.attrs.formula);
-  }, [props.node.attrs.formula]);
+    //  Check if the formula is already present in the store
+    const formula = formulaStore?.getState().find((f) => f.id == currentId);
+    if (!formula) {
+      formulaStore.setState(
+        [
+          ...formulaStore.getState(),
+          {
+            id: currentId,
+            formula: props.node.attrs.formula || "",
+            data: props.node.attrs.data || "",
+          },
+        ],
+        true
+      );
+    }
+  }, []);
 
-  const askFormula = () => {
-    setIsModalOpen(true);
-  };
+  // useEffect(() => {
+  //   formulaStore.subscribe((formulas) => {
+  //     const formula = formulas.find((f) => f.id == currentId);
+  //     props.updateAttributes({
+  //       formula: formula?.formula || "",
+  //       data: formula?.data || "",
+  //     });
+  //     setData(formula?.data || "");
+  //   });
+  // }, []);
+
+  useEffect(() => {
+    console.log("props", props);
+    const formula = formulaStore.getState().find((f) => f.id == currentId);
+    props.updateAttributes({
+      formula: formula?.formula || "",
+      data: formula?.data || "",
+    });
+
+    setData(formula?.data || "");
+  }, [selectedFormulaId, allFormulas]);
 
   return (
     <>
-      <Modal
-        title="Enter Math Formula"
-        open={isModalOpen}
-        onOk={() => {
-          props.updateAttributes({
-            formula,
-          });
-          setIsModalOpen(false);
+      <NodeViewWrapper
+        style={{
+          borderColor: isCurrentSelected ? "gray" : "green",
+          borderWidth: "1px",
+          color: isCurrentSelected ? "black" : "blue",
+          background: "transparent",
+          fontFamily: "monospace",
+          marginLeft: "0px",
+          marginRight: "0px",
         }}
-        onCancel={() => {
-          setIsModalOpen(false);
-        }}
+        onClick={askFormula}
+        className="math-component d-inline"
       >
-        <Input
-          value={formula}
-          onChange={(e) => {
-            setFormula(e.target.value);
-          }}
-        />
-      </Modal>
-      <NodeViewWrapper className="math-component d-inline">
-        <span
-          onClick={askFormula}
-          style={{
-            backgroundColor: "gray",
-            fontFamily: "monospace",
-            color: "white",
-          }}
-          className="label"
-        >
-          &nbsp;
-          {math.eval(props.node.attrs?.formula || "0")}
-          &nbsp;
-        </span>
+        {data === "" || !data ? "Click to add/edit formula" : data}
       </NodeViewWrapper>
     </>
   );
