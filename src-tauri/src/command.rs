@@ -239,8 +239,8 @@ pub fn main_command(
 
     /////// celar all the content of data dir
     ///
-    let local_data_dir_path = (local_data_dir().unwrap()).join("scridig");
-    // let _ = local_data_dir_path.join("scridig");
+    let local_data_dir_path = (local_data_dir().unwrap()).join("runo");
+    // let _ = local_data_dir_path.join("runo");
     // let path = Path::new(local_data_dir_path);
 
     if local_data_dir_path.exists() {

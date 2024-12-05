@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "ScriDig",
+    "productName": "RuNo",
     "version": "1.0.0"
   },
   "tauri": {
@@ -46,7 +46,7 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "ScriDig 1.0 - 06.2024",
+        "title": "RuNo 1.0 - 06.2024",
         "width": 800,
         "height": 600
       }

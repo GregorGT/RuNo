@@ -33,7 +33,7 @@ pub fn get_schema(ram_dir: RamDirectory) -> tantivy::Result<tantivy::Index> {
     schema_builder.add_u64_field("line", STORED);
     schema_builder.add_u64_field("entry", STORED | INDEXED);
     schema_builder.add_text_field("body", TEXT | STORED);
-    let local_data_dir_path = (local_data_dir().unwrap()).join("scridig");
+    let local_data_dir_path = (local_data_dir().unwrap()).join("runo");
     if !local_data_dir_path.exists() {
         fs::create_dir_all(local_data_dir_path.clone())?;
     }
