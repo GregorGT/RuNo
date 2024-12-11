@@ -37,7 +37,7 @@ Yarn tauri dev
 rustc is version <br>
 rustc 1.83.0 (90b35a623 2024-11-26)
 
-3.) Usage of formulas
+## Usage of formulas
 
 Please follow the function name, description and example strictly, no spaces for ELSE{} and upper case always
 
