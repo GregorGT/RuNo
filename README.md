@@ -29,7 +29,13 @@ Goto to the cloned repository:<br>
 1.) Type: <br>
 Yarn<br>
 2.) Type:<br>
-Yarn tauri
+Yarn tauri <br>
+or<br>
+Yarn tauri dev
+
+## Versions:
+rustc is version <br>
+rustc 1.83.0 (90b35a623 2024-11-26)
 
 3.) Usage of formulas
 
