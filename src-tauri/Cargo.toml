@@ -1,23 +1,30 @@
 [package]
-name = "RuNo"
-version = "0.0.0"
+name = "runo"
+version = "0.1.0"
 description = "A Tauri App"
 authors = ["you"]
-license = ""
-repository = ""
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "runo_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [build-dependencies]
-tauri-build = { version = "1.5", features = [] }
+tauri-build = { version = "2", features = [] }
+
 
 [dependencies]
-tauri = { version = "1.5", features = [ "fs-write-file", "dialog-ask", "path-all", "shell-open"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 reqwest = { version = "0.11.22", features = ["json", "blocking"] }
-msgbox = "0.7.0"
+zstd-sys = "=2.0.9"
 tantivy = "0.21.1"
 pest = "2.7.7"
 pest_derive = "2.7.7"
@@ -34,8 +41,7 @@ try-catch = "0.2.2"
 uuid = "1.8.0"
 chrono = "0.4.38"
 rand = "0.8.5"
+tauri-plugin-dialog = "2"
+dirs = "5.0.1"
+tauri-plugin-fs = "2"
 
-[features]
-# this feature is used for production builds or when `devPath` points to the filesystem
-# DO NOT REMOVE!!
-custom-protocol = ["tauri/custom-protocol"]

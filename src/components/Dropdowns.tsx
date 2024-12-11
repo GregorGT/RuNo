@@ -1,10 +1,13 @@
-import { writeTextFile } from "@tauri-apps/api/fs";
+import { writeTextFile, writeFile, create, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { downloadDir } from "@tauri-apps/api/path";
 import type { MenuProps } from "antd";
 import { Dropdown, notification } from "antd";
 import { useAtom, useAtomValue } from "jotai/react";
 import { editorStateAtom } from "../state/editor";
 import { exportEditorFunction, loadEditorAtom } from "../state/load";
+import { info } from "@tauri-apps/plugin-log";
+import * as path from '@tauri-apps/api/path';
+
 import "./Components.scss";
 import {
   filterFnAtom,
@@ -67,7 +70,7 @@ export default function Dropdowns() {
   const editItems: MenuProps["items"] = [
     { key: 1, label: "Copy" },
     { key: 2, label: "Paste" },
-    { key: 3, label: "Text foratting" },
+    { key: 3, label: "Text formatting" },
   ];
   const infoItems: MenuProps["items"] = [
     { key: 1, label: "About" },
@@ -91,12 +94,9 @@ export default function Dropdowns() {
           items: fileItems,
           onClick: async (e) => {
             if (e.key === "2") {
-              const path = `${await downloadDir()}export-${new Date().getTime()}.json`;
-              await writeTextFile({
-                path,
-                contents: JSON.stringify(save_data()),
-              });
-              showNotificaiton(`File Saved as ${path}`);
+              const mypath = path.join(`${await downloadDir()}`,`export-${new Date().getTime()}.json`);
+              await writeTextFile(await mypath, JSON.stringify(save_data()), { baseDir: BaseDirectory.AppConfig })
+              showNotificaiton(`File Saved as ${await mypath}`);
             }
             if (e.key === "1") {
               // Open File Picker

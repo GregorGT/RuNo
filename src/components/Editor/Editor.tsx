@@ -10,7 +10,7 @@ import {
   UnderlineOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 import { Color } from "@tiptap/extension-color";
 import FontFamily from "@tiptap/extension-font-family";
 import Highlight from "@tiptap/extension-highlight";

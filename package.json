@@ -1,17 +1,21 @@
 {
-  "name": "RuNo",
+  "name": "runo",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
+    "dev": "vite",
+    "build": "tsc && vite build",
     "preview": "vite preview",
-    "build": "vite build",
-    "tauri": "tauri dev"
+    "tauri": "tauri"
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
-    "@tauri-apps/api": "^1.5.1",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.2.0",
+    "@tauri-apps/plugin-fs": "~2",
+    "@tauri-apps/plugin-log": "^2",
+    "@tauri-apps/plugin-shell": "^2",
     "@tiptap/extension-color": "^2.1.13",
     "@tiptap/extension-font-family": "^2.1.13",
     "@tiptap/extension-highlight": "^2.1.13",
@@ -45,12 +49,12 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^1.5.6",
+    "@tauri-apps/cli": "^2",
     "@types/lodash": "^4.17.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
-    "@vitejs/plugin-react": "^4.0.3",
-    "typescript": "^5.0.2",
-    "vite": "^4.4.4"
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.3.1"
   }
 }

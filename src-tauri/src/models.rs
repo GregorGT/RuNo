@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
 use crate::error::TauriError;
+use serde::{Deserialize, Serialize};
 
 pub type APIResult<T, E = TauriError> = Result<T, E>;
 
@@ -74,7 +74,7 @@ impl URL {
     pub fn value(self) -> String {
         match self {
             URL::WithBaseUrl(url) => format!("https://api.github.com/{url}"),
-            URL::WithoutBaseUrl(url) => url
+            URL::WithoutBaseUrl(url) => url,
         }
     }
 }

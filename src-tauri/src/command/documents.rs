@@ -1,5 +1,8 @@
 use std::{env::current_exe, fs, io, path::Path};
 
+use tauri::{path::BaseDirectory, Manager};
+//use super::applicationdirs::get_application_db_directory;
+
 use regex::Regex;
 use tantivy::{
     collector::{Count, TopDocs},
@@ -10,17 +13,17 @@ use tantivy::{
     schema::{self, Field, Schema, INDEXED, STORED, TEXT},
     Directory, DocAddress, Index, ReloadPolicy, Searcher, Term,
 };
-use tauri::api::path::local_data_dir;
+//use tauri::api::path::local_data_dir;
 pub fn get_schema_current(ram_dir: &RamDirectory) -> tantivy::Result<tantivy::Index> {
     let mut schema_builder = Schema::builder();
     schema_builder.add_u64_field("line", STORED);
     schema_builder.add_u64_field("entry", STORED | INDEXED);
     schema_builder.add_text_field("body", TEXT | STORED);
-    let local_data_dir_path = local_data_dir().unwrap();
-    // let path = Path::new("data");
-    // if !path.exists() {
-    //     fs::create_dir_all(path)?;
-    // }
+    let local_data_dir_path = super::applicationdirs::get_application_db_directory(); //app.path().resolve("", BaseDirectory::Config).unwrap();//local_data_dir().unwrap();
+                                                                                      // let path = Path::new("data");
+                                                                                      // if !path.exists() {
+                                                                                      //     fs::create_dir_all(path)?;
+                                                                                      // }
     let index_dir = MmapDirectory::open(local_data_dir_path)?;
 
     let index = Index::open_or_create(ram_dir.clone(), schema_builder.build())?;
@@ -33,7 +36,7 @@ pub fn get_schema(ram_dir: RamDirectory) -> tantivy::Result<tantivy::Index> {
     schema_builder.add_u64_field("line", STORED);
     schema_builder.add_u64_field("entry", STORED | INDEXED);
     schema_builder.add_text_field("body", TEXT | STORED);
-    let local_data_dir_path = (local_data_dir().unwrap()).join("runo");
+    let local_data_dir_path = super::applicationdirs::get_application_db_directory(); //(app.path().resolve("", BaseDirectory::Config).unwrap()).join("runo");
     if !local_data_dir_path.exists() {
         fs::create_dir_all(local_data_dir_path.clone())?;
     }
