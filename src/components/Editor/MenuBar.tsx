@@ -33,7 +33,7 @@ import {
 } from "@ant-design/icons";
 import { exportEditorFunction, loadEditorAtom } from "../../state/load";
 import { final_list } from "../../helper";
-import { invoke, InvokeArgs } from "@tauri-apps/api/core";
+import { InvokeArgs,invoke } from "@tauri-apps/api/core";
 
 // Enhanced Interfaces for Type Safety
 interface BackendResponse {
@@ -155,15 +155,17 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
     const exportFunction = {
       fn: () => editor.getHTML(),
       load: async (data: string) => {
-        try {
-          // Only call if method exists and is needed
-          if (typeof invoke === "function") {
-            await invoke("clear_entry_id");
-          }
-          editor.commands.setContent(data);
-        } catch (error) {
-          console.error("Error in load function:", error);
+      try {
+        // Use window.__TAURI__ to check Tauri context
+        if (window.__TAURI__ && typeof invoke === "function") {
+          await invoke("clear_entry_id");
+        } else {
+          console.warn("Tauri invoke not available");
         }
+        editor.commands.setContent(data);
+      } catch (error) {
+        console.error("Error in load function:", error);
+      }
       },
     };
 

@@ -50,7 +50,6 @@ export default (props: any) => {
   // }, []);
 
   useEffect(() => {
-    console.log("props", props);
     const formula = formulaStore.getState().find((f) => f.id == currentId);
     props.updateAttributes({
       formula: formula?.formula || "",

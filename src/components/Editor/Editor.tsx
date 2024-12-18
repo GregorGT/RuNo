@@ -10,7 +10,7 @@ import TextStyle from "@tiptap/extension-text-style";
 import { EditorProvider } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useAtom } from "jotai";
-import { useEffect } from "react";
+import React, { useEffect, useState, ReactNode } from "react";
 import { editorKeys, editorStateAtom } from "../../state/editor";
 import MathComponent from "../CustomRte/math.extension";
 //@ts-ignore
@@ -24,70 +24,46 @@ const CustomDocument = Document.extend({
   content: "horizontalRule block*",
 });
 
-const tableExtend = Table.extend({
+let idCounter = 0;
+const createId = () => `id-${idCounter++}`;
+
+const CustomTable = Table.extend({
   renderHTML({ HTMLAttributes }) {
     return [
       "div",
       {
         class: "table-responsive",
-        id: HTMLAttributes?.id ?? crypto.randomUUID(),
+        id: HTMLAttributes?.id ?? `table-${createId()}`,
       },
       ["table", HTMLAttributes, ["tbody", 0]],
     ];
   },
 });
-const newHR = HorizontalRule.extend({
+
+const CustomHorizontalRule = HorizontalRule.extend({
   addAttributes() {
     return {
       dataIndex: {
         default: -1,
-        parseHTML: (element) => {
-          console.log("Att", element.getAttribute("data-index"));
-          return element.getAttribute("data-index");
-        },
-
-        // Take the attribute values
-        renderHTML: (attributes) => {
-          // … and return an object with HTML attributes.
-          return {
-            "data-index": attributes.dataIndex,
-          };
-        },
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-index"),
+        renderHTML: (attributes: { dataIndex: number }) => ({
+          "data-index": attributes.dataIndex,
+        }),
       },
     };
   },
 });
+
 const extensions = [
-  newHR,
+  CustomHorizontalRule,
   UniqueId.configure({
     attributeName: "id",
-    types: [
-      "paragraph",
-      "heading",
-      "div",
-      "orderedList",
-      "bulletList",
-      "listItem",
-      "mathComponent",
-      "table",
-      "tableRow",
-      "tableCell",
-      "tableHeader",
-      "horizontalRule",
-      "bold",
-      "italic",
-      "underline",
-      "textStyle",
-      "highlight",
-      "tableWrapper",
-      "Table",
-    ],
-    createId: () => window.crypto.randomUUID(),
+    types: ["heading", "table", "horizontalRule"],
+    createId,
     filterTransaction: (transaction: any) =>
       !transaction.getMeta("preventUpdate"),
   }),
   CustomDocument,
-
   Color.configure({ types: [TextStyle.name] }),
   //@ts-ignore
   TextStyle.configure(),
@@ -100,16 +76,29 @@ const extensions = [
   }),
   Highlight.configure({ multicolor: true }),
   FontFamily,
-  tableExtend.configure({}),
+  CustomTable.configure({}),
   TableRow,
   TableHeader,
   TableCell,
   MathComponent,
 ];
 
-const content = `
-<p>price dog 10</p>
-`;
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+const ErrorBoundary = ({ children }: ErrorBoundaryProps) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [children]);
+
+  if (hasError) {
+    return <div>Error loading editor content.</div>;
+  }
+  return <React.Fragment>{children}</React.Fragment>;
+};
 
 export default function Editor({
   editorName,
@@ -121,30 +110,49 @@ export default function Editor({
   height: number;
 }) {
   const [editorState, setEditorState] = useAtom(editorStateAtom);
+  const [defaultContent, setDefaultContent] = useState("");
+
+  // Fetch default content
+  useEffect(() => {
+    const fetchDefaultContent = async () => {
+      try {
+        const response = await fetch("/api/default-content");
+        const content = await response.text();
+        setDefaultContent(content);
+      } catch (error) {
+        console.error("Error fetching default content:", error);
+        setDefaultContent("<p>Default content unavailable.</p>");
+      }
+    };
+    fetchDefaultContent();
+  }, []);
+
   useEffect(() => {
     setEditorState({
       ...editorState,
-      [editorName]: content,
+      [editorName]: editorState[editorName] || defaultContent,
     });
-  }, []);
+  }, [defaultContent]);
 
   return (
     <div>
-      <EditorProvider
-        editorProps={{
-          attributes: {
-            id: "editor",
-            style: `max-height:${height}px`,
-          },
-        }}
-        editable={true}
-        children={<></>}
-        slotBefore={showToolbar && <MenuBar editorName={editorName} />}
-        //@ts-ignore
-        extensions={extensions}
-        content={editorState[editorName] || content}
-        autofocus="end"
-      />
+      <ErrorBoundary>
+        <EditorProvider
+          editorProps={{
+            attributes: {
+              id: "editor",
+              style: `max-height:${height}px`,
+            },
+          }}
+          editable={true}
+          children={<></>}
+          slotBefore={showToolbar && <MenuBar editorName={editorName} />}
+          //@ts-ignore
+          extensions={extensions}
+          content={editorState[editorName] || defaultContent}
+          autofocus="end"
+        />
+      </ErrorBoundary>
     </div>
   );
 }

@@ -19,6 +19,10 @@
         "writeFile": true,
         "scope": ["$DOWNLOAD/*"]
       },
+       "http":{
+            "scope":[],
+            "all": true 
+        },
       "all": false,
       "shell": {
         "all": false,
