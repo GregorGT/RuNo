@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
-    "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.2.0",
     "@tauri-apps/plugin-fs": "~2",
     "@tauri-apps/plugin-log": "^2",
@@ -43,16 +42,20 @@
     "react-resizable-element": "^0.1.5",
     "react-router-dom": "^6.19.0",
     "react-use": "^17.5.0",
+    "react-window": "^1.8.10",
     "sass": "^1.69.5",
     "tiptap-unique-id": "^1.2.1",
     "uuid": "^9.0.1",
     "zustand": "^4.5.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
+    "@tauri-apps/api": "^2.1.1",
+    "@tauri-apps/cli": "^2.1.0",
     "@types/lodash": "^4.17.0",
+    "@types/node": "^22.10.2",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
+    "@types/react-window": "^1.8.8",
     "@vitejs/plugin-react": "^4.2.1",
     "typescript": "^5.2.2",
     "vite": "^5.3.1"

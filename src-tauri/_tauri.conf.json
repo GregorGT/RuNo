@@ -1,6 +1,7 @@
 {
   "build": {
-    "beforeDevCommand": "yarn dev",
+    "beforeDevCommand": "yarn run dev",
+
     "beforeBuildCommand": "yarn build",
     "devPath": "http://localhost:1420",
     "distDir": "../dist"
@@ -18,6 +19,10 @@
         "writeFile": true,
         "scope": ["$DOWNLOAD/*"]
       },
+       "http":{
+            "scope":[],
+            "all": true 
+        },
       "all": false,
       "shell": {
         "all": false,

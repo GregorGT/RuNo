@@ -1,0 +1,396 @@
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
+import { useAtom, useAtomValue } from "jotai";
+import { useCurrentEditor } from "@tiptap/react";
+import { Editor } from "@tiptap/core";
+import {
+  filterFnAtom,
+  formulaStore,
+  isFilterEnable,
+  isSortingEnable,
+  sortingAtom,
+  sortingFnAtom,
+} from "../../state/formula";
+import { editorKeys } from "../../state/editor";
+import { tableAcions, textStyle } from "./const";
+import { v4 } from "uuid";
+import {
+  Button,
+  Divider,
+  Select,
+  Button as IconButton,
+  ColorPicker,
+  message,
+} from "antd";
+import {
+  BoldOutlined,
+  CalculatorOutlined,
+  HighlightOutlined,
+  ItalicOutlined,
+  RedoOutlined,
+  TableOutlined,
+  UnderlineOutlined,
+  UndoOutlined,
+} from "@ant-design/icons";
+import { exportEditorFunction, loadEditorAtom } from "../../state/load";
+import { final_list } from "../../helper";
+import { InvokeArgs,invoke } from "@tauri-apps/api/core";
+
+// Enhanced Interfaces for Type Safety
+interface BackendResponse {
+  is_error?: boolean;
+  formula_list?: Array<{ id: string; data: any }>;
+  parsed_text?: string;
+  filtered?: string[];
+}
+
+interface FormulaItem {
+  id: string;
+  data: string;
+  formula: string;
+}
+
+interface MenuBarProps {
+  editorName: keyof typeof editorKeys;
+}
+
+async function safeInvoke<T = any>(
+  method: string,
+  params?: InvokeArgs
+): Promise<T | null> {
+  if (typeof invoke !== "function") {
+    console.error("Invoke method is not available");
+    return null;
+  }
+
+  try {
+    return await invoke(method, params);
+  } catch (error) {
+    console.error(`Error invoking ${method}:`, error);
+    message.error(`Backend operation failed: ${String(error)}`);
+    return null;
+  }
+}
+// Utility Functions
+const processBackendData = (
+  editor: Editor,
+  response: BackendResponse | null
+): void => {
+  if (!response || response.is_error) {
+    console.error("Backend processing error:", response);
+    message.error("Failed to process backend data");
+    return;
+  }
+
+  const { formula_list, filtered } = response;
+
+  if (filtered && formula_list) {
+    try {
+      // Update CSS for hidden elements
+      const styleElement = document.getElementById("editor_styles");
+      if (styleElement) {
+        styleElement.innerHTML = filtered
+          .map((id) => `[id="${id}"]{display: none;}`)
+          .join("\n");
+      }
+
+      // Update formula store
+      const currentFormulas = formulaStore.getState();
+      const updatedFormulas = currentFormulas.map((item) => {
+        const newItem = formula_list.find((r) => r.id === item.id);
+        return newItem ? { ...item, data: newItem.data } : item;
+      });
+
+      formulaStore.setState(updatedFormulas, true);
+      editor.commands.focus();
+    } catch (error) {
+      console.error("Error processing backend data:", error);
+      message.error("Error updating editor state");
+    }
+  }
+};
+
+const generateUniqueFormulaId = (existingFormulas: FormulaItem[]): string => {
+  let id = v4();
+  while (existingFormulas.some((f) => f.id === id)) {
+    id = v4();
+  }
+  return id;
+};
+
+const MenuBar = memo(({ editorName }: MenuBarProps) => {
+  const [loadEditor] = useAtom(loadEditorAtom);
+  const { editor } = useCurrentEditor();
+  const [loadingData, setLoadingData] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Memoized Atom Values
+  const sortingDir = useAtomValue(sortingAtom);
+  const sortingFn = useAtomValue(sortingFnAtom);
+  const sortingEnabled = useAtomValue(isSortingEnable);
+  const filterEnabled = useAtomValue(isFilterEnable);
+  const filterFn = useAtomValue(filterFnAtom);
+  const [_, setEditorExportFunction] = useAtom(exportEditorFunction);
+
+  // Memoized Configuration
+  const editorConfig = useMemo(
+    () => ({
+      sortingConfig: {
+        enabled: sortingEnabled,
+        fn: sortingFn,
+        direction: sortingDir,
+      },
+      filterConfig: {
+        enabled: filterEnabled,
+        fn: filterFn,
+      },
+    }),
+    [sortingEnabled, sortingFn, sortingDir, filterEnabled, filterFn]
+  );
+
+  // Memoized Export Function
+  useEffect(() => {
+    if (!editor) return;
+
+    const exportFunction = {
+      fn: () => editor.getHTML(),
+      load: async (data: string) => {
+      try {
+        // Use window.__TAURI__ to check Tauri context
+        if (window.__TAURI__ && typeof invoke === "function") {
+          await invoke("clear_entry_id");
+        } else {
+          console.warn("Tauri invoke not available");
+        }
+        editor.commands.setContent(data);
+      } catch (error) {
+        console.error("Error in load function:", error);
+      }
+      },
+    };
+
+    setEditorExportFunction(exportFunction);
+  }, [editor, setEditorExportFunction]);
+
+  // Load Editor Content
+  useEffect(() => {
+    if (loadEditor[editorName] && editor) {
+      editor.commands.setContent(loadEditor[editorName], true);
+    }
+  }, [loadEditor, editorName, editor]);
+
+  // Advanced Backend Data Loading
+  const loadDataToBackend = useCallback(async () => {
+    if (!editor) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Ensure editor content is loaded before invoking
+      console.log("editor.state.doc.text.length", editor);
+      if (editor?.isEmpty) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
+      // Assign entry IDs
+      let topId = "";
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "horizontalRule") {
+          safeInvoke("assign_entry_id", {
+            entryId: node.attrs.id,
+            topId: topId,
+          }).then(console.log);
+
+          topId = node.attrs.id;
+          document
+            .getElementById(node.attrs.id)
+            ?.setAttribute("data-index", "1");
+        }
+      });
+
+      // Invoke backend processing after content is (likely) loaded
+      const returnData = (await invoke("run_command", {
+        input: editor.getHTML(),
+        sorting: editorConfig.sortingConfig.enabled
+          ? editorConfig.sortingConfig.fn
+          : "",
+        sortingUp: editorConfig.sortingConfig.direction === "asc",
+        filter: editorConfig.filterConfig.enabled
+          ? editorConfig.filterConfig.fn
+          : "",
+      })) as BackendResponse;
+
+      processBackendData(editor, returnData);
+    } catch (e) {
+      console.error("Backend loading error:", e);
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [editor, editorConfig]);
+
+  // Example data loading effect
+  useEffect(() => {
+    if (loadingData && editor) {
+      editor.commands.setContent(final_list, true);
+      setLoadingData(false);
+    }
+  }, [loadingData, editor]);
+
+  // Prevent render if no editor
+  if (!editor) return null;
+
+  return (
+    <div className="d-flex flex-col gap-2" style={{ margin: "20px" }}>
+      {error && <div style={{ color: "red" }}>{error}</div>}
+      <Button onClick={loadDataToBackend} loading={loading} disabled={loading}>
+        Update
+      </Button>
+      <div className="d-flex gap-2  ">
+        <Select
+          style={{ fontSize: 10 }}
+          onChange={(value) => {
+            const style = textStyle.find((item) => item.value === value);
+            if (style) {
+              style.onclick(editor);
+            }
+          }}
+          value={textStyle.find((item) => item.isActive(editor))?.value}
+          options={textStyle}
+        />
+        <Divider type="vertical" />
+
+        <IconButton
+          type={editor.isActive("bold") ? "primary" : "default"}
+          shape="circle"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          disabled={!editor.can().chain().focus().toggleBold().run()}
+          icon={<BoldOutlined size={14} />}
+        />
+
+        <IconButton
+          type={editor.isActive("italic") ? "primary" : "default"}
+          shape="circle"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          disabled={!editor.can().chain().focus().toggleItalic().run()}
+          icon={<ItalicOutlined size={14} />}
+        />
+        <IconButton
+          type={editor.isActive("underline") ? "primary" : "default"}
+          shape="circle"
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          disabled={!editor.can().chain().focus().toggleStrike().run()}
+          icon={<UnderlineOutlined size={14} />}
+        />
+
+        <Divider type="vertical" />
+
+        <ColorPicker
+          onChangeComplete={(color) => {
+            editor.chain().focus().setColor(color.toHexString()).run();
+          }}
+          defaultValue={"#000"}
+          value={editor.getAttributes("textStyle").color || "#000"}
+          showText={() => <span>Text Color</span>}
+          placement="top"
+          size="small"
+        >
+          <Button
+            color={editor.getAttributes("textStyle").color || "#000"}
+            style={{
+              cursor: "pointer",
+              fontWeight: 600,
+              padding: 0,
+              width: 30,
+              height: 30,
+            }}
+          >
+            A
+          </Button>
+        </ColorPicker>
+
+        <ColorPicker
+          onChangeComplete={(color) => {
+            editor
+              .chain()
+              .focus()
+              .toggleHighlight({ color: color.toHexString() })
+              .run();
+          }}
+          defaultValue={"#fff"}
+          value={editor.getAttributes("highlight").color || "#fff"}
+          showText={() => <span>Background Color</span>}
+        >
+          <IconButton
+            style={{
+              backgroundColor:
+                editor.getAttributes("highlight").color || "#fff",
+            }}
+            icon={<HighlightOutlined size={14} />}
+          ></IconButton>
+        </ColorPicker>
+
+        <Divider type="vertical" />
+        <IconButton
+          icon={<CalculatorOutlined />}
+          onClick={() => {
+            const currentFormulas = formulaStore.getState();
+            const id = generateUniqueFormulaId(currentFormulas);
+
+            formulaStore.setState(
+              [...currentFormulas, { id, data: "", formula: "" }],
+              true
+            );
+
+            editor
+              .chain()
+              .insertContent({
+                type: "mathComponent",
+                attrs: { id },
+              })
+              .run();
+          }}
+        />
+
+        <Divider type="vertical" />
+
+        <IconButton
+          icon={<TableOutlined size={14} />}
+          onClick={() =>
+            editor
+              .chain()
+              .focus()
+              .insertTable({ rows: 3, cols: 3, withHeaderRow: false })
+              .run()
+          }
+        ></IconButton>
+        <Select
+          popupMatchSelectWidth={false}
+          onChange={(value) => {
+            const action = tableAcions.find((item) => item.label === value);
+            if (action) {
+              action.onClick(editor);
+            }
+          }}
+          value={""}
+          defaultValue={""}
+          options={tableAcions}
+        ></Select>
+        <Divider type="vertical" />
+        <IconButton
+          icon={<UndoOutlined size={14} />}
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().chain().focus().undo().run()}
+        />
+        <IconButton
+          icon={<RedoOutlined size={14} />}
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().chain().focus().redo().run()}
+        />
+      </div>
+    </div>
+  );
+});
+
+export default MenuBar;
