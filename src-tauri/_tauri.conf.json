@@ -1,6 +1,6 @@
 {
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "yarn run dev",
 
     "beforeBuildCommand": "yarn build",
     "devPath": "http://localhost:1420",

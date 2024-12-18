@@ -1,7 +1,7 @@
 import { NodeViewWrapper } from "@tiptap/react";
 //@ts-ignore
 import { useAtomValue } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import {
   formulaAtom,
   formulaStore,
@@ -59,6 +59,14 @@ export default (props: any) => {
     setData(formula?.data || "");
   }, [selectedFormulaId, allFormulas]);
 
+  useLayoutEffect(() => {
+    const formula = formulaStore.getState().find((f) => f.id == currentId);
+    props.updateAttributes({
+      formula: formula?.formula || "",
+      data: formula?.data || "",
+    });
+    setData(formula?.data || "");
+  }, [selectedFormulaId, allFormulas]);
   return (
     <>
       <NodeViewWrapper
