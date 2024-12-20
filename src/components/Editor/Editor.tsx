@@ -111,8 +111,6 @@ export default function Editor({
 }) {
   const [editorState, setEditorState] = useAtom(editorStateAtom);
   const [defaultContent, setDefaultContent] = useState("");
-
-  // Fetch default content
   useEffect(() => {
     const fetchDefaultContent = async () => {
       try {
@@ -138,12 +136,35 @@ export default function Editor({
     <div>
       <ErrorBoundary>
         <EditorProvider
+          // onUpdate={({ editor }) => {
+          //   // setLocalEditorState(editor.getHTML());
+          //   // setEditorState((state) => {
+          //   //   return { ...state, [editorName]: editor.getJSON() };
+          //   // });
+          // }}
           editorProps={{
             attributes: {
               id: "editor",
               style: `max-height:${height}px`,
             },
           }}
+          // onUpdate={({ transaction, editor }) => {
+          //   let top_id = "";
+          //   transaction.doc?.descendants((node, pos) => {
+          //     if (node.type.name === "horizontalRule") {
+          //       if (node.attrs.dataIndex === -1) {
+          //         invoke("assign_entry_id", {
+          //           entryId: node.attrs.id,
+          //           topId: top_id,
+          //         }).then(console.log);
+          //         top_id = node.attrs.id;
+          //       }
+          //       document
+          //         .getElementById(node.attrs.id)
+          //         ?.setAttribute("data-index", "1");
+          //     }
+          //   });
+          // }}
           editable={true}
           children={<></>}
           slotBefore={showToolbar && <MenuBar editorName={editorName} />}
