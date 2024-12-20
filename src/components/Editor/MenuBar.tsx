@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, memo } from "react";
+import { useEffect, useState, memo } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { useCurrentEditor } from "@tiptap/react";
 import { Editor } from "@tiptap/core";
@@ -33,9 +33,8 @@ import {
 } from "@ant-design/icons";
 import { exportEditorFunction, loadEditorAtom } from "../../state/load";
 import { final_list } from "../../helper";
-import { InvokeArgs,invoke } from "@tauri-apps/api/core";
+import { InvokeArgs, invoke } from "@tauri-apps/api/core";
 
-// Enhanced Interfaces for Type Safety
 interface BackendResponse {
   is_error?: boolean;
   formula_list?: Array<{ id: string; data: any }>;
@@ -51,6 +50,11 @@ interface FormulaItem {
 
 interface MenuBarProps {
   editorName: keyof typeof editorKeys;
+}
+
+interface EditorExportFunction {
+  fn: () => string;
+  load: (data: string) => Promise<void>;
 }
 
 async function safeInvoke<T = any>(
@@ -85,15 +89,12 @@ const processBackendData = (
 
   if (filtered && formula_list) {
     try {
-      // Update CSS for hidden elements
       const styleElement = document.getElementById("editor_styles");
       if (styleElement) {
         styleElement.innerHTML = filtered
           .map((id) => `[id="${id}"]{display: none;}`)
           .join("\n");
       }
-
-      // Update formula store
       const currentFormulas = formulaStore.getState();
       const updatedFormulas = currentFormulas.map((item) => {
         const newItem = formula_list.find((r) => r.id === item.id);
@@ -124,7 +125,6 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoized Atom Values
   const sortingDir = useAtomValue(sortingAtom);
   const sortingFn = useAtomValue(sortingFnAtom);
   const sortingEnabled = useAtomValue(isSortingEnable);
@@ -132,55 +132,64 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
   const filterFn = useAtomValue(filterFnAtom);
   const [_, setEditorExportFunction] = useAtom(exportEditorFunction);
 
-  // Memoized Configuration
-  const editorConfig = useMemo(
-    () => ({
-      sortingConfig: {
-        enabled: sortingEnabled,
-        fn: sortingFn,
-        direction: sortingDir,
-      },
-      filterConfig: {
-        enabled: filterEnabled,
-        fn: filterFn,
-      },
-    }),
-    [sortingEnabled, sortingFn, sortingDir, filterEnabled, filterFn]
-  );
+  const editorConfig = {
+    sortingConfig: {
+      enabled: sortingEnabled,
+      fn: sortingFn,
+      direction: sortingDir,
+    },
+    filterConfig: {
+      enabled: filterEnabled,
+      fn: filterFn,
+    },
+  };
 
-  // Memoized Export Function
+  const defaultExportFunction: EditorExportFunction = {
+    fn: () => "",
+    load: async () => {},
+  };
+
   useEffect(() => {
     if (!editor) return;
 
-    const exportFunction = {
+    const exportFunction: EditorExportFunction = {
       fn: () => editor.getHTML(),
       load: async (data: string) => {
-      try {
-        // Use window.__TAURI__ to check Tauri context
-        if (window.__TAURI__ && typeof invoke === "function") {
-          await invoke("clear_entry_id");
-        } else {
-          console.warn("Tauri invoke not available");
+        try {
+          if (window.__TAURI__ && typeof invoke === "function") {
+            await invoke("clear_entry_id");
+          }
+          editor.commands.setContent(data);
+        } catch (error) {
+          console.error("Error in load function:", error);
         }
-        editor.commands.setContent(data);
-      } catch (error) {
-        console.error("Error in load function:", error);
-      }
       },
     };
 
     setEditorExportFunction(exportFunction);
+
+    return () => {
+      setEditorExportFunction(defaultExportFunction);
+    };
   }, [editor, setEditorExportFunction]);
 
-  // Load Editor Content
   useEffect(() => {
+    if (!loadEditor[editorName] && !editor) return;
+
+    const originalContent = editor?.getHTML();
+
     if (loadEditor[editorName] && editor) {
       editor.commands.setContent(loadEditor[editorName], true);
     }
+
+    return () => {
+      if (editor && originalContent) {
+        editor.commands.setContent(originalContent, true);
+      }
+    };
   }, [loadEditor, editorName, editor]);
 
-  // Advanced Backend Data Loading
-  const loadDataToBackend = useCallback(async () => {
+  const loadDataToBackend = async () => {
     if (!editor) return;
 
     setLoading(true);
@@ -193,7 +202,6 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
-      // Assign entry IDs
       let topId = "";
       editor.state.doc.descendants((node, pos) => {
         if (node.type.name === "horizontalRule") {
@@ -209,7 +217,6 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
         }
       });
 
-      // Invoke backend processing after content is (likely) loaded
       const returnData = (await invoke("run_command", {
         input: editor.getHTML(),
         sorting: editorConfig.sortingConfig.enabled
@@ -228,14 +235,28 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
     } finally {
       setLoading(false);
     }
-  }, [editor, editorConfig]);
+  };
 
-  // Example data loading effect
   useEffect(() => {
-    if (loadingData && editor) {
-      editor.commands.setContent(final_list, true);
+    if (!loadingData || !editor) return;
+
+    const loadContent = async () => {
+      try {
+        editor.commands.setContent(final_list, true);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    // Track if component is mounted
+    let isMounted = true;
+
+    loadContent();
+
+    return () => {
+      isMounted = false;
       setLoadingData(false);
-    }
+    };
   }, [loadingData, editor]);
 
   // Prevent render if no editor
