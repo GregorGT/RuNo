@@ -111,6 +111,10 @@ export default function Editor({
 }) {
   const [editorState, setEditorState] = useAtom(editorStateAtom);
   const [defaultContent, setDefaultContent] = useState("");
+
+
+  // Fetch default content
+
   useEffect(() => {
     const fetchDefaultContent = async () => {
       try {
@@ -136,18 +140,24 @@ export default function Editor({
     <div>
       <ErrorBoundary>
         <EditorProvider
+
+          
           // onUpdate={({ editor }) => {
           //   // setLocalEditorState(editor.getHTML());
           //   // setEditorState((state) => {
           //   //   return { ...state, [editorName]: editor.getJSON() };
           //   // });
           // }}
+
+          
           editorProps={{
             attributes: {
               id: "editor",
               style: `max-height:${height}px`,
             },
           }}
+
+          
           // onUpdate={({ transaction, editor }) => {
           //   let top_id = "";
           //   transaction.doc?.descendants((node, pos) => {
@@ -165,6 +175,8 @@ export default function Editor({
           //     }
           //   });
           // }}
+
+        
           editable={true}
           children={<></>}
           slotBefore={showToolbar && <MenuBar editorName={editorName} />}

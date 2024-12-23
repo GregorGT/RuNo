@@ -35,7 +35,6 @@ import { exportEditorFunction, loadEditorAtom } from "../../state/load";
 import { final_list } from "../../helper";
 import { InvokeArgs, invoke } from "@tauri-apps/api/core";
 
-// Enhanced Interfaces for Type Safety
 interface BackendResponse {
   is_error?: boolean;
   formula_list?: Array<{ id: string; data: any }>;
@@ -90,15 +89,12 @@ const processBackendData = (
 
   if (filtered && formula_list) {
     try {
-      // Update CSS for hidden elements
       const styleElement = document.getElementById("editor_styles");
       if (styleElement) {
         styleElement.innerHTML = filtered
           .map((id) => `[id="${id}"]{display: none;}`)
           .join("\n");
       }
-
-      // Update formula store
       const currentFormulas = formulaStore.getState();
       const updatedFormulas = currentFormulas.map((item) => {
         const newItem = formula_list.find((r) => r.id === item.id);
@@ -206,7 +202,6 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
-      // Assign entry IDs
       let topId = "";
       editor.state.doc.descendants((node, pos) => {
         if (node.type.name === "horizontalRule") {
@@ -222,7 +217,6 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
         }
       });
 
-      // Invoke backend processing after content is (likely) loaded
       const returnData = (await invoke("run_command", {
         input: editor.getHTML(),
         sorting: editorConfig.sortingConfig.enabled
