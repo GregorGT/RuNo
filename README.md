@@ -29,9 +29,18 @@ Goto to the cloned repository:<br>
 1.) Type: <br>
 Yarn<br>
 2.) Type:<br>
-Yarn tauri
+Yarn tauri <br>
+or<br>
+Yarn tauri dev
 
-3.) Usage of formulas
+## Versions:
+rustc is version <br>
+rustc 1.83.0 (90b35a623 2024-11-26)
+
+yarn is version <br>
+1.22.21
+
+## Usage of formulas
 
 Please follow the function name, description and example strictly, no spaces for ELSE{} and upper case always
 

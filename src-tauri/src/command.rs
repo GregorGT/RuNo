@@ -1,11 +1,15 @@
-extern crate msgbox;
+//extern crate msgbox;
 
-use msgbox::IconType;
+//use msgbox::IconType;
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::panic;
-use tauri::api::path::local_data_dir;
 use tauri::Result;
+
+use std::sync::Mutex;
+use tauri::State;
+//use tauri::api::dialog::*; // Add tihs
+use tauri_plugin_dialog::DialogExt;
 
 use std::collections::LinkedList;
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
@@ -24,13 +28,20 @@ use tantivy::directory::{MmapDirectory, RamDirectory};
 use tantivy::query::{Exclude, Intersection, PhrasePrefixQuery, PhraseQuery};
 use tantivy::{doc, Directory, DocAddress, Index, ReloadPolicy};
 use tantivy::{schema::*, Searcher};
+use tauri::{path::BaseDirectory, Manager};
 use try_catch::catch;
 
 use self::html::{entry_data, list_ids};
 
+mod applicationdialogs;
+mod applicationdirs;
 mod documents;
 mod html;
 mod utils;
+
+//use get_application_path;
+use applicationdialogs::msg_box;
+use applicationdirs::get_application_db_directory;
 
 static mut FORMULA_LIST_CELL: Vec<html::formula> = vec![];
 pub static mut ORIGINAL_DOC_ID_LIST: LinkedList<list_ids> = LinkedList::new();
@@ -153,7 +164,10 @@ pub fn run_command(
             },
         );
     if result.is_err() {
-        msgbox::create("Error", "Error in the formula", IconType::Error);
+        // msgbox::create("Error", "Error in the formula", IconType::Error);
+        applicationdialogs::msg_box("Error in formula".to_string());
+        //"ぼくRust!".into()
+
         return return_data {
             formula_list: vec![],
             sorted: "".to_string(),
@@ -164,6 +178,9 @@ pub fn run_command(
     }
     return result.unwrap();
 }
+
+//mod main;
+//use main::get_application_path;
 
 pub fn main_command(
     input: String,
@@ -239,9 +256,10 @@ pub fn main_command(
 
     /////// celar all the content of data dir
     ///
-    let local_data_dir_path = (local_data_dir().unwrap()).join("runo");
-    // let _ = local_data_dir_path.join("runo");
-    // let path = Path::new(local_data_dir_path);
+    // let local_data_dir_path = (local_data_dir().unwrap()).join("runo");
+    let local_data_dir_path = get_application_db_directory(); // = get_application_path().unwrap().join("runo");
+                                                              // let _ = local_data_dir_path.join("runo");
+                                                              // let path = Path::new(local_data_dir_path);
 
     if local_data_dir_path.exists() {
         fs::remove_dir_all(local_data_dir_path.clone()).unwrap()

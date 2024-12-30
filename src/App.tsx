@@ -6,15 +6,7 @@ import TabComponent from "./components/TabComponent";
 
 function App() {
   return (
-    <div className="home">
-      <Header />
-      <Dropdowns />
-      <div className="content">
-        <Entries />
-        <TabComponent />
-      </div>
-      <style id="editor_styles"></style>
-    </div>
+    <Entries />
   );
 }
 
