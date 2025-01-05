@@ -30,6 +30,28 @@ const Dropdowns = React.forwardRef((props, ref) => {
   const chunkSize = 5000;
   const preloadChunks = 5; // Number of chunks to preload (before and after)
 
+  const buffer = useRef<string>(""); // Temporary buffer for current editing
+  const BUFFER_THRESHOLD = 1000; // Threshold for committing buffer to chunk
+
+  const commitBufferToChunk = () => {
+    const currentChunkContent = getEditorValue.fn(); // Assuming this gets the current content from the editor
+    if (currentChunkContent !== buffer.current) {
+      // Only update if the content has changed
+      const updatedChunks = [...editorChunks];
+      updatedChunks[currentChunkIndex] = currentChunkContent; // Commit the content back to the chunk
+      setEditorChunks(updatedChunks); // Update the state with new content
+    }
+  };
+  
+
+  // Save the buffer content periodically or when scrolling to a different chunk
+  const handleBufferChange = (newContent: string) => {
+    buffer.current = newContent;
+    if (buffer.current.length >= BUFFER_THRESHOLD) {
+      commitBufferToChunk();
+    }
+  };
+
   // Function to break the editor data into chunks
   const chunkEditorData = (data: string) => {
     const chunks = [];
@@ -67,28 +89,13 @@ const Dropdowns = React.forwardRef((props, ref) => {
       setSortingEnabled(isSortingEnable);
       formulaStore.setState(formulas, true);
 
-      getEditorValue.load(chunks.slice(0, preloadChunks).join(''));
+      buffer.current = chunks[0]; // Load the first chunk into the buffer
+      getEditorValue.load(buffer.current); // Load buffer content into editor
     } catch (error) {
       showNotificaiton("Failed to load file. Please check the file format.");
       console.error("File loading error:", error);
     }
   };
-
-  //  // Use the ref and expose it using useImperativeHandle
-  //  useImperativeHandle(ref, () => ({
-  //   handleScroll() {
-  //     if (editorRef.current) {
-  //       const bottom = editorRef.current.scrollHeight === editorRef.current.scrollTop + editorRef.current.clientHeight;
-  //       if (bottom) {
-  //         console.log("Reached bottom");
-  //         // Logic for bottom reached
-  //       } else {
-  //         console.log("Scrolling up");
-  //         // Logic for scrolling up
-  //       }
-  //     }
-  //   }
-  // }));
 
   // Expose methods to the parent (Editor) via ref
   useImperativeHandle(ref, () => ({
@@ -100,156 +107,86 @@ const Dropdowns = React.forwardRef((props, ref) => {
       }
     },
     // Define a function that accepts ref as a parameter
-    handleEditorScroll: (editorRef: React.RefObject<HTMLDivElement>) => {  
+    handleEditorScroll: (editorRef: React.RefObject<HTMLDivElement>) => {
       if (!editorRef.current) return;
-
+    
       const scrollTop = editorRef.current.scrollTop;
       const scrollHeight = editorRef.current.scrollHeight;
       const clientHeight = editorRef.current.clientHeight;
     
-      const totalHeight = scrollHeight - clientHeight; // Total scrollable height
-      const scrollPercentage = scrollTop / totalHeight; // Percentage of scrolling position
+      const totalHeight = scrollHeight - clientHeight;
+      const scrollPercentage = scrollTop / totalHeight;
     
-      // Calculate the chunk to load based on scroll percentage
       const chunkToLoad = Math.floor(scrollPercentage * (editorChunks.length - 1));
     
-      // Avoid loading the same chunk multiple times
+      // If the chunk has changed, commit the current buffer before switching
       if (chunkToLoad !== currentChunkIndex) {
-        // Calculate the range of chunks to preload
-        const startIndex = Math.max(0, chunkToLoad - preloadChunks); // Ensure we don't go below index 0
-        const endIndex = Math.min(editorChunks.length - 1, chunkToLoad + preloadChunks); // Ensure we don't go beyond the last chunk
+        commitBufferToChunk(); // Commit buffer content before switching chunks
     
-        // Only load the chunks if we haven't already loaded them
-        const visibleChunks = editorChunks.slice(startIndex, endIndex + 1);
+        const startIndex = Math.max(0, chunkToLoad - preloadChunks);
+        const endIndex = Math.min(editorChunks.length - 1, chunkToLoad + preloadChunks);
+    
+        const visibleChunks = editorChunks.slice(startIndex, endIndex + 1).join('');
         setCurrentChunkIndex(chunkToLoad);
     
-        // Load the visible chunks into the editor
-        getEditorValue.load(visibleChunks.join(''));
+        // Load the new chunk into the buffer
+        buffer.current = editorChunks[chunkToLoad];
+        getEditorValue.load(buffer.current); // Update editor with the buffer content
       }
-    }}
-  ));
-
-   // Handle scroll to lazy load the next or previous chunks
-  const handleScroll = () => {
-    if (!editorRef.current) return;
-
-    const scrollTop = editorRef.current.scrollTop;
-    const scrollHeight = editorRef.current.scrollHeight;
-    const clientHeight = editorRef.current.clientHeight;
-
-    const totalHeight = scrollHeight - clientHeight; // Total scrollable height
-    const scrollPercentage = scrollTop / totalHeight; // Percentage of scrolling position
-
-    // Calculate the chunk based on scroll percentage
-    const chunkToLoad = Math.floor(scrollPercentage * (editorChunks.length - 1));
-
-    // Avoid loading the same chunk multiple times
-    if (chunkToLoad !== currentChunkIndex) {
-      const startIndex = Math.max(0, chunkToLoad - preloadChunks); // Preload chunks before the current chunk
-      const endIndex = Math.min(editorChunks.length - 1, chunkToLoad + preloadChunks); // Preload chunks after the current chunk
-
-      const visibleChunks = editorChunks.slice(startIndex, endIndex + 1);
-      setCurrentChunkIndex(chunkToLoad);
-
-      getEditorValue.load(visibleChunks.join(''));
-    }
-  };
-
-  // Adjust scroller size based on content length
-  const getScrollerSize = () => {
-    const totalContentSize = editorChunks.length * chunkSize; // Calculate total content size
-    const scrollHeight = totalContentSize + 200; // Adding some buffer
-    return scrollHeight;
-  };
-
-
-    // Define a function that accepts ref as a parameter
-    const handleEditorScroll = (editorRef: React.RefObject<HTMLDivElement>) => {
-      if (editorRef.current) {
-        const scrollPosition = editorRef.current.scrollTop;
-        console.log("Editor Scroll Position:", scrollPosition);
-        const bottom = editorRef.current.scrollHeight === editorRef.current.scrollTop + editorRef.current.clientHeight;
-
-        // Check if we've scrolled to the bottom, then load more content
-        if (bottom) {
-          if (currentChunkIndex < editorChunks.length - 1) {
-            setCurrentChunkIndex(prev => prev + 1);
-            getEditorValue.load(editorChunks[currentChunkIndex + 1]);
-          }
-        } else {
-          if (currentChunkIndex > 0) {
-            setCurrentChunkIndex(prev => prev - 1);
-            getEditorValue.load(editorChunks[currentChunkIndex - 1]);
-          }
-        }
-
-        const currentChunkContent = getEditorValue.fn();
-        if (currentChunkContent !== editorChunks[currentChunkIndex]) {
-          const updatedChunks = [...editorChunks];
-          updatedChunks[currentChunkIndex] = currentChunkContent;
-          setEditorChunks(updatedChunks);
-        }
-      }
-    };
-  
-
-  // Handle scroll to lazy load the next or previous chunks
-  // const handleScroll = useCallback(() => {
-  //   console.log("in scroller")
-  //   if (!editorRef.current) return;
     
-  //   const bottom = editorRef.current.scrollHeight === editorRef.current.scrollTop + editorRef.current.clientHeight;
+      // Ensure the full content height is updated based on the total content
+      const contentLength = editorChunks.join('').length * 10;
+      const contentHeight = Math.max(contentLength, clientHeight); // Ensure scroll height adjusts to full content
+      editorRef.current.style.height = `${contentHeight}px`; // Dynamically update the container's height
+    
+      // If we're at the bottom of the content, make sure we load the next chunks if needed
+      if (scrollTop + clientHeight >= scrollHeight) {
+        // Check if more chunks need to be loaded
+        if (currentChunkIndex + 1 < editorChunks.length) {
+          const nextChunkIndex = currentChunkIndex + 1;
+          setCurrentChunkIndex(nextChunkIndex);
+          buffer.current = editorChunks[nextChunkIndex];
+          getEditorValue.load(buffer.current); // Update editor with the next chunk
+        }
+      }
+    
+      // Periodically save buffer content and commit if needed
+      const currentContent = getEditorValue.fn(); // Get the content from the editor
+      handleBufferChange(currentContent); // Update the buffer with the new content
+    }
+}));
 
-  //   // Check if we've scrolled to the bottom, then load more content
-  //   if (bottom) {
-  //     if (currentChunkIndex < editorChunks.length - 1) {
-  //       setCurrentChunkIndex(prev => prev + 1);
-  //       getEditorValue.load(editorChunks[currentChunkIndex + 1]);
-  //     }
-  //   } else {
-  //     if (currentChunkIndex > 0) {
-  //       setCurrentChunkIndex(prev => prev - 1);
-  //       getEditorValue.load(editorChunks[currentChunkIndex - 1]);
-  //     }
+  //  // Handle scroll to lazy load the next or previous chunks
+  // const handleScroll = () => {
+  //   if (!editorRef.current) return;
+
+  //   const scrollTop = editorRef.current.scrollTop;
+  //   const scrollHeight = editorRef.current.scrollHeight;
+  //   const clientHeight = editorRef.current.clientHeight;
+
+  //   const totalHeight = scrollHeight - clientHeight; // Total scrollable height
+  //   const scrollPercentage = scrollTop / totalHeight; // Percentage of scrolling position
+
+  //   // Calculate the chunk based on scroll percentage
+  //   const chunkToLoad = Math.floor(scrollPercentage * (editorChunks.length - 1));
+
+  //   // Avoid loading the same chunk multiple times
+  //   if (chunkToLoad !== currentChunkIndex) {
+  //     const startIndex = Math.max(0, chunkToLoad - preloadChunks); // Preload chunks before the current chunk
+  //     const endIndex = Math.min(editorChunks.length - 1, chunkToLoad + preloadChunks); // Preload chunks after the current chunk
+
+  //     const visibleChunks = editorChunks.slice(startIndex, endIndex + 1);
+  //     setCurrentChunkIndex(chunkToLoad);
+
+  //     getEditorValue.load(visibleChunks.join(''));
   //   }
-
-  //   const currentChunkContent = getEditorValue.fn();
-  //   if (currentChunkContent !== editorChunks[currentChunkIndex]) {
-  //     const updatedChunks = [...editorChunks];
-  //     updatedChunks[currentChunkIndex] = currentChunkContent;
-  //     setEditorChunks(updatedChunks);
-  //   }
-
-  //   // Manually trigger handleScrollToSelection when scroll happens
-  //   if (editorRef.current && editorRef.current.scrollTop !== editorRef.current.scrollHeight) {
-  //   }
-  // }, [currentChunkIndex, editorChunks, getEditorValue]);
-
-  // // Function to sync additional states when loading chunks
-  // const updateAdditionalStates = () => {
-  //   const loadData = useAtomValue(loadEditorAtom);  // Access loadEditorAtom state here
-  
-  //   // Now set the necessary states based on the loadData
-  //   selectedFormulaIdStore.setState(undefined, true);  // Clear formula selection (if needed)
-  //   setFilterValue(loadData.filter);
-  //   setSortingFn(loadData.sorting);
-  //   setSortingDirection(loadData.direction);
-  //   setFilterEnabled(loadData.isFilterEnable);
-  //   setSortingEnabled(loadData.isSortingEnable);
-  //   formulaStore.setState(loadData.formulas, true);  // Set formulas
   // };
-  
   
   // Save data with updated chunks
   const save_data = () => {
     // Ensure the current chunk is updated before saving
-    const currentChunkContent = getEditorValue.fn();  // Get content of the current chunk
-    if (currentChunkContent !== editorChunks[currentChunkIndex]) {
-      const updatedChunks = [...editorChunks];
-      updatedChunks[currentChunkIndex] = currentChunkContent;  // Update current chunk
-      setEditorChunks(updatedChunks);  // Update the state
-    }
-  
+    commitBufferToChunk(); // Ensure the buffer is committed before saving
+
     const data = {
       editorData: editorChunks.join(''),  // Join chunks into full content
       filter: filterValue,
@@ -278,6 +215,8 @@ const Dropdowns = React.forwardRef((props, ref) => {
       };
     }
   }, [editorChunks, currentChunkIndex, getEditorValue]);
+
+
   // File menu items
   const fileItems: MenuProps["items"] = [
     {

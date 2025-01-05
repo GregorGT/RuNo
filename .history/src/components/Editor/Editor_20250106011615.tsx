@@ -194,7 +194,6 @@ useEffect(() => {
     }
   };
 
-  
   const editorContainer = editorRef.current;
   if (editorContainer) {
     editorContainer.addEventListener("scroll", handleScroll);
@@ -230,7 +229,7 @@ useEffect(() => {
           editorProps={{
             attributes: {
               id: "editor",
-              style: `max-height:4800px`,
+              // style: `max-height:4800px`,
             },
           }}
           editable={true}

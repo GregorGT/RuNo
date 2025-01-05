@@ -27,7 +27,7 @@ const Dropdowns = React.forwardRef((props, ref) => {
   const editor = useCurrentEditor();
 
 
-  const chunkSize = 5000;
+  const chunkSize = 1000;
   const preloadChunks = 5; // Number of chunks to preload (before and after)
 
   // Function to break the editor data into chunks
@@ -67,7 +67,7 @@ const Dropdowns = React.forwardRef((props, ref) => {
       setSortingEnabled(isSortingEnable);
       formulaStore.setState(formulas, true);
 
-      getEditorValue.load(chunks.slice(0, preloadChunks).join(''));
+      getEditorValue.load(chunks[0]);  // Load the first chunk into the editor
     } catch (error) {
       showNotificaiton("Failed to load file. Please check the file format.");
       console.error("File loading error:", error);
@@ -100,8 +100,7 @@ const Dropdowns = React.forwardRef((props, ref) => {
       }
     },
     // Define a function that accepts ref as a parameter
-    handleEditorScroll: (editorRef: React.RefObject<HTMLDivElement>) => {  
-      if (!editorRef.current) return;
+    handleEditorScroll: (editorRef: React.RefObject<HTMLDivElement>) => {  if (!editorRef.current) return;
 
       const scrollTop = editorRef.current.scrollTop;
       const scrollHeight = editorRef.current.scrollHeight;

@@ -27,8 +27,8 @@ const Dropdowns = React.forwardRef((props, ref) => {
   const editor = useCurrentEditor();
 
 
-  const chunkSize = 5000;
-  const preloadChunks = 5; // Number of chunks to preload (before and after)
+  const chunkSize = 1000;
+  const preloadChunks = 25; // Number of chunks to preload (before and after)
 
   // Function to break the editor data into chunks
   const chunkEditorData = (data: string) => {

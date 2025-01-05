@@ -27,8 +27,8 @@ const Dropdowns = React.forwardRef((props, ref) => {
   const editor = useCurrentEditor();
 
 
-  const chunkSize = 5000;
-  const preloadChunks = 5; // Number of chunks to preload (before and after)
+  const chunkSize = 20000;
+  const preloadChunks = 15; // Number of chunks to preload (before and after)
 
   // Function to break the editor data into chunks
   const chunkEditorData = (data: string) => {
@@ -67,7 +67,7 @@ const Dropdowns = React.forwardRef((props, ref) => {
       setSortingEnabled(isSortingEnable);
       formulaStore.setState(formulas, true);
 
-      getEditorValue.load(chunks.slice(0, preloadChunks).join(''));
+      getEditorValue.load(chunks[0]);  // Load the first chunk into the editor
     } catch (error) {
       showNotificaiton("Failed to load file. Please check the file format.");
       console.error("File loading error:", error);
@@ -100,31 +100,31 @@ const Dropdowns = React.forwardRef((props, ref) => {
       }
     },
     // Define a function that accepts ref as a parameter
-    handleEditorScroll: (editorRef: React.RefObject<HTMLDivElement>) => {  
-      if (!editorRef.current) return;
-
-      const scrollTop = editorRef.current.scrollTop;
-      const scrollHeight = editorRef.current.scrollHeight;
-      const clientHeight = editorRef.current.clientHeight;
+    handleEditorScroll: (editorRef: React.RefObject<HTMLDivElement>) => {
+      if (editorRef.current) {
+        editorRef.current.style.height = `${getScrollerSize()}px`
+        const scrollTop = editorRef.current.scrollTop;
+        const scrollHeight = editorRef.current.scrollHeight;
+        const clientHeight = editorRef.current.clientHeight;
+  
+        const scrollPosition = editorRef.current.scrollTop;
+        console.log("Editor Scroll Position:", scrollPosition);
     
-      const totalHeight = scrollHeight - clientHeight; // Total scrollable height
-      const scrollPercentage = scrollTop / totalHeight; // Percentage of scrolling position
+        console.log("Editor Scroll Position:", scrollTop);
+        console.log("Editor Scroll Height:", scrollHeight);
+        console.log("Editor Client Height:", clientHeight);
     
-      // Calculate the chunk to load based on scroll percentage
-      const chunkToLoad = Math.floor(scrollPercentage * (editorChunks.length - 1));
-    
-      // Avoid loading the same chunk multiple times
-      if (chunkToLoad !== currentChunkIndex) {
-        // Calculate the range of chunks to preload
-        const startIndex = Math.max(0, chunkToLoad - preloadChunks); // Ensure we don't go below index 0
-        const endIndex = Math.min(editorChunks.length - 1, chunkToLoad + preloadChunks); // Ensure we don't go beyond the last chunk
-    
-        // Only load the chunks if we haven't already loaded them
-        const visibleChunks = editorChunks.slice(startIndex, endIndex + 1);
-        setCurrentChunkIndex(chunkToLoad);
-    
-        // Load the visible chunks into the editor
-        getEditorValue.load(visibleChunks.join(''));
+        // Calculate the percentage of the content that has been scrolled
+        const scrollPercentage = (scrollTop / (scrollHeight - clientHeight));
+  
+        // Determine the chunk based on the scroll percentage
+        const chunkToLoad = Math.floor(scrollPercentage * (editorChunks.length - 1));
+  
+        // If the chunk to load has changed, update the editor content
+        if (chunkToLoad !== currentChunkIndex) {
+          setCurrentChunkIndex(chunkToLoad);
+          getEditorValue.load(editorChunks[chunkToLoad]);
+        }
       }
     }}
   ));

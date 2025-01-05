@@ -28,7 +28,8 @@ const Dropdowns = React.forwardRef((props, ref) => {
 
 
   const chunkSize = 5000;
-  const preloadChunks = 5; // Number of chunks to preload (before and after)
+  const preloadChunks = 15; // Number of chunks to preload (before and after)
+  var isAtBottom = false;
 
   // Function to break the editor data into chunks
   const chunkEditorData = (data: string) => {
@@ -101,30 +102,31 @@ const Dropdowns = React.forwardRef((props, ref) => {
     },
     // Define a function that accepts ref as a parameter
     handleEditorScroll: (editorRef: React.RefObject<HTMLDivElement>) => {  
-      if (!editorRef.current) return;
-
+      if (!editorRef.current || isAtBottom) return;
+  
       const scrollTop = editorRef.current.scrollTop;
       const scrollHeight = editorRef.current.scrollHeight;
       const clientHeight = editorRef.current.clientHeight;
-    
-      const totalHeight = scrollHeight - clientHeight; // Total scrollable height
-      const scrollPercentage = scrollTop / totalHeight; // Percentage of scrolling position
-    
-      // Calculate the chunk to load based on scroll percentage
-      const chunkToLoad = Math.floor(scrollPercentage * (editorChunks.length - 1));
-    
-      // Avoid loading the same chunk multiple times
-      if (chunkToLoad !== currentChunkIndex) {
-        // Calculate the range of chunks to preload
-        const startIndex = Math.max(0, chunkToLoad - preloadChunks); // Ensure we don't go below index 0
-        const endIndex = Math.min(editorChunks.length - 1, chunkToLoad + preloadChunks); // Ensure we don't go beyond the last chunk
-    
-        // Only load the chunks if we haven't already loaded them
-        const visibleChunks = editorChunks.slice(startIndex, endIndex + 1);
-        setCurrentChunkIndex(chunkToLoad);
-    
-        // Load the visible chunks into the editor
-        getEditorValue.load(visibleChunks.join(''));
+  
+      isAtBottom = scrollTop + clientHeight >= scrollHeight;
+  
+      // If scroll reaches the bottom and there are more chunks to load, load more
+      if (!isAtBottom && currentChunkIndex < editorChunks.length) {
+        // Calculate the next chunk index and get the next chunks
+        const nextChunkIndex = currentChunkIndex + preloadChunks;
+        const nextChunks = editorChunks.slice(currentChunkIndex, nextChunkIndex);
+  
+        // Update the content and current chunk index
+        setEditorChunks((prevChunks) => [...prevChunks, ...nextChunks]);
+        setCurrentChunkIndex(nextChunkIndex);
+  
+        // Load all the concatenated chunks so far
+        getEditorValue.load(editorChunks.slice(0, nextChunkIndex).join(''));
+  
+        // If we've reached the bottom, stop further loading
+        if (nextChunkIndex >= editorChunks.length) {
+          isAtBottom = true;
+        }
       }
     }}
   ));
