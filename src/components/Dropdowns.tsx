@@ -25,16 +25,24 @@ const Dropdowns = React.forwardRef((props, ref) => {
   const [currentChunkIndex, setCurrentChunkIndex] = useState<number>(0); // Current chunk index
   const editorRef = useRef<HTMLDivElement | null>(null);
   const editor = useCurrentEditor();
+  const [editorHeight, setEditorHeight] = useState<number>(0); // State for editor height
+  const [chunkHeight, setChunkHeight] = useState<number>(0); // State for editor height
 
 
-  const chunkSize = 5000;
+
+  let chunkSize = 0;
   const preloadChunks = 5; // Number of chunks to preload (before and after)
+  const totalChunks = 2000;
+  const scrollThreshold = 5;
 
   // Function to break the editor data into chunks
   const chunkEditorData = (data: string) => {
-    const chunks = [];
+    const chunks = []; 
     let i = 0;
-    while (i < data.length) {
+    const dataSize = data.length;
+    const chunkSize = Math.round(dataSize / totalChunks);
+
+    while (i < dataSize) {
       chunks.push(data.substring(i, i + chunkSize));
       i += chunkSize;
     }
@@ -66,29 +74,27 @@ const Dropdowns = React.forwardRef((props, ref) => {
       setFilterEnabled(isFilterEnable);
       setSortingEnabled(isSortingEnable);
       formulaStore.setState(formulas, true);
+      getEditorValue.load(chunks[0]);  // Load the first chunk into the editor
 
-      getEditorValue.load(chunks.slice(0, preloadChunks).join(''));
+
+      const nestedEditorDiv = document.getElementById('editor');
+      if (nestedEditorDiv) {
+        console.log('Found the nested editor div:', nestedEditorDiv);
+        setChunkHeight(nestedEditorDiv.offsetHeight);
+        const calculatedHeight = calculateTotalContentHieght(nestedEditorDiv.offsetHeight)
+      
+        // Example: Set maxHeight dynamically
+        nestedEditorDiv.style.height = calculatedHeight;
+      } else {
+        console.log('No div with id="editor" found inside editorRef.');
+      }
+
     } catch (error) {
       showNotificaiton("Failed to load file. Please check the file format.");
       console.error("File loading error:", error);
     }
   };
 
-  //  // Use the ref and expose it using useImperativeHandle
-  //  useImperativeHandle(ref, () => ({
-  //   handleScroll() {
-  //     if (editorRef.current) {
-  //       const bottom = editorRef.current.scrollHeight === editorRef.current.scrollTop + editorRef.current.clientHeight;
-  //       if (bottom) {
-  //         console.log("Reached bottom");
-  //         // Logic for bottom reached
-  //       } else {
-  //         console.log("Scrolling up");
-  //         // Logic for scrolling up
-  //       }
-  //     }
-  //   }
-  // }));
 
   // Expose methods to the parent (Editor) via ref
   useImperativeHandle(ref, () => ({
@@ -102,29 +108,72 @@ const Dropdowns = React.forwardRef((props, ref) => {
     // Define a function that accepts ref as a parameter
     handleEditorScroll: (editorRef: React.RefObject<HTMLDivElement>) => {  
       if (!editorRef.current) return;
-
       const scrollTop = editorRef.current.scrollTop;
       const scrollHeight = editorRef.current.scrollHeight;
       const clientHeight = editorRef.current.clientHeight;
     
       const totalHeight = scrollHeight - clientHeight; // Total scrollable height
-      const scrollPercentage = scrollTop / totalHeight; // Percentage of scrolling position
-    
+      const scrollPercentage = (scrollTop / totalHeight) * 10000; // Percentage of scrolling position
+
+      let chunkToLoad = 0
+      const scrollMod = scrollPercentage % scrollThreshold;
+
+      // console.log('Threshold : ', scrollMod);
+
       // Calculate the chunk to load based on scroll percentage
-      const chunkToLoad = Math.floor(scrollPercentage * (editorChunks.length - 1));
+      if(scrollMod > 4.95 || scrollMod < 0.05) {
+
+        if (editorHeight > scrollTop ) {
+          console.log("scrolling up")
+          chunkToLoad = Math.round(scrollPercentage / scrollThreshold);
+        } else {
+          console.log("scrolling down")
+          chunkToLoad = Math.round(scrollPercentage / scrollThreshold) - 1;
+        }
+        
+
+        // console.log("scrollPercentage = " + scrollPercentage)
+        // console.log("scrollThreshold = " + scrollThreshold)
+
+        // console.log("scrollPercentage % scrollThreshold = " + scrollPercentage % scrollThreshold)
+        // console.log("scrollPercentage / scrollThreshold = " + scrollPercentage / scrollThreshold)
+        // console.log("chunkToLoad = " + chunkToLoad)
+
+        // Avoid loading the same chunk multiple times
+        if (chunkToLoad !== currentChunkIndex) {
+          // Save the current chunk's updated content back to `editorChunks`
+          const editorContent = getEditorValue.fn();
+          editorChunks[currentChunkIndex] = editorContent; // Update the chunk content in memory
+
+          setCurrentChunkIndex(chunkToLoad);
+          console.log ("Chunk Number : " + currentChunkIndex + " Chunk Length in Editor : " + getEditorValue.fn().length 
+        + " Actual Chunk Length : " + editorChunks[currentChunkIndex].length)
+          getEditorValue.load( editorChunks[chunkToLoad]);
+          const nestedEditorDiv = editorRef.current.querySelector<HTMLDivElement>('#editor');
+          if (nestedEditorDiv) {
+            // console.log('Found the nested editor div:', nestedEditorDiv);
     
-      // Avoid loading the same chunk multiple times
-      if (chunkToLoad !== currentChunkIndex) {
-        // Calculate the range of chunks to preload
-        const startIndex = Math.max(0, chunkToLoad - preloadChunks); // Ensure we don't go below index 0
-        const endIndex = Math.min(editorChunks.length - 1, chunkToLoad + preloadChunks); // Ensure we don't go beyond the last chunk
-    
-        // Only load the chunks if we haven't already loaded them
-        const visibleChunks = editorChunks.slice(startIndex, endIndex + 1);
-        setCurrentChunkIndex(chunkToLoad);
-    
-        // Load the visible chunks into the editor
-        getEditorValue.load(visibleChunks.join(''));
+            // // Example: Set maxHeight dynamically
+            // console.log('clientHeight : ' + nestedEditorDiv.offsetHeight);
+
+            // console.log('scrollHeight : ' + scrollHeight);
+            // console.log('Another scroll Top : ' + (nestedEditorDiv.offsetHeight - scrollHeight));
+
+            // console.log('scrollTop : ' + (scrollTop + (nestedEditorDiv.offsetHeight - scrollHeight)));
+            setEditorHeight(nestedEditorDiv.clientTop)
+            if (chunkToLoad < currentChunkIndex) {
+              // Scrolling upwards: Load previous chunk and adjust margin top
+              nestedEditorDiv.style.marginTop = `${scrollTop - chunkHeight}px`;
+
+            } else {
+              // nestedEditorDiv.style.marginTop = `${scrollTop-(nestedEditorDiv.offsetHeight - scrollHeight)}px`;
+              nestedEditorDiv.style.marginTop = `${scrollTop}px`;
+            }
+
+          } else {
+            console.log('No div with id="editor" found inside editorRef.');
+          }
+        }
       }
     }}
   ));
@@ -156,12 +205,46 @@ const Dropdowns = React.forwardRef((props, ref) => {
   };
 
   // Adjust scroller size based on content length
-  const getScrollerSize = () => {
-    const totalContentSize = editorChunks.length * chunkSize; // Calculate total content size
-    const scrollHeight = totalContentSize + 200; // Adding some buffer
-    return scrollHeight;
-  };
+    const calculateMaxHeight = (content: string) => {
+      const contentLength = countCharacter(content, "</p>") + (2 * countCharacter(content, "<br")) + (3 * countCharacter(content, "<hr"))
+      console.log("contentLength = " + contentLength)
 
+      const baseHeight = 24;
+      const calculatedHeight = contentLength * baseHeight;
+      console.log("calculatedHeight = " + calculatedHeight)
+
+      return `${Math.max(calculatedHeight, 4800)}px`;
+    };
+      // Adjust scroller size based on content length
+    const calculateTotalContentHieght = (firstChunkHeight: any) => {
+      console.log("First Chunk Height = " + firstChunkHeight)
+      const totalHeight = totalChunks * firstChunkHeight;
+      setEditorHeight(totalHeight)
+      console.log("calculatedHeight = " + totalHeight)
+      return `${Math.max(totalHeight, 4800)}px`;
+    };
+
+    const getMaxHeight = (content: string) => {
+
+
+      const height = calculateMaxHeight(content);
+      console.log("Max Hieght = " + height)
+      return height;
+    };
+
+    const countCharacter  = (text:string, sub:string) => {
+      if (!sub || !text) return 0; // Handle edge cases
+  
+      let count = 0;
+      let pos = text.indexOf(sub);
+  
+      while (pos !== -1) {
+        count++;
+        pos = text.indexOf(sub, pos + sub.length); // Move to the next substring
+      }
+  
+      return count;
+    };
 
     // Define a function that accepts ref as a parameter
     const handleEditorScroll = (editorRef: React.RefObject<HTMLDivElement>) => {

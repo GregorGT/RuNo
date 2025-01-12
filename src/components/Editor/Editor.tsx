@@ -24,7 +24,8 @@ import { Resizable } from "react-resizable-element";
 import TabComponent from "../TabComponent";
 
 const CustomDocument = Document.extend({
-  content: "horizontalRule block*",
+  // content: "horizontalRule block*",
+  content: "block+", // Support one or more block elements
 });
 
 let idCounter = 0;
@@ -62,7 +63,7 @@ const extensions = [
   UniqueId.configure({
     attributeName: "id",
     types: [
-      "paragraph",
+      // "paragraph",
       "heading",
       "div",
       "orderedList",
@@ -223,14 +224,31 @@ useEffect(() => {
               flex: 1,  // Make editor take remaining space in the column
               overflowY: "scroll", 
               height: "100%", // Enable scroll if content exceeds
-              maxHeight: "calc(100vh - 100px)"  // Adjust this based on your layout
+              maxHeight: "calc(100vh - 100px)",  // Adjust this based on your layout,
+              border: "2px black solid"
             }}>
       <ErrorBoundary>
         <EditorProvider
+          onUpdate={({ editor }) => {
+            console.log("On Update Called")
+            console.log("On Update Called:" + editor.getHTML())
+            console.log("html length:" + editor.getHTML().length)
+
+
+          //   document.getElementById('editor')?.setAttribute(
+          //     'style',
+          //     `max-height: ${calculatedHeight}px; 
+          //     overflow-y: auto;`
+          //   );
+          //               const content = editor.getHTML(); // Get editor content
+            
+          //   const height = Math.min(content.length * 200, 4800); // Ensure number
+          //   setEditorHeight(height);          
+          }}
           editorProps={{
             attributes: {
               id: "editor",
-              style: `max-height:4800px`,
+              style: `max-height:100%`,
             },
           }}
           editable={true}
