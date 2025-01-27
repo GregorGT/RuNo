@@ -21,8 +21,9 @@ use std::process;
 //use tauri_plugin_log::{Target, TargetKind};
 use chrono::{DateTime, TimeZone, Utc};
 use tauri::{path::BaseDirectory, Manager};
+use tauri::Runtime;
 
-//pub static mut _APPLICATION_PATH  : PathBuf = PathBuf::from("".to_string()); //"something".to_string();
+//static mut G_APP : tauri::App = None::<tauri::Runtime>; //::<tauri::Runtime>;
 
 //fn get_application_path() -> String {
 //    _APPLICATION_PATH.to_str()//
@@ -38,7 +39,11 @@ fn main() {
         ])
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-        
+            unsafe {
+                
+                
+                //G_APP = app;
+            }
              Ok(())
           })
         //.plugin(tauri_plugin_fs::init())

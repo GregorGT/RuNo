@@ -21,6 +21,7 @@ export default Node.create({
       formula: {
         default: "",
         parseHTML(element) {
+          console.log("THS", this);
           let id = v4();
           if (false) {
             console.log("formulaStore.getState()", formulaStore.getState());

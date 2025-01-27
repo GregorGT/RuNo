@@ -1,4 +1,5 @@
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
+//use super::super::main::g_app;
 
 pub fn msg_box(msg: String) {
     println!("from JS:{}", "Error in the formula");
@@ -16,4 +17,10 @@ pub fn msg_box(msg: String) {
         .blocking_show();
     */
 
+ /*    let answer = tauri::App.dialog()
+        .message("You have an error in a formula")
+        .title("Warning")
+        .buttons(MessageDialogButtons::Ok())
+        .blocking_show();
+*/
 }
