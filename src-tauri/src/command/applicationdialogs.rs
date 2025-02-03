@@ -3,6 +3,9 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
 pub fn msg_box(msg: String) {
     println!("from JS:{}", "Error in the formula");
+
+
+    
     /*  let parent_window = tauri::Manager::get_window(&window, "main").unwrap();
             let label = parent_window.label();
             let parent_window1 = parent_window.get_window(label).unwrap();

@@ -23,7 +23,7 @@ use chrono::{DateTime, TimeZone, Utc};
 use tauri::{path::BaseDirectory, Manager};
 use tauri::Runtime;
 
-//static mut G_APP : tauri::App = None::<tauri::Runtime>; //::<tauri::Runtime>;
+//static mut G_APP : tauri::App = None::<&tauri::Runtime>; //::<tauri::Runtime>;
 
 //fn get_application_path() -> String {
 //    _APPLICATION_PATH.to_str()//
