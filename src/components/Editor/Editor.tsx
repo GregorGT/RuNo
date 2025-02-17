@@ -128,7 +128,8 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         return;
       }
       console.log(return_data.parsed_text);
-     // editor.commands.setContent(return_data?.parsed_text, false);
+      console.log(return_data);
+      editor.commands.setContent(return_data?.parsed_text, false);
 
       const formulas = return_data?.formula_list;
 
