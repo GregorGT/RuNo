@@ -5,9 +5,10 @@ WHITESPACE      = _{ " " }
 FINDING_PATTREN =  { (!"\"" ~ ANY)* }
 IS_LOCAL        =  { "!" }
 EVAL_PATTREN    =  { IS_LOCAL{,1} ~ "\"" ~ FINDING_PATTREN ~ "\"" }
-CHAIN_PATTREN   =  { EVAL_PATTREN ~ ("." ~ EVAL_PATTREN)* }
+CHAIN_PATTREN   =  { EVAL_PATTREN ~ ("," ~ EVAL_PATTREN)* }
 EVAL            =  { "EVAL(" ~ CHAIN_PATTREN+ ~ ")" }
-SUM             =  { "SUM(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
+EVAL_TABLE      =  { "EVAL_TABLE(" ~ (EVAL_PATTREN ~ ("," ~ EVAL_PATTREN)*) ~ ")" }
+SUM             =  { "SUM(" ~ WHITESPACE* ~ ((number | Fn | EVAL_TABLE) ~ WHITESPACE* ~ ","*)+ ~ ")" }
 MUL             =  { "MUL(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
 DIV             =  { "DIV(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
 // 
@@ -25,9 +26,9 @@ TYPE = { "TYPE(" ~ WHITESPACE* ~ (Fn | number | text | DATE) ~ WHITESPACE* ~ ")"
 CONCAT = { "CONCAT(" ~ WHITESPACE* ~ ((text | Fn) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
 // DONE
 IF  = { "IF(" ~ COMPARATOR ~ "){" ~ Fn ~ "}ELSE{" ~ Fn ~ "}" }
-MIN = { "MIN(" ~ WHITESPACE* ~ ((number | EVAL) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
+MIN = { "MIN(" ~ WHITESPACE* ~ ((number | EVAL | EVAL_TABLE) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
 // DONE
-MAX = { "MAX(" ~ WHITESPACE* ~ ((number | EVAL) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
+MAX = { "MAX(" ~ WHITESPACE* ~ ((number | EVAL | EVAL_TABLE) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
 // DONE
 AVERAGE = { "AVERAGE(" ~ WHITESPACE* ~ ((number | EVAL) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
 // DONE
@@ -45,6 +46,5 @@ NUMBER = { "NUMBER(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
 TEXT = { "TEXT(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
 
 
-Fn = { EVAL | SUM | MUL | COUNT | LEN | TYPE | CONCAT | IF | MIN | MAX | AVERAGE | TRIM | ROUND | IFERROR |SUMIF | COUNTIF | DATE | NUMBER | TEXT |DIV}
-
+Fn = { EVAL | SUM | MUL | COUNT | LEN | TYPE | CONCAT | IF | MIN | MAX | AVERAGE | TRIM | ROUND | IFERROR | SUMIF | COUNTIF | DATE | NUMBER | TEXT | DIV | EVAL_TABLE }
 
