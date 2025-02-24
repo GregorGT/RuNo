@@ -1,3 +1,4 @@
+use std::collections::{HashMap, LinkedList};
 use std::borrow::{Borrow, BorrowMut};
 use std::default::Default;
 use std::{clone, io, result, vec};
@@ -9,11 +10,39 @@ use html5ever::serialize::{Serialize, SerializeOpts, TraversalScope};
 use html5ever::tendril::TendrilSink;
 use rcdom::{Handle, Node, NodeData, RcDom, SerializableHandle};
 use scraper::html;
-use std::collections::LinkedList;
+use scraper::{Html, Selector};
 use tauri::utils::html::NodeRef;
 use uuid::Uuid;
 
 use super::ENTRY_IDS;
+
+
+fn parse_table_data(html: &str) -> Vec<HashMap<(usize, usize), String>> {
+    let document = Html::parse_document(html);
+
+    let table_selector = Selector::parse("table").expect("Invalid selector");
+
+    let mut tables_data: Vec<HashMap<(usize, usize), String>> = Vec::new();
+
+    // Iterate through each table in the document
+    for table in document.select(&table_selector) {
+        let mut table_data: HashMap<(usize, usize), String> = HashMap::new();
+
+        // Iterate through the rows (<tr>) within the table's body (<tbody>)
+        for (i, row) in table.select(&Selector::parse("tbody tr").unwrap()).enumerate() {
+            for (j, td) in row.select(&Selector::parse("td").unwrap()).enumerate() {
+                let cell_text = td.text().collect::<Vec<_>>().join(" ").trim().to_string();
+                
+                table_data.insert((i, j), cell_text);
+            }
+        }
+
+        tables_data.push(table_data);
+    }
+
+    tables_data
+}
+
 
 fn walk(
     handle: &Handle,
@@ -128,6 +157,7 @@ pub struct parse_html_return {
     pub formula_list: Vec<formula>,
     pub tags: Vec<Vec<String>>,
     pub index_data: Vec<Vec<String>>,
+    pub table_list: Vec<HashMap<(usize, usize), String>>,
 }
 
 pub fn convert_to_sorting_formula(formula: String, entry_no: u64) -> formula {
@@ -321,6 +351,7 @@ pub fn parse_html(html: &str) -> parse_html_return {
     let mut formula_list: Vec<formula> = vec![];
     let mut index_data = vec![];
     let mut entry = 0;
+    let mut table_list: Vec<HashMap<(usize, usize), String>> = Vec::new();
 
     unsafe {
         for tag in tags.iter() {
@@ -329,6 +360,9 @@ pub fn parse_html(html: &str) -> parse_html_return {
                 parse_document(RcDom::default(), Default::default()).one(tag.concat().to_string());
             let final_data = walk(&dom.document, false, &mut formula_list, &mut line, entry);
             index_data.push(final_data);
+
+            table_list.extend(parse_table_data(&tag.concat().to_string()));
+
             entry += 1;
         }
     }
@@ -343,6 +377,7 @@ pub fn parse_html(html: &str) -> parse_html_return {
             formula_list,
             tags: tags,
             index_data,
+            table_list,
         }
     }
 }

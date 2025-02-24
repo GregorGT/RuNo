@@ -11,7 +11,7 @@ use tauri::State;
 //use tauri::api::dialog::*; // Add tihs
 use tauri_plugin_dialog::DialogExt;
 
-use std::collections::LinkedList;
+use std::collections::{HashMap, LinkedList};
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 use std::time::Instant;
 
@@ -60,6 +60,8 @@ pub struct return_data {
 static mut ENTRY_DATA: Vec<entry_data> = vec![];
 
 static mut ENTRY_IDS: Vec<String> = vec![];
+
+static mut TABLE_DATA_LIST: Vec<HashMap<(usize, usize), String>> = vec![];
 
 #[tauri::command]
 pub fn clear_entry_id() {
@@ -206,6 +208,10 @@ pub fn main_command(
 
     let parsed_data: html::parse_html_return =
         html::parse_html(SINGLE_LINE_EXAMPLE.repeat(LENGTH as usize).as_str());
+
+    unsafe {
+        TABLE_DATA_LIST = parsed_data.table_list.clone();
+    }
 
     let SEPARATED_DOCS = parsed_data.parsed_text;
 
@@ -579,6 +585,33 @@ impl ToString for TypeOr<String, f64, NaiveDateTime> {
     }
 }
 
+fn column_to_number(col: &str) -> u32 {
+    let mut result = 0;
+    let base = 26; // Excel columns are in base 26 (A-Z)
+
+    for c in col.chars() {
+        // Convert the character to an integer ('A' -> 1, 'B' -> 2, ..., 'Z' -> 26)
+        let value = c as u32 - 'A' as u32 + 1;
+        result = result * base + value;
+    }
+
+    result
+}
+
+fn extract_column_and_row(reference: &str) -> (u32, u32) {
+    // Find where the first digit appears to separate column and row
+    let column_end = reference.chars().position(|c| c.is_digit(10)).unwrap();
+    
+    // Separate column (letters) and row (digits)
+    let column = &reference[0..column_end];
+    let row: u32 = reference[column_end..].parse().unwrap();
+    
+    // Convert the column part into a number
+    let column_number = column_to_number(column);
+
+    (column_number, row)
+}
+
 fn recursive_funcation_parser<'a>(
     pair: Pair<'a, Rule>,
     searcher: Searcher,
@@ -595,6 +628,97 @@ fn recursive_funcation_parser<'a>(
             }
             return TypeOr::None;
         }
+
+        Rule::EVAL_TABLE => {
+            // Vector to store the extracted patterns
+            let mut patterns: Vec<String> = Vec::new();
+            
+            // Default values for table name, range, and value type
+            let mut table_name: Option<String> = None;
+            let mut range = "";
+            let mut value_type = "";
+        
+            // Iterate through inner pairs to extract patterns
+            for inner_pair in pair.into_inner() {
+                for eval_pair in inner_pair.into_inner() {
+                    if eval_pair.as_rule() == Rule::FINDING_PATTREN {
+                        // Collect the patterns (strings) from the FINDING_PATTREN rule
+                        patterns.push(eval_pair.as_str().to_string());
+                    }
+                }
+            }
+        
+            if patterns.len() == 3 {
+                table_name = Some(patterns[0].clone());
+                range = patterns[1].as_str();
+                value_type = patterns[2].as_str();
+            } else if patterns.len() == 2 {
+                range = patterns[0].as_str();
+                value_type = patterns[1].as_str();
+            } else {
+                return TypeOr::Error;
+            }
+
+            let positions: Vec<&str> = range.split(":").collect();
+
+            let mut rows: Vec<u32> = vec![];
+            let mut cols: Vec<u32> = vec![];
+            
+            for position in &positions {
+                let (column_number, row_number) = extract_column_and_row(*position);
+                rows.push(row_number);
+                cols.push(column_number);
+            }
+
+            rows.sort();
+            cols.sort();
+
+            let mut string_vals: Vec<String> = Vec::new();
+            let mut number_vals: Vec<f64> = Vec::new();
+            let mut date_vals: Vec<NaiveDateTime> = Vec::new();
+        
+            unsafe {
+                for i in cols[0]..=cols[1] {
+                    for j in rows[0]..=rows[1] {
+                        // Get the cell from the HashMap inside the Vec
+                        if let Some(cell) = TABLE_DATA_LIST[0].get(&(j as usize - 1, i as usize - 1)) {
+                            match value_type {
+                                "NUMBER" => {
+                                    if let Ok(num) = cell.parse::<f64>() {
+                                        number_vals.push(num);
+                                    } else {
+                                        return TypeOr::None;
+                                    }
+                                }
+                                "DATE" => {
+                                    if let Ok(date) = parse(cell) {
+                                        date_vals.push(date.naive_utc());
+                                    } else {
+                                        return TypeOr::None;
+                                    }
+                                }
+                                _ => {
+                                    string_vals.push(cell.clone());
+                                }
+                            }
+                        } else {
+                            return TypeOr::None;
+                        }
+                    }
+                }
+                    
+                if !number_vals.is_empty() {
+                    TypeOr::RightList(number_vals)
+                } else if !date_vals.is_empty() {
+                    TypeOr::DateList(date_vals)
+                } else if !string_vals.is_empty() {
+                    TypeOr::LeftList(string_vals)
+                } else {
+                    TypeOr::None
+                }
+            }
+        }
+
         Rule::CHAIN_PATTREN => {
             let mut is_local = false;
             let mut last_data_index = pair
