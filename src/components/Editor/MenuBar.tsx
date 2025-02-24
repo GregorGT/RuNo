@@ -32,6 +32,7 @@ import {
   UndoOutlined,
 } from "@ant-design/icons";
 import { exportEditorFunction, loadEditorAtom } from "../../state/load";
+import { selectedTableStore } from "../../state/table";
 import { final_list } from "../../helper";
 import { InvokeArgs, invoke } from "@tauri-apps/api/core";
 
@@ -378,13 +379,24 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
 
         <IconButton
           icon={<TableOutlined size={14} />}
-          onClick={() =>
+          onClick={() => {
             editor
               .chain()
               .focus()
               .insertTable({ rows: 3, cols: 3, withHeaderRow: false })
               .run()
-          }
+            
+            const tables = document.getElementsByTagName("table");
+
+            Array.from(tables).forEach((table) => {
+              table.addEventListener("click", () => {
+                selectedTableStore.setState({
+                  id: table.id,
+                  name: table.dataset.name ?? undefined
+                });
+              });
+            });
+          }}
         ></IconButton>
         <Select
           popupMatchSelectWidth={false}

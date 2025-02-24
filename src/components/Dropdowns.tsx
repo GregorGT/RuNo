@@ -7,6 +7,7 @@ import { editorStateAtom } from "../state/editor";
 import { exportEditorFunction, loadEditorAtom } from "../state/load";
 import { info } from "@tauri-apps/plugin-log";
 import * as path from '@tauri-apps/api/path';
+import { selectedTableStore } from "../state/table";
 
 import "./Components.scss";
 import {
@@ -111,6 +112,17 @@ export default function Dropdowns() {
                 reader.readAsText(file);
                 reader.onload = () => {
                   load_data(reader.result as string);
+                  const tables = document.getElementsByTagName("table");
+
+                  Array.from(tables).forEach((table) => {
+                    table.addEventListener("click", () => {
+                      selectedTableStore.setState({
+                        id: table.id,
+                        name: table.dataset.name ?? undefined
+                      });
+                    });
+                  });
+                
                   showNotificaiton("File Loaded");
                 };
               };
