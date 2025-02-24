@@ -16,18 +16,35 @@ use uuid::Uuid;
 
 use super::ENTRY_IDS;
 
+#[derive(Debug, serde::Serialize, PartialEq, Clone)]
+pub struct TableData {
+    pub id: String,
+    pub name: String,
+    pub data: HashMap<(usize, usize), String>,
+}
 
-fn parse_table_data(html: &str) -> Vec<HashMap<(usize, usize), String>> {
+fn parse_table_data(html: &str) -> Vec<TableData> {
     let document = Html::parse_document(html);
 
     let table_selector = Selector::parse("table").expect("Invalid selector");
 
-    let mut tables_data: Vec<HashMap<(usize, usize), String>> = Vec::new();
+    let mut tables_data: Vec<TableData> = Vec::new();
 
     // Iterate through each table in the document
     for table in document.select(&table_selector) {
         let mut table_data: HashMap<(usize, usize), String> = HashMap::new();
 
+        let mut table_name = String::new();
+        
+        let mut table_id = String::new();
+        
+        if let Some(id) = table.value().attr("id") {
+            table_id = id.to_string();
+        }
+
+        if let Some(name) = table.value().attr("name") {
+            table_name = name.to_string();
+        }
         // Iterate through the rows (<tr>) within the table's body (<tbody>)
         for (i, row) in table.select(&Selector::parse("tbody tr").unwrap()).enumerate() {
             for (j, td) in row.select(&Selector::parse("td").unwrap()).enumerate() {
@@ -36,8 +53,13 @@ fn parse_table_data(html: &str) -> Vec<HashMap<(usize, usize), String>> {
                 table_data.insert((i, j), cell_text);
             }
         }
+        let table_data_struct = TableData {
+            id: table_id,
+            name: table_name,
+            data: table_data,
+        };
 
-        tables_data.push(table_data);
+        tables_data.push(table_data_struct);
     }
 
     tables_data
@@ -157,7 +179,7 @@ pub struct parse_html_return {
     pub formula_list: Vec<formula>,
     pub tags: Vec<Vec<String>>,
     pub index_data: Vec<Vec<String>>,
-    pub table_list: Vec<HashMap<(usize, usize), String>>,
+    pub table_list: Vec<TableData>,
 }
 
 pub fn convert_to_sorting_formula(formula: String, entry_no: u64) -> formula {
@@ -351,7 +373,7 @@ pub fn parse_html(html: &str) -> parse_html_return {
     let mut formula_list: Vec<formula> = vec![];
     let mut index_data = vec![];
     let mut entry = 0;
-    let mut table_list: Vec<HashMap<(usize, usize), String>> = Vec::new();
+    let mut table_list: Vec<TableData> = Vec::new();
 
     unsafe {
         for tag in tags.iter() {

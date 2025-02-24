@@ -61,7 +61,7 @@ static mut ENTRY_DATA: Vec<entry_data> = vec![];
 
 static mut ENTRY_IDS: Vec<String> = vec![];
 
-static mut TABLE_DATA_LIST: Vec<HashMap<(usize, usize), String>> = vec![];
+static mut TABLE_DATA_LIST: Vec<html::TableData> = vec![];
 
 #[tauri::command]
 pub fn clear_entry_id() {
@@ -681,28 +681,32 @@ fn recursive_funcation_parser<'a>(
                 for i in cols[0]..=cols[1] {
                     for j in rows[0]..=rows[1] {
                         // Get the cell from the HashMap inside the Vec
-                        if let Some(cell) = TABLE_DATA_LIST[0].get(&(j as usize - 1, i as usize - 1)) {
-                            match value_type {
-                                "NUMBER" => {
-                                    if let Ok(num) = cell.parse::<f64>() {
-                                        number_vals.push(num);
-                                    } else {
-                                        return TypeOr::None;
+                        unsafe {
+                            if let Some(selected_table) = TABLE_DATA_LIST.get(0) {
+                                let data = &selected_table.data;
+                                // Now you can work with the `data` HashMap
+                                if let Some(cell) = data.get(&(j as usize - 1, i as usize - 1)) {
+                                    match value_type {
+                                        "NUMBER" => {
+                                            if let Ok(num) = cell.parse::<f64>() {
+                                                number_vals.push(num);
+                                            } else {
+                                                return TypeOr::None;
+                                            }
+                                        }
+                                        "DATE" => {
+                                            if let Ok(date) = parse(cell) {
+                                                date_vals.push(date.naive_utc());
+                                            } else {
+                                                return TypeOr::None;
+                                            }
+                                        }
+                                        _ => {
+                                            string_vals.push(cell.clone());
+                                        }
                                     }
-                                }
-                                "DATE" => {
-                                    if let Ok(date) = parse(cell) {
-                                        date_vals.push(date.naive_utc());
-                                    } else {
-                                        return TypeOr::None;
-                                    }
-                                }
-                                _ => {
-                                    string_vals.push(cell.clone());
                                 }
                             }
-                        } else {
-                            return TypeOr::None;
                         }
                     }
                 }
