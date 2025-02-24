@@ -647,14 +647,25 @@ fn recursive_funcation_parser<'a>(
                     }
                 }
             }
-        
+
+            let mut table_data: Option<&html::TableData> = None;
             if patterns.len() == 3 {
-                table_name = Some(patterns[0].clone());
+                table_name = Some(patterns[0].to_string());
                 range = patterns[1].as_str();
                 value_type = patterns[2].as_str();
+                unsafe {
+                    table_data = TABLE_DATA_LIST
+                        .iter()
+                        .find(|p| table_name.as_ref().map(|s| s.as_str()) == Some(p.name.as_str()));
+                }
             } else if patterns.len() == 2 {
                 range = patterns[0].as_str();
                 value_type = patterns[1].as_str();
+                unsafe {
+                    table_data = TABLE_DATA_LIST
+                        .iter()
+                        .find(|p| formula.table_id.as_ref().map(|s| s.as_str()) == Some(p.id.as_str()));
+                }
             } else {
                 return TypeOr::Error;
             }
@@ -682,7 +693,7 @@ fn recursive_funcation_parser<'a>(
                     for j in rows[0]..=rows[1] {
                         // Get the cell from the HashMap inside the Vec
                         unsafe {
-                            if let Some(selected_table) = TABLE_DATA_LIST.get(0) {
+                            if let Some(selected_table) = table_data {
                                 let data = &selected_table.data;
                                 // Now you can work with the `data` HashMap
                                 if let Some(cell) = data.get(&(j as usize - 1, i as usize - 1)) {
