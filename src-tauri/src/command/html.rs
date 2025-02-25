@@ -3,6 +3,7 @@ use std::borrow::{Borrow, BorrowMut};
 use std::default::Default;
 use std::{clone, io, result, vec};
 
+use serde::{Deserialize};
 use crate::command::{TypeOr, ORIGINAL_DOC_ID_LIST};
 use chrono::NaiveDateTime;
 use html5ever::parse_document;
@@ -174,6 +175,12 @@ pub struct formula {
     pub isSorting: bool,
     pub isFilter: bool,
     pub table_id: Option<String>,
+}
+
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd, Deserialize, Clone)]
+pub struct table {
+    pub id: String,
+    pub name: Option<String>,
 }
 
 impl Clone for formula {

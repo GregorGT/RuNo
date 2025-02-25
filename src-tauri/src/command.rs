@@ -1,7 +1,7 @@
 //extern crate msgbox;
 
 //use msgbox::IconType;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::cmp::Ordering;
 use std::panic;
 use tauri::Result;
@@ -44,15 +44,11 @@ use applicationdialogs::msg_box;
 use applicationdirs::get_application_db_directory;
 
 static mut FORMULA_LIST_CELL: Vec<html::formula> = vec![];
+static mut TABLE_LIST_CELL: Vec<html::table> = vec![];
 pub static mut ORIGINAL_DOC_ID_LIST: LinkedList<list_ids> = LinkedList::new();
 //
 const LENGTH: i32 = 1;
 
-#[derive(Debug, serde::Serialize, PartialEq, PartialOrd, Deserialize)]
-pub struct TableInfo {
-    id: String,
-    name: String,
-}
 
 #[derive(Debug, serde::Serialize, PartialEq, PartialOrd)]
 pub struct return_data {
@@ -61,7 +57,7 @@ pub struct return_data {
     filtered: Vec<String>,
     parsed_text: String,
     is_error: bool,
-    tables: Option<Vec<TableInfo>>,
+    tables: Option<Vec<html::table>>,
 }
 
 static mut ENTRY_DATA: Vec<entry_data> = vec![];
@@ -156,11 +152,11 @@ pub fn run_command(
     sorting: String,
     sorting_up: bool,
     filter: String,
-    tables: Option<Vec<TableInfo>>,
+    tables: Option<Vec<html::table>>,
 ) -> return_data {
     let result =
         panic::catch_unwind(
-            || match main_command(input.clone(), sorting, sorting_up, filter) {
+            || match main_command(input.clone(), sorting, sorting_up, filter, tables) {
                 Ok(data) => data,
                 Err(err) => {
                     println!("Error: {:?}", err);
@@ -200,6 +196,7 @@ pub fn main_command(
     sorting: String,
     sorting_up: bool,
     filter: String,
+    tables: Option<Vec<html::table>>,
 ) -> Result<return_data> {
     let SINGLE_LINE_EXAMPLE: &str = input.as_str();
 
@@ -260,6 +257,7 @@ pub fn main_command(
         formula_list.extend(sorting_formula_list.clone());
         formula_list.extend(filter_formula_list.clone());
         FORMULA_LIST_CELL = formula_list.clone();
+        TABLE_LIST_CELL = tables.clone().unwrap_or_default();
     }
 
     let end_time = Instant::now();
@@ -460,7 +458,7 @@ pub fn main_command(
             filtered: filtered_list,
             parsed_text,
             is_error: false,
-            tables: vec![].into(),
+            tables: tables,
         })
     }
 }
@@ -661,27 +659,34 @@ fn recursive_funcation_parser<'a>(
             }
 
             let mut table_data: Option<&html::TableData> = None;
+
             if patterns.len() == 3 {
                 table_name = Some(patterns[0].to_string());
                 range = patterns[1].as_str();
                 value_type = patterns[2].as_str();
+            
                 unsafe {
-                    table_data = TABLE_DATA_LIST
+                    if let Some(table_id) = TABLE_LIST_CELL
                         .iter()
-                        .find(|p| table_name.as_ref().map(|s| s.as_str()) == Some(p.name.as_str()));
+                        .find(|p| p.name.as_ref().map(|s| s.as_str()) == table_name.as_deref())
+                        .map(|table| table.id.clone())
+                    {
+                        table_data = TABLE_DATA_LIST.iter().find(|p| p.id == table_id);
+                    }
                 }
             } else if patterns.len() == 2 {
                 range = patterns[0].as_str();
                 value_type = patterns[1].as_str();
+            
                 unsafe {
-                    table_data = TABLE_DATA_LIST
-                        .iter()
-                        .find(|p| formula.table_id.as_ref().map(|s| s.as_str()) == Some(p.id.as_str()));
+                    if let Some(ref table_id) = formula.table_id {
+                        table_data = TABLE_DATA_LIST.iter().find(|p| &p.id == table_id);
+                    }
                 }
             } else {
                 return TypeOr::Error;
             }
-
+            
             let positions: Vec<&str> = range.split(":").collect();
 
             let mut rows: Vec<u32> = vec![];
