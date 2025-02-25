@@ -511,6 +511,28 @@ fn parse_string(
     Ok(TypeOr::None)
 }
 
+fn parse_string_in_cell(
+    formula: html::formula,
+    searcher: Searcher,
+    schema: Schema,
+    formula_list: Vec<html::formula>,
+) -> TypeOr<String, f64, NaiveDateTime> {
+    let pairs = MyParser::parse(Rule::Fn, formula.formula.as_str()).unwrap();
+    let mut ans: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
+
+    for pair in pairs {
+        ans = recursive_funcation_parser(
+            pair,
+            searcher.clone(),
+            schema.clone(),
+            formula_list.clone(),
+            formula.clone(),
+        );
+    }
+
+    ans
+}
+
 #[derive(Debug, PartialEq, PartialOrd)]
 enum TypeOr<S, T, Y> {
     Left(S),
@@ -714,23 +736,27 @@ fn recursive_funcation_parser<'a>(
                                 let data = &selected_table.data;
                                 // Now you can work with the `data` HashMap
                                 if let Some(cell) = data.get(&(j as usize - 1, i as usize - 1)) {
+                                    let mut cell_data = cell.clone();
+                                    if let Some(cell_formula) = formula_list.iter().find(|p| p.id == *cell) {
+                                        cell_data = parse_string_in_cell(cell_formula.clone(), searcher.clone(), schema.clone(), formula_list.clone()).to_string();
+                                    }
                                     match value_type {
                                         "NUMBER" => {
-                                            if let Ok(num) = cell.parse::<f64>() {
+                                            if let Ok(num) = cell_data.parse::<f64>() {
                                                 number_vals.push(num);
                                             } else {
                                                 return TypeOr::None;
                                             }
                                         }
                                         "DATE" => {
-                                            if let Ok(date) = parse(cell) {
+                                            if let Ok(date) = parse(&cell_data) {
                                                 date_vals.push(date.naive_utc());
                                             } else {
                                                 return TypeOr::None;
                                             }
                                         }
                                         _ => {
-                                            string_vals.push(cell.clone());
+                                            string_vals.push(cell_data.clone());
                                         }
                                     }
                                 }

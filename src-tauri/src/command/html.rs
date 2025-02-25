@@ -34,23 +34,18 @@ fn parse_table_data(html: &str) -> Vec<TableData> {
     for table in document.select(&table_selector) {
         let mut table_data: HashMap<(usize, usize), String> = HashMap::new();
 
-        let mut table_name = String::new();
-        
         let mut table_id = String::new();
         
         if let Some(id) = table.value().attr("id") {
             table_id = id.to_string();
         }
 
-        if let Some(name) = table.value().attr("name") {
-            table_name = name.to_string();
-        }
         // Iterate through the rows (<tr>) within the table's body (<tbody>)
         for (i, row) in table.select(&Selector::parse("tbody tr").unwrap()).enumerate() {
             for (j, td) in row.select(&Selector::parse("td").unwrap()).enumerate() {
                 let cell_text = td.select(&Selector::parse("p formula").unwrap())
                 .next()
-                .and_then(|formula| formula.value().attr("data"))
+                .and_then(|formula| formula.value().attr("id"))
                 .map(|data| data.to_string())
                 .unwrap_or_else(|| td.text().collect::<Vec<_>>().join(" ").trim().to_string());            
                 table_data.insert((i, j), cell_text);

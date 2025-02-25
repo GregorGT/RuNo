@@ -121,8 +121,7 @@ export default function Dropdowns() {
                   Array.from(tables).forEach((table) => {
                     table.addEventListener("click", () => {
                       selectedTableStore.setState({
-                        id: table.id,
-                        name: table.dataset.name ?? undefined
+                        id: table.id
                       });
                     });
                   });
