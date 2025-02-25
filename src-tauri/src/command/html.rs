@@ -20,7 +20,6 @@ use super::ENTRY_IDS;
 #[derive(Debug, serde::Serialize, PartialEq, Clone)]
 pub struct TableData {
     pub id: String,
-    pub name: String,
     pub data: HashMap<(usize, usize), String>,
 }
 
@@ -59,7 +58,6 @@ fn parse_table_data(html: &str) -> Vec<TableData> {
         }
         let table_data_struct = TableData {
             id: table_id,
-            name: table_name,
             data: table_data,
         };
 
