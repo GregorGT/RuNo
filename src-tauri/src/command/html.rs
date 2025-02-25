@@ -3,6 +3,7 @@ use std::borrow::{Borrow, BorrowMut};
 use std::default::Default;
 use std::{clone, io, result, vec};
 
+use serde::{Deserialize};
 use crate::command::{TypeOr, ORIGINAL_DOC_ID_LIST};
 use chrono::NaiveDateTime;
 use html5ever::parse_document;
@@ -16,28 +17,51 @@ use uuid::Uuid;
 
 use super::ENTRY_IDS;
 
+#[derive(Debug, serde::Serialize, PartialEq, Clone)]
+pub struct TableData {
+    pub id: String,
+    pub data: HashMap<(usize, usize), String>,
+}
 
-fn parse_table_data(html: &str) -> Vec<HashMap<(usize, usize), String>> {
+fn parse_table_data(html: &str) -> Vec<TableData> {
     let document = Html::parse_document(html);
 
     let table_selector = Selector::parse("table").expect("Invalid selector");
 
-    let mut tables_data: Vec<HashMap<(usize, usize), String>> = Vec::new();
+    let mut tables_data: Vec<TableData> = Vec::new();
 
     // Iterate through each table in the document
     for table in document.select(&table_selector) {
         let mut table_data: HashMap<(usize, usize), String> = HashMap::new();
 
+        let mut table_name = String::new();
+        
+        let mut table_id = String::new();
+        
+        if let Some(id) = table.value().attr("id") {
+            table_id = id.to_string();
+        }
+
+        if let Some(name) = table.value().attr("name") {
+            table_name = name.to_string();
+        }
         // Iterate through the rows (<tr>) within the table's body (<tbody>)
         for (i, row) in table.select(&Selector::parse("tbody tr").unwrap()).enumerate() {
             for (j, td) in row.select(&Selector::parse("td").unwrap()).enumerate() {
-                let cell_text = td.text().collect::<Vec<_>>().join(" ").trim().to_string();
-                
+                let cell_text = td.select(&Selector::parse("p formula").unwrap())
+                .next()
+                .and_then(|formula| formula.value().attr("data"))
+                .map(|data| data.to_string())
+                .unwrap_or_else(|| td.text().collect::<Vec<_>>().join(" ").trim().to_string());            
                 table_data.insert((i, j), cell_text);
             }
         }
+        let table_data_struct = TableData {
+            id: table_id,
+            data: table_data,
+        };
 
-        tables_data.push(table_data);
+        tables_data.push(table_data_struct);
     }
 
     tables_data
@@ -50,9 +74,12 @@ fn walk(
     formula_list: &mut Vec<formula>,
     line: &mut u64,
     entry: u64,
+    parent_table_id: Option<String>,
 ) -> Vec<String> {
     let node = handle;
     let mut is_p = is_in_line;
+    let mut current_table_id = parent_table_id.clone();
+
     match node.data {
         NodeData::Text { ref contents } => {
             // String data of a text node
@@ -63,6 +90,13 @@ fn walk(
             ref attrs,
             ..
         } => {
+            if &*name.local == "table" {
+                current_table_id = attrs.borrow()
+                    .iter()
+                    .find(|attr| &*attr.name.local == "id")
+                    .map(|attr| attr.value.to_string());
+            }
+
             if &*name.local == "formula" {
                 let mut id: String = "".to_string();
                 let mut formula: String = "".to_string();
@@ -87,6 +121,12 @@ fn walk(
                     return vec![];
                 }
 
+                let mut table_id: Option<String> = None;
+
+                if formula.contains("EVAL_TABLE") {
+                    table_id = Some(current_table_id.clone().unwrap_or_else(|| "None".to_string()));
+                }
+
                 formula_list.push(formula {
                     line: *line,
                     formula: formula,
@@ -95,6 +135,7 @@ fn walk(
                     data: TypeOr::NotCalculated,
                     isSorting: false,
                     isFilter: false,
+                    table_id: table_id
                 });
 
                 return vec![id.to_string()];
@@ -114,7 +155,7 @@ fn walk(
 
     let mut result: Vec<String> = vec![];
     for child in node.children.borrow().iter() {
-        result.append(&mut walk(child, is_p, formula_list, line, entry));
+        result.append(&mut walk(child, is_p, formula_list, line, entry, current_table_id.clone()));
     }
 
     if is_p && result.len() > 0 {
@@ -131,6 +172,13 @@ pub struct formula {
     pub data: TypeOr<String, f64, NaiveDateTime>,
     pub isSorting: bool,
     pub isFilter: bool,
+    pub table_id: Option<String>,
+}
+
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd, Deserialize, Clone)]
+pub struct table {
+    pub id: String,
+    pub name: Option<String>,
 }
 
 impl Clone for formula {
@@ -143,6 +191,7 @@ impl Clone for formula {
             data: self.data.clone(),
             isSorting: self.isSorting,
             isFilter: self.isFilter,
+            table_id: self.table_id.clone()
         }
     }
 }
@@ -157,7 +206,7 @@ pub struct parse_html_return {
     pub formula_list: Vec<formula>,
     pub tags: Vec<Vec<String>>,
     pub index_data: Vec<Vec<String>>,
-    pub table_list: Vec<HashMap<(usize, usize), String>>,
+    pub table_list: Vec<TableData>,
 }
 
 pub fn convert_to_sorting_formula(formula: String, entry_no: u64) -> formula {
@@ -169,6 +218,7 @@ pub fn convert_to_sorting_formula(formula: String, entry_no: u64) -> formula {
         data: TypeOr::NotCalculated,
         isSorting: true,
         isFilter: false,
+        table_id: None
     };
 }
 pub fn convert_to_filter_formula(formula: String, entry_no: u64) -> formula {
@@ -180,6 +230,7 @@ pub fn convert_to_filter_formula(formula: String, entry_no: u64) -> formula {
         data: TypeOr::NotCalculated,
         isSorting: false,
         isFilter: true,
+        table_id: None
     };
 }
 
@@ -351,14 +402,14 @@ pub fn parse_html(html: &str) -> parse_html_return {
     let mut formula_list: Vec<formula> = vec![];
     let mut index_data = vec![];
     let mut entry = 0;
-    let mut table_list: Vec<HashMap<(usize, usize), String>> = Vec::new();
+    let mut table_list: Vec<TableData> = Vec::new();
 
     unsafe {
         for tag in tags.iter() {
             let mut line = 0;
             let dom =
                 parse_document(RcDom::default(), Default::default()).one(tag.concat().to_string());
-            let final_data = walk(&dom.document, false, &mut formula_list, &mut line, entry);
+            let final_data = walk(&dom.document, false, &mut formula_list, &mut line, entry, None);
             index_data.push(final_data);
 
             table_list.extend(parse_table_data(&tag.concat().to_string()));

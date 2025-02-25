@@ -5,6 +5,7 @@ import "../Components.scss";
 import Filter from "./Filter";
 import Sorting from "./Sorting";
 import Value from "./Value";
+import Table from "./Table";
 
 export default function TabComponent() {
   const [activeTab, setActiveTab] = useState("filter");
@@ -12,6 +13,7 @@ export default function TabComponent() {
     { eventKey: "filter", content: <Filter /> },
     { eventKey: "sorting", content: <Sorting /> },
     { eventKey: "value", content: <Value /> },
+    { eventKey: "table", content: <Table /> },
   ];
 
   return (
@@ -36,6 +38,12 @@ export default function TabComponent() {
             onClick={() => setActiveTab("value")}
           >
             Value
+          </button>
+          <button
+            className={`header-button ${activeTab == "table" && "active"}`}
+            onClick={() => setActiveTab("table")}
+          >
+            Table
           </button>
         </div>
         <Tabs activeKey={activeTab} className="mb-3">

@@ -7,6 +7,7 @@ import { editorStateAtom } from "../state/editor";
 import { exportEditorFunction, loadEditorAtom } from "../state/load";
 import { info } from "@tauri-apps/plugin-log";
 import * as path from '@tauri-apps/api/path';
+import { selectedTableStore, tableAtom, tableStore } from "../state/table";
 
 import "./Components.scss";
 import {
@@ -20,6 +21,7 @@ import {
 } from "../state/formula";
 
 export default function Dropdowns() {
+  const tables = useAtomValue(tableAtom);
   const [editorState, setState] = useAtom(editorStateAtom);
   const [_, loadEditor] = useAtom(loadEditorAtom);
   const getEditorValue = useAtomValue(exportEditorFunction);
@@ -37,6 +39,7 @@ export default function Dropdowns() {
       isFilterEnable: filterEnabled,
       isSortingEnable: sortingEnabled,
       formulas: formulaStore.getState(),
+      tables: tables,
     };
     return data;
   };
@@ -49,6 +52,7 @@ export default function Dropdowns() {
       isFilterEnable = false,
       isSortingEnable = false,
       formulas = [],
+      tables = [],
     } = JSON.parse(json);
     selectedFormulaIdStore.setState(undefined, true);
     getEditorValue.load(editorData);
@@ -58,6 +62,7 @@ export default function Dropdowns() {
     setFilterEnabled(isFilterEnable);
     setSortingEnabled(isSortingEnable);
     formulaStore.setState(formulas, true);
+    tableStore.setState(tables, true);
   };
 
   const fileItems: MenuProps["items"] = [
@@ -111,6 +116,17 @@ export default function Dropdowns() {
                 reader.readAsText(file);
                 reader.onload = () => {
                   load_data(reader.result as string);
+                  const tables = document.getElementsByTagName("table");
+
+                  Array.from(tables).forEach((table) => {
+                    table.addEventListener("click", () => {
+                      selectedTableStore.setState({
+                        id: table.id,
+                        name: table.dataset.name ?? undefined
+                      });
+                    });
+                  });
+                
                   showNotificaiton("File Loaded");
                 };
               };

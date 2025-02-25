@@ -50,6 +50,7 @@ import HorizontalRule from "@tiptap/extension-horizontal-rule";
 import UniqueId from "tiptap-unique-id";
 import { final_list } from "../../helper";
 import { triggerFocus } from "antd/es/input/Input";
+import { selectedTableStore, tableAtom } from "../../state/table";
 
 let example = final_list;
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
@@ -74,6 +75,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const sortingEnabled = useAtomValue(isSortingEnable);
   const filterEnabled = useAtomValue(isFilterEnable);
   const filterFn = useAtomValue(filterFnAtom);
+  const tables = useAtomValue(tableAtom);
   const [_, setEditorExportFunction] = useAtom(exportEditorFunction);
   useEffect(() => {
     setEditorExportFunction({
@@ -109,6 +111,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         sorting: sortingEnabled ? sortingFn : "",
         sortingUp: sortingDir === "asc",
         filter: filterEnabled ? filterFn : "",
+        tables: tables,
       })) as unknown;
 
       //@ts-ignore
@@ -302,13 +305,24 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 
         <IconButton
           icon={<TableOutlined size={14} />}
-          onClick={() =>
+          onClick={() => {
             editor
               .chain()
               .focus()
               .insertTable({ rows: 3, cols: 3, withHeaderRow: false })
               .run()
-          }
+            
+            const tables = document.getElementsByTagName("table");
+
+            Array.from(tables).forEach((table) => {
+              table.addEventListener("click", () => {
+                selectedTableStore.setState({
+                  id: table.id,
+                  name: table.dataset.name ?? undefined
+                });
+              });
+            });
+          }}
         ></IconButton>
         <Select
           popupMatchSelectWidth={false}
