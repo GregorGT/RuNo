@@ -744,15 +744,11 @@ fn recursive_funcation_parser<'a>(
                                         "NUMBER" => {
                                             if let Ok(num) = cell_data.parse::<f64>() {
                                                 number_vals.push(num);
-                                            } else {
-                                                return TypeOr::None;
                                             }
                                         }
                                         "DATE" => {
                                             if let Ok(date) = parse(&cell_data) {
                                                 date_vals.push(date.naive_utc());
-                                            } else {
-                                                return TypeOr::None;
                                             }
                                         }
                                         _ => {
