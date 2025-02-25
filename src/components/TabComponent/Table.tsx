@@ -1,15 +1,24 @@
-import { useAtomValue } from "jotai";
-import { selectedTableAtom, selectedTableStore } from "../../state/table";
+import { useAtomValue, useAtom } from "jotai";
+import { tableAtom, tableStore, selectedTableAtom, selectedTableStore } from "../../state/table";
 
 const Table = () => {
+  const [tables] = useAtom(tableAtom);
   const selectedTable = useAtomValue(selectedTableAtom);
-  const { id, name } = selectedTable ?? {}; // Destructure with a fallback
+  const { id, name = "" } = selectedTable ?? {};
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = event.target.value;
+    
     selectedTableStore.setState((prev) => ({
       ...prev,
-      name: event.target.value
+      name: newName,
     }));
+    
+    const updatedTables = tables.some((table) => table.id === id)
+      ? tables.map((table) => (table.id === id ? { ...table, name: newName } : table))
+      : [...tables, { id, name: newName }];
+    
+    tableStore.setState(updatedTables, true);
   };
 
   return (
@@ -22,7 +31,7 @@ const Table = () => {
           <input
             type="text"
             className="p-1"
-            value={name ?? ""}
+            value={name}
             onChange={handleNameChange}
             aria-label="Edit table name"
           />

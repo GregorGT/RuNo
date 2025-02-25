@@ -50,7 +50,7 @@ import HorizontalRule from "@tiptap/extension-horizontal-rule";
 import UniqueId from "tiptap-unique-id";
 import { final_list } from "../../helper";
 import { triggerFocus } from "antd/es/input/Input";
-import { selectedTableStore } from "../../state/table";
+import { selectedTableStore, tableAtom } from "../../state/table";
 
 let example = final_list;
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
@@ -75,6 +75,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const sortingEnabled = useAtomValue(isSortingEnable);
   const filterEnabled = useAtomValue(isFilterEnable);
   const filterFn = useAtomValue(filterFnAtom);
+  const tables = useAtomValue(tableAtom);
   const [_, setEditorExportFunction] = useAtom(exportEditorFunction);
   useEffect(() => {
     setEditorExportFunction({
@@ -110,6 +111,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         sorting: sortingEnabled ? sortingFn : "",
         sortingUp: sortingDir === "asc",
         filter: filterEnabled ? filterFn : "",
+        tables: tables,
       })) as unknown;
 
       //@ts-ignore

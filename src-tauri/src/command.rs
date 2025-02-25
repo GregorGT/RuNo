@@ -1,7 +1,7 @@
 //extern crate msgbox;
 
 //use msgbox::IconType;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::panic;
 use tauri::Result;
@@ -48,6 +48,12 @@ pub static mut ORIGINAL_DOC_ID_LIST: LinkedList<list_ids> = LinkedList::new();
 //
 const LENGTH: i32 = 1;
 
+#[derive(Debug, serde::Serialize, PartialEq, PartialOrd, Deserialize)]
+pub struct TableInfo {
+    id: String,
+    name: String,
+}
+
 #[derive(Debug, serde::Serialize, PartialEq, PartialOrd)]
 pub struct return_data {
     formula_list: Vec<html::formula>,
@@ -55,6 +61,7 @@ pub struct return_data {
     filtered: Vec<String>,
     parsed_text: String,
     is_error: bool,
+    tables: Option<Vec<TableInfo>>,
 }
 
 static mut ENTRY_DATA: Vec<entry_data> = vec![];
@@ -142,12 +149,14 @@ Entries  buffer
 
 */
 
+
 #[tauri::command]
 pub fn run_command(
     input: String,
     sorting: String,
     sorting_up: bool,
     filter: String,
+    tables: Option<Vec<TableInfo>>,
 ) -> return_data {
     let result =
         panic::catch_unwind(
@@ -161,6 +170,7 @@ pub fn run_command(
                         filtered: vec![],
                         parsed_text: "".to_string(),
                         is_error: true,
+                        tables: vec![].into(),
                     };
                 }
             },
@@ -176,6 +186,7 @@ pub fn run_command(
             filtered: vec![],
             is_error: true,
             parsed_text: input.to_string(),
+            tables: vec![].into(),
         };
     }
     return result.unwrap();
@@ -449,6 +460,7 @@ pub fn main_command(
             filtered: filtered_list,
             parsed_text,
             is_error: false,
+            tables: vec![].into(),
         })
     }
 }
