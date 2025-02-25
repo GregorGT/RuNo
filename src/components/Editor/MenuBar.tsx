@@ -35,6 +35,7 @@ import { exportEditorFunction, loadEditorAtom } from "../../state/load";
 import { selectedTableStore } from "../../state/table";
 import { final_list } from "../../helper";
 import { InvokeArgs, invoke } from "@tauri-apps/api/core";
+import { getExcelColumnName } from "../../helper";
 
 interface BackendResponse {
   is_error?: boolean;
@@ -389,9 +390,21 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
             const tables = document.getElementsByTagName("table");
 
             Array.from(tables).forEach((table) => {
-              table.addEventListener("click", () => {
+              table.addEventListener("click", (e) => {
+                const cell = e.target?.closest("td, th");
+                if (!cell) return;
+            
+                const row = cell.parentElement;
+                const rowIndex = row.rowIndex + 1;
+                const cellIndex = cell.cellIndex;
+            
+                const columnLetter = getExcelColumnName(cellIndex + 1);
+            
+                const excelRef = `${columnLetter}${rowIndex}`;
+            
                 selectedTableStore.setState({
-                  id: table.id
+                  id: table.id,
+                  excelRef: excelRef
                 });
               });
             });

@@ -51,6 +51,7 @@ import UniqueId from "tiptap-unique-id";
 import { final_list } from "../../helper";
 import { triggerFocus } from "antd/es/input/Input";
 import { selectedTableStore, tableAtom } from "../../state/table";
+import { getExcelColumnName } from "../../helper";
 
 let example = final_list;
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
@@ -315,9 +316,21 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
             const tables = document.getElementsByTagName("table");
 
             Array.from(tables).forEach((table) => {
-              table.addEventListener("click", () => {
+              table.addEventListener("click", (e) => {
+                const cell = e.target?.closest("td, th");
+                if (!cell) return;
+            
+                const row = cell.parentElement;
+                const rowIndex = row.rowIndex + 1;
+                const cellIndex = cell.cellIndex;
+            
+                const columnLetter = getExcelColumnName(cellIndex + 1);
+            
+                const excelRef = `${columnLetter}${rowIndex}`;
+            
                 selectedTableStore.setState({
-                  id: table.id
+                  id: table.id,
+                  excelRef: excelRef
                 });
               });
             });

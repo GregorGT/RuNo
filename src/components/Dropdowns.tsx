@@ -8,6 +8,7 @@ import { exportEditorFunction, loadEditorAtom } from "../state/load";
 import { info } from "@tauri-apps/plugin-log";
 import * as path from '@tauri-apps/api/path';
 import { selectedTableStore, tableAtom, tableStore } from "../state/table";
+import { getExcelColumnName } from "../helper";
 
 import "./Components.scss";
 import {
@@ -119,9 +120,21 @@ export default function Dropdowns() {
                   const tables = document.getElementsByTagName("table");
 
                   Array.from(tables).forEach((table) => {
-                    table.addEventListener("click", () => {
+                    table.addEventListener("click", (e) => {
+                      const cell = e.target?.closest("td, th");
+                      if (!cell) return;
+                  
+                      const row = cell.parentElement;
+                      const rowIndex = row.rowIndex + 1;
+                      const cellIndex = cell.cellIndex;
+                  
+                      const columnLetter = getExcelColumnName(cellIndex + 1);
+                  
+                      const excelRef = `${columnLetter}${rowIndex}`;
+                  
                       selectedTableStore.setState({
-                        id: table.id
+                        id: table.id,
+                        excelRef: excelRef
                       });
                     });
                   });
