@@ -1,24 +1,36 @@
 import { useAtomValue, useAtom } from "jotai";
-import { tableAtom, tableStore, selectedTableAtom, selectedTableStore } from "../../state/table";
+import { tableAtom, tableStore, selectedTableAtom } from "../../state/table";
+import { useEffect, useState } from "react";
+import _ from "lodash";
 
 const Table = () => {
   const [tables] = useAtom(tableAtom);
   const selectedTable = useAtomValue(selectedTableAtom);
-  const { id, name = "" } = selectedTable ?? {};
+  const { id } = selectedTable ?? {};
+  const [tableName, setTableName] = useState<string>("");
+
+  useEffect(() => {
+    if (!id) return;
+
+    const selectedTableData = tables.find((table) => table.id === id);
+    if (selectedTableData) {
+      setTableName(selectedTableData.name);
+    } else {
+      setTableName("");
+    }
+  }, [tables, id]);
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = event.target.value;
-    
-    selectedTableStore.setState((prev) => ({
-      ...prev,
-      name: newName,
-    }));
-    
+    const updatedName = event.target.value;
+    setTableName(updatedName);
+
     const updatedTables = tables.some((table) => table.id === id)
-      ? tables.map((table) => (table.id === id ? { ...table, name: newName } : table))
-      : [...tables, { id, name: newName }];
-    
-    tableStore.setState(updatedTables, true);
+      ? tables.map((table) =>
+          table.id === id ? { ...table, name: updatedName } : table
+        )
+      : [...tables, { id, name: updatedName }];
+
+    tableStore.setState(_.cloneDeep(updatedTables), true);
   };
 
   return (
@@ -31,7 +43,7 @@ const Table = () => {
           <input
             type="text"
             className="p-1"
-            value={name}
+            value={tableName}
             onChange={handleNameChange}
             aria-label="Edit table name"
           />

@@ -7,7 +7,7 @@ import { editorStateAtom } from "../state/editor";
 import { exportEditorFunction, loadEditorAtom } from "../state/load";
 import { info } from "@tauri-apps/plugin-log";
 import * as path from '@tauri-apps/api/path';
-import { selectedTableStore } from "../state/table";
+import { selectedTableStore, tableAtom } from "../state/table";
 
 import "./Components.scss";
 import {
@@ -21,6 +21,7 @@ import {
 } from "../state/formula";
 
 export default function Dropdowns() {
+  const tables = useAtomValue(tableAtom);
   const [editorState, setState] = useAtom(editorStateAtom);
   const [_, loadEditor] = useAtom(loadEditorAtom);
   const getEditorValue = useAtomValue(exportEditorFunction);
@@ -38,6 +39,7 @@ export default function Dropdowns() {
       isFilterEnable: filterEnabled,
       isSortingEnable: sortingEnabled,
       formulas: formulaStore.getState(),
+      tables: tables,
     };
     return data;
   };
