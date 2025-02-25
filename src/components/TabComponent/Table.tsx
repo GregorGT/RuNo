@@ -6,7 +6,7 @@ import _ from "lodash";
 const Table = () => {
   const [tables] = useAtom(tableAtom);
   const selectedTable = useAtomValue(selectedTableAtom);
-  const { id } = selectedTable ?? {};
+  const { id, excelRef } = selectedTable ?? {};
   const [tableName, setTableName] = useState<string>("");
 
   useEffect(() => {
@@ -36,18 +36,22 @@ const Table = () => {
   return (
     <div className="table-container">
       {id ? (
-        <div className="table-details">
-          <div className="d-flex justify-between">
-            <p>Table</p>
+      <div className="filter-content">
+        <div className="filters">
+          <div className="flex-1">
+            <label className="label">Table Name</label>
+            <div className="flex items-center">
+              <input
+                value={tableName}
+                onChange={handleNameChange}
+                placeholder="Table Name"
+                className="modified"
+              />
+            </div>
+            <div>Selected Cell: { excelRef }</div>
           </div>
-          <input
-            type="text"
-            className="p-1"
-            value={tableName}
-            onChange={handleNameChange}
-            aria-label="Edit table name"
-          />
         </div>
+      </div>
       ) : (
         <p>Please select a table to get started.</p>
       )}
