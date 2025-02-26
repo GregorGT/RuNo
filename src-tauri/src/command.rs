@@ -742,8 +742,12 @@ fn recursive_funcation_parser<'a>(
                                     }
                                     match value_type {
                                         "NUMBER" => {
-                                            if let Ok(num) = cell_data.parse::<f64>() {
-                                                number_vals.push(num);
+                                            let re = Regex::new(r"[-+]?\d*\.?\d+(e[-+]?\d+)?").unwrap();
+
+                                            if let Some(mat) = re.find(&cell_data) {
+                                                if let Ok(num) = mat.as_str().parse::<f64>() {
+                                                    number_vals.push(num);
+                                                }
                                             }
                                         }
                                         "DATE" => {
