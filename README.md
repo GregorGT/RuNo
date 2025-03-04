@@ -57,7 +57,7 @@ COUNT,	gives the count of element found,	COUNT(EVAL("name {TEXT}"))
 
 CONCAT,	concat strings takes eval or string,	CONCAT(EVAL("my {TEXT}"),"OTHER") CONCAT("ONE","TWO")
 
-MUL(EVAL_TABLE("A1:B1", "NUMBER") (Multiplies over all given elments)
+MUL(EVAL_TABLE("A1:B1", "NUMBER")) (Multiplies over all given elments)
 
 SUM("1", EVAL("First heading {NUMBER}")) (Sums over all given elements)
 
