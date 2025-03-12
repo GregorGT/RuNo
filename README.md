@@ -57,7 +57,15 @@ COUNT,	gives the count of element found,	COUNT(EVAL("name {TEXT}"))
 
 CONCAT,	concat strings takes eval or string,	CONCAT(EVAL("my {TEXT}"),"OTHER") CONCAT("ONE","TWO")
 
+MUL(EVAL_TABLE("A1:B1", "NUMBER")) (Multiplies over all given elments)
+
+SUM("1", EVAL("First heading {NUMBER}")) (Sums over all given elements)
+
 TRIM,	trims text,	TRIM("HELLO   ")
+
+EVAL("Search text {NUMBER/DATE/TEXT}") Collects all elements starting with the search text followed by a Number/DATE/TEXT
+
+EVAL_TABLE("Tablename" (optional), "A1:A3", "NUMBER") Collects all elements inside a table with table name "Tablename" as an optional parameter (IF not given the current table is selected), "A1:A3" - Cells and the type of the evaluation "NUMBER", which can be NUMBER, DATE, or TEXT
 
 ROUND,	rounds the values for numbers, 	ROUND(15.2) MIN(EVAL("test some {NUMBER}"))
 
