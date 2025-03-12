@@ -1,5 +1,6 @@
 //extern crate msgbox;
 
+use serde::de::value;
 //use msgbox::IconType;
 use serde::Serialize;
 use std::cmp::Ordering;
@@ -1274,24 +1275,71 @@ fn recursive_funcation_parser<'a>(
         }
         Rule::ROUND => {
             let mut val: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
-            for inner_pair in pair.into_inner() {
-                let ans = recursive_funcation_parser(
-                    inner_pair.clone(),
-                    searcher.clone(),
-                    schema.clone(),
-                    formula_list.clone(),
-                    formula.clone(),
-                );
 
-                match ans {
-                    TypeOr::Right(value) => val = TypeOr::Right(round(value as f64, 0) as f64),
-                    TypeOr::RightList(value) => {
-                        val = TypeOr::RightList(
-                            value.iter().map(|x| round(*x as f64, 0) as f64).collect(),
-                        )
+            let mut i32rnum : i32 = 2;
+            let mut counter: i32 = 0;
+            let mut oldvalue : f64 = 0.0;
+            let mut fnum: f64 = 0.0;
+
+                 for inner_pair in pair.into_inner() {
+
+
+                    counter = counter + 1;
+
+                    let ans = recursive_funcation_parser(
+                        inner_pair.clone(),
+                        searcher.clone(),
+                        schema.clone(),
+                        formula_list.clone(),
+                        formula.clone(),
+                    );
+
+        
+                    if counter == 2
+                    {
+             
+                       match ans {
+                            
+                        TypeOr::Right(value) => {
+                            fnum = (value);
+             
+                        }
+                        TypeOr::RightList(value) => {
+             
+                           fnum = value.iter().sum::<f64>();
+  
+                        }
+                        any => return TypeOr::None,
+                    
+                        
+                    };
+
+                    i32rnum  = fnum as i32;
+
+                    val = TypeOr::Right(round(oldvalue as f64, i32rnum) as f64);
+        
                     }
-                    any => return TypeOr::None,
-                };
+                    else {
+
+                        match ans {
+                            
+
+                            TypeOr::Right(value) => {
+                                val = TypeOr::Right(round(value as f64, i32rnum) as f64);
+                                oldvalue = value;
+                            },
+                            TypeOr::RightList(value) => {
+                                val = TypeOr::RightList(
+                                    value.iter().map(|x| round(*x as f64, i32rnum) as f64).collect(),
+                                );
+
+                                oldvalue = value.iter().sum::<f64>();
+                            }
+                            any => return TypeOr::None,
+                        };
+                }
+            
+                
             }
             return val;
         }
