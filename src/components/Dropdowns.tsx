@@ -84,6 +84,17 @@ export default function Dropdowns() {
     { key: 3, label: "Contact" },
   ];
 
+  // autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+  const AutoCorrect: MenuProps["items"] = [
+    { key: 1, label: "Spellcheck" },
+    { key: 2, label: "Language [EN]" },
+  //  { key: 3, label: "Autocomplete" },
+  //  { key: 4, label: "Autocorrect" },
+  //  { key: 5, label: "Autocapitalize" },
+  ];
+
+
+
   const [api, contextHolder] = notification.useNotification();
   const showNotificaiton = (message: string) => {
     api.info({
@@ -156,6 +167,45 @@ export default function Dropdowns() {
       <Dropdown menu={{ items: infoItems }} placement="bottomLeft">
         <span>Info</span>
       </Dropdown>
+      <Dropdown menu={{ items: AutoCorrect, onClick: async (e) => {
+            
+            // autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+            /*const AutoCorrect: MenuProps["items"] = [
+              { key: 1, label: "Spellcheck" },
+              { key: 2, label: "Language [EN]" },
+              { key: 3, label: "Autocomplete" },
+              { key: 4, label: "Autocorrect" },
+              { key: 5, label: "Autocapitalize" },
+            ];*/
+
+              if (e.key === "1") {
+                const editor = document.getElementById("editor");
+                if(editor?.getAttribute("spellcheck") == "false")
+                {
+                  editor?.setAttribute("spellcheck", "true" );
+                  //this.innerHTML = "<span>&#10003; spellcheck</span>";
+                  //console.log(this);
+
+                }else
+                {
+                  editor?.setAttribute("spellcheck", "false" );
+                }
+
+              } else if(e.key === "3")
+              {
+                const editor = document.getElementById("editor");
+                if(editor?.getAttribute("autocomplete") == "off")
+                  editor?.setAttribute("autocomplete", "on" );
+                else
+                  editor?.setAttribute("autocomplete", "off" ); 
+                
+                  console.log(editor?.getAttribute("autocomplete"));
+              }
+            }
+            
+            }} placement="bottomLeft">
+        <span>Spell checking</span>
+      </Dropdown>      
     </div>
   );
 }
