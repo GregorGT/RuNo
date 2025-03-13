@@ -9,6 +9,8 @@ import { info } from "@tauri-apps/plugin-log";
 import * as path from '@tauri-apps/api/path';
 import { selectedTableStore, tableAtom, tableStore } from "../state/table";
 import { getExcelColumnName } from "../helper";
+import { ask } from '@tauri-apps/plugin-dialog';
+import { confirm } from '@tauri-apps/plugin-dialog';
 
 import "./Components.scss";
 import {
@@ -180,7 +182,15 @@ export default function Dropdowns() {
 
               if (e.key === "1") {
                 const editor = document.getElementById("editor");
-                if(editor?.getAttribute("spellcheck") == "false")
+
+                const confirmation = await confirm(
+                  'Activate spell checking?',
+                  { title: 'Spell checking', kind: 'info' }
+                );
+                
+                //console.log(confirmation);
+
+                if(confirmation == true)
                 {
                   editor?.setAttribute("spellcheck", "true" );
                   //this.innerHTML = "<span>&#10003; spellcheck</span>";
