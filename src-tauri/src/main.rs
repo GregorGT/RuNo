@@ -5,7 +5,7 @@ mod api;
 mod command;
 mod error;
 mod models;
-
+mod database;
 #[macro_use]
 extern crate pest_derive;
 extern crate html5ever;
@@ -15,13 +15,14 @@ extern crate pest;
 use command::assign_entry_id;
 use command::clear_entry_id;
 use command::run_command;
-use std::path::PathBuf;
-use std::process;
+use database::test_connection;
+// use std::path::PathBuf;
+// use std::process;
 
 //use tauri_plugin_log::{Target, TargetKind};
-use chrono::{DateTime, TimeZone, Utc};
-use tauri::{path::BaseDirectory, Manager};
-use tauri::Runtime;
+// use chrono::{DateTime, TimeZone, Utc};
+// use tauri::{path::BaseDirectory, Manager};
+// use tauri::Runtime;
 
 //static mut G_APP : tauri::App = None::<&tauri::Runtime>; //::<tauri::Runtime>;
 
@@ -35,15 +36,11 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             run_command,
             assign_entry_id,
-            clear_entry_id
+            clear_entry_id,
+            test_connection
         ])
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            unsafe {
-                
-                
-                //G_APP = app;
-            }
              Ok(())
           })
         //.plugin(tauri_plugin_fs::init())

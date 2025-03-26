@@ -1,0 +1,48 @@
+.connection-manager {
+  display: flex;
+  gap: 24px;
+  height: 500px;
+
+  .left-panel {
+    width: 200px;
+    border-right: 1px solid #f0f0f0;
+    display: flex;
+    flex-direction: column;
+
+    .connection-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .add-button {
+      margin-top: auto;
+      width: 100%;
+    }
+  }
+
+  .right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .ant-form {
+      flex: 1;
+
+      .ant-form-item {
+        margin-bottom: 40px;
+
+        &-label {
+          text-align: left;
+          padding-right: 16px;
+        }
+      }
+    }
+
+    .button-group {
+      margin-top: auto;
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 16px;
+    }
+  }
+}
