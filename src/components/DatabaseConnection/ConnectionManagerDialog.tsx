@@ -25,6 +25,7 @@ type Connection = {
   type: "Oracle" | "MySQL" | "PostgreSQL" | "SQLite";
   url: string;
   port?: number;
+  database?: string;
   user?: string;
   password?: string;
 };
@@ -81,6 +82,7 @@ export default function ConnectionManagerDialog({
       type: "MySQL",
       url: "",
       port: 3306,
+      database: "",
       user: "",
       password: "",
     };
@@ -103,9 +105,11 @@ export default function ConnectionManagerDialog({
           : {
               ...values,
               port: values.port ? Number(values.port) : undefined,
+              database: values.database ? String(values.database) : undefined,
             };
+      console.log("payload:", payload);
       const success = await invoke("test_connection", { config: payload });
-
+      console.log("success-->", success);
       if (success) {
         setButtonState("connected"); // Change button state to 'connected'
         api.success({
@@ -258,7 +262,7 @@ export default function ConnectionManagerDialog({
 
             {connectionType === "SQLite" ? (
               <Form.Item
-                label="Database File"
+                label="File"
                 name="url"
                 rules={[
                   {
@@ -306,6 +310,17 @@ export default function ConnectionManagerDialog({
                 >
                   <Input type="number" />
                 </Form.Item>
+                {connectionType === "PostgreSQL" && (
+                  <Form.Item
+                    label="Database"
+                    name="database"
+                    // rules={[{ required: true }]}
+                    labelCol={{ span: 6 }}
+                    wrapperCol={{ span: 18 }}
+                  >
+                    <Input />
+                  </Form.Item>
+                )}
                 <Form.Item
                   label="User"
                   name="user"
