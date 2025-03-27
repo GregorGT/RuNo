@@ -11,6 +11,7 @@ pub struct ConnectionConfig {
     pub name: String,
     pub r#type: String,
     pub url: String,
+    pub database: Option<String>,// Optional for PostgreSQL
     pub port: Option<u16>,       // Optional for SQLite
     pub user: Option<String>,    // Optional for SQLite
     pub password: Option<String>,// Optional for SQLite
@@ -60,10 +61,11 @@ pub async fn test_connection(config: ConnectionConfig) -> bool {
       "PostgreSQL" => {
         let user = config.user.as_deref().unwrap_or("postgres");
         let password = config.password.as_deref().unwrap_or("");
+        let database =config.database.as_deref().unwrap_or("postgres");
         let port = config.port.unwrap_or(5432);
         
-        let connection_string =format!("postgres://{}:{}@{}:{}",
-                user, password, config.url, port
+        let connection_string =format!("postgres://{}:{}@{}:{}/{}",
+                user, password, config.url, port,database
             );
           println!("PostgreSQL Connection String: {}", connection_string);
 
