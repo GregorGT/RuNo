@@ -310,17 +310,15 @@ export default function ConnectionManagerDialog({
                 >
                   <Input type="number" />
                 </Form.Item>
-                {connectionType === "PostgreSQL" && (
-                  <Form.Item
-                    label="Database"
-                    name="database"
-                    // rules={[{ required: true }]}
-                    labelCol={{ span: 6 }}
-                    wrapperCol={{ span: 18 }}
-                  >
-                    <Input />
-                  </Form.Item>
-                )}
+                <Form.Item
+                  label="Database"
+                  name="database"
+                  // rules={[{ required: true }]}
+                  labelCol={{ span: 6 }}
+                  wrapperCol={{ span: 18 }}
+                >
+                  <Input />
+                </Form.Item>
                 <Form.Item
                   label="User"
                   name="user"

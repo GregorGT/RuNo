@@ -39,11 +39,12 @@ pub async fn test_connection(config: ConnectionConfig) -> bool {
       }
       "MySQL" => {
           let connection_string = format!(
-              "mysql://{}:{}@{}:{}",
+              "mysql://{}:{}@{}:{}/{}",
               config.user.as_deref().unwrap_or("root"),
               config.password.as_deref().unwrap_or(""),
               config.url,
               config.port.unwrap_or(3306),
+              config.database.as_deref().unwrap_or(""),
           );
           println!("MySQL Connection String: {}", connection_string);
 
@@ -82,9 +83,10 @@ pub async fn test_connection(config: ConnectionConfig) -> bool {
       }
         "Oracle" => {
             let port = config.port.unwrap_or(1521);
-            let connection_string = format!("//{}:{}", config.url, port);
+            let database =config.database.as_deref().unwrap_or("");
+            let connection_string = format!("//{}:{}/{}", config.url, port,database);
             let username = config.user.clone().unwrap_or_default();
-            let password = config.password.clone().unwrap_or_default();
+            let password = config.password.clone().unwrap_or_default();            
 
             println!("Oracle Connection String: {}", connection_string);
 
