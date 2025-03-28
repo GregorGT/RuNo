@@ -3,8 +3,8 @@ import { downloadDir } from "@tauri-apps/api/path";
 import type { MenuProps } from "antd";
 import { Dropdown, notification } from "antd";
 import { useAtom, useAtomValue } from "jotai/react";
-import { editorStateAtom } from "../state/editor";
-import { exportEditorFunction, loadEditorAtom } from "../state/load";
+// import { editorStateAtom } from "../state/editor";
+import { exportEditorFunction } from "../state/load";
 import * as path from "@tauri-apps/api/path";
 import { selectedTableStore, tableAtom, tableStore } from "../state/table";
 import { getExcelColumnName } from "../helper";
@@ -22,10 +22,12 @@ import {
 import ConnectionManagerDialog from "./DatabaseConnection/ConnectionManagerDialog";
 
 import { useState } from "react";
+import { connectionsStore } from "../state/connection";
+import { RuNoFile } from "../state/fileTypes";
 export default function Dropdowns() {
   const tables = useAtomValue(tableAtom);
-  const [editorState, setState] = useAtom(editorStateAtom);
-  const [_, loadEditor] = useAtom(loadEditorAtom);
+  // const [editorState, setState] = useAtom(editorStateAtom);
+  // const [_, loadEditor] = useAtom(loadEditorAtom);
   const getEditorValue = useAtomValue(exportEditorFunction);
   const [filterValue, setFilterValue] = useAtom(filterFnAtom);
   const [sortingDirection, setSortingDirection] = useAtom(sortingAtom);
@@ -34,8 +36,8 @@ export default function Dropdowns() {
   const [sortingEnabled, setSortingEnabled] = useAtom(isSortingEnable);
   const [isConnectionDialogVisible, setConnectionDialogVisible] =
     useState(false);
-  const save_data = () => {
-    const data = {
+  const save_data = (): RuNoFile => {
+    return {
       editorData: getEditorValue.fn(),
       filter: filterValue,
       sorting: sortingFn,
@@ -44,29 +46,28 @@ export default function Dropdowns() {
       isSortingEnable: sortingEnabled,
       formulas: formulaStore.getState(),
       tables: tables,
+      sqlConnections: connectionsStore.getState().connections,
     };
-    return data;
   };
   const load_data = (json: string) => {
-    const {
-      editorData,
-      filter,
-      sorting,
-      direction,
-      isFilterEnable = false,
-      isSortingEnable = false,
-      formulas = [],
-      tables = [],
-    } = JSON.parse(json);
+    const data: RuNoFile = JSON.parse(json);
+
     selectedFormulaIdStore.setState(undefined, true);
-    getEditorValue.load(editorData);
-    setFilterValue(filter);
-    setSortingFn(sorting);
-    setSortingDirection(direction);
-    setFilterEnabled(isFilterEnable);
-    setSortingEnabled(isSortingEnable);
-    formulaStore.setState(formulas, true);
-    tableStore.setState(tables, true);
+    getEditorValue.load(data.editorData);
+    setFilterValue(data.filter);
+    setSortingFn(data.sorting);
+    setSortingDirection(data.direction ?? "asc");
+    setFilterEnabled(data.isFilterEnable ?? false);
+    setSortingEnabled(data.isSortingEnable ?? false);
+    formulaStore.setState(data.formulas ?? [], true);
+    tableStore.setState(data.tables ?? [], true);
+    // connectionsStore.setState(
+    //   {
+    //     connections: data.sqlConnections ?? [],
+    //     selectedConnectionId: undefined,
+    //   },
+    //   true
+    // );
   };
 
   const fileItems: MenuProps["items"] = [
@@ -134,12 +135,17 @@ export default function Dropdowns() {
 
                   Array.from(tables).forEach((table) => {
                     table.addEventListener("click", (e) => {
-                      const cell = e.target?.closest("td, th");
+                      const cell = (e.target as HTMLElement)?.closest(
+                        "td, th"
+                      ) as HTMLTableCellElement | null;
                       if (!cell) return;
 
-                      const row = cell.parentElement;
-                      const rowIndex = row.rowIndex + 1;
-                      const cellIndex = cell.cellIndex;
+                      const row =
+                        cell.parentElement as HTMLTableRowElement | null;
+                      if (!row) return; // Add a check to ensure row is not null
+
+                      const rowIndex = row.rowIndex + 1; // rowIndex is now safely accessible
+                      const cellIndex = cell.cellIndex; // cellIndex is now safely accessible
 
                       const columnLetter = getExcelColumnName(cellIndex + 1);
 

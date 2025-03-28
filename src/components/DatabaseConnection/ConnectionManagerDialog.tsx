@@ -11,7 +11,6 @@ import {
   Typography,
 } from "antd";
 import type { MenuProps } from "antd";
-import { atom } from "jotai";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState, useEffect } from "react";
@@ -125,7 +124,6 @@ export default function ConnectionManagerDialog({
             lastTested: new Date().toISOString(),
           });
         }
-        console.log("set---->", selectedConnection);
         api.success({
           message: "Connection successful!",
           placement: "topRight",
