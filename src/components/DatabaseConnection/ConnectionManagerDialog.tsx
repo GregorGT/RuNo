@@ -17,20 +17,15 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useState, useEffect } from "react";
 import { FileOutlined, FolderOpenOutlined } from "@ant-design/icons";
 import "./Database.scss";
+import {
+  connectionsStore,
+  connectionsAtom,
+  Connection,
+} from "../../state/connection";
 
 const { Text } = Typography;
-type Connection = {
-  id: string;
-  name: string;
-  type: "Oracle" | "MySQL" | "PostgreSQL" | "SQLite";
-  url: string;
-  port?: number;
-  database?: string;
-  user?: string;
-  password?: string;
-};
 
-const connectionTypes = ["Oracle", "MySQL", "PostgreSQL", "SQLite"];
+const connectionTypes = ["Oracle", "MySQL", "PostgreSQL", "SQLite"] as const;
 
 // Default ports for each database type
 const defaultPorts: Record<string, number> = {
@@ -41,9 +36,6 @@ const defaultPorts: Record<string, number> = {
 };
 
 // Jotai atoms for state management
-export const connectionsAtom = atom<Connection[]>([]);
-export const selectedConnectionAtom = atom<Connection | null>(null);
-
 export default function ConnectionManagerDialog({
   visible,
   onClose,
@@ -51,10 +43,12 @@ export default function ConnectionManagerDialog({
   visible: boolean;
   onClose: () => void;
 }) {
-  const [connections, setConnections] = useAtom(connectionsAtom);
-  const [selectedConnection, setSelectedConnection] = useAtom(
-    selectedConnectionAtom
+  const [state, setState] = useAtom(connectionsAtom);
+  const { connections, selectedConnectionId } = state;
+  const selectedConnection = connections.find(
+    (c) => c.id === selectedConnectionId
   );
+
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [buttonState, setButtonState] = useState<
@@ -63,16 +57,31 @@ export default function ConnectionManagerDialog({
 
   const connectionType = Form.useWatch("type", form);
   useEffect(() => {
+    if (selectedConnection) {
+      form.setFieldsValue({
+        ...selectedConnection,
+        port: selectedConnection.port || defaultPorts[selectedConnection.type],
+      });
+    } else {
+      form.resetFields();
+    }
+  }, [selectedConnection, form]);
+  useEffect(() => {
     if (connectionType && defaultPorts[connectionType] !== undefined) {
-      form.setFieldsValue({ port: defaultPorts[connectionType] });
+      form.setFieldsValue({
+        port: defaultPorts[connectionType],
+      });
+      // Also update the connection in store if one is selected
+      if (selectedConnectionId) {
+        connectionsStore.getState().updateConnection(selectedConnectionId, {
+          port: defaultPorts[connectionType],
+        });
+      }
     }
-  }, [connectionType, form]);
+  }, [connectionType, form, selectedConnectionId]);
   const handleMenuClick: MenuProps["onClick"] = (e) => {
-    const connection = connections.find((c) => c.id === e.key);
-    if (connection) {
-      setSelectedConnection(connection);
-      form.setFieldsValue(connection);
-    }
+    connectionsStore.getState().setSelectedConnectionId(e.key);
+    setButtonState("default");
   };
 
   const handleAddConnection = () => {
@@ -81,13 +90,12 @@ export default function ConnectionManagerDialog({
       name: "New Connection",
       type: "MySQL",
       url: "",
-      port: 3306,
       database: "",
       user: "",
       password: "",
     };
-    setConnections([...connections, newConnection]);
-    setSelectedConnection(newConnection);
+    connectionsStore.getState().addConnection(newConnection);
+    connectionsStore.getState().setSelectedConnectionId(newConnection.id);
     form.setFieldsValue(newConnection);
   };
 
@@ -112,6 +120,12 @@ export default function ConnectionManagerDialog({
       console.log("success-->", success);
       if (success) {
         setButtonState("connected"); // Change button state to 'connected'
+        if (selectedConnectionId) {
+          connectionsStore.getState().updateConnection(selectedConnectionId, {
+            lastTested: new Date().toISOString(),
+          });
+        }
+        console.log("set---->", selectedConnection);
         api.success({
           message: "Connection successful!",
           placement: "topRight",
@@ -130,26 +144,17 @@ export default function ConnectionManagerDialog({
     }
   };
   const handleValuesChange = (changedValues: Partial<Connection>) => {
-    if (!selectedConnection) return;
-
-    // Update the selected connection object
-    const updatedConnection = { ...selectedConnection, ...changedValues };
-
-    // Update the connections array
-    setConnections((prev) =>
-      prev.map((conn) =>
-        conn.id === selectedConnection.id ? updatedConnection : conn
-      )
-    );
-
-    // Update the selected connection state
-    setSelectedConnection(updatedConnection);
+    console.log("changed Value----<>", changedValues);
+    if (!selectedConnectionId) return;
+    connectionsStore
+      .getState()
+      .updateConnection(selectedConnectionId, changedValues);
   };
   const handleDeleteConnection = () => {
-    if (selectedConnection) {
-      setConnections(connections.filter((c) => c.id !== selectedConnection.id));
-      setSelectedConnection(null);
-      form.resetFields();
+    if (selectedConnectionId) {
+      connectionsStore.getState().deleteConnection(selectedConnectionId);
+      form.resetFields(); // Reset form to clear all fields
+      setButtonState("default"); // Reset button state
     }
   };
 
@@ -163,24 +168,22 @@ export default function ConnectionManagerDialog({
             name: "SQLite Database",
             extensions: ["db", "sqlite", "sqlite3", "db3"],
           },
-          {
-            name: "All Files",
-            extensions: ["*"],
-          },
+          { name: "All Files", extensions: ["*"] },
         ],
         title: "Select SQLite Database File",
       });
 
       if (selected && typeof selected === "string") {
         form.setFieldsValue({ url: selected });
+        // Also update the connection in store if one is selected
+        if (selectedConnectionId) {
+          connectionsStore.getState().updateConnection(selectedConnectionId, {
+            url: selected,
+          });
+        }
         api.success({
           message: "File selected successfully",
           description: selected,
-          placement: "topRight",
-        });
-      } else {
-        api.warning({
-          message: "No file selected",
           placement: "topRight",
         });
       }
@@ -333,7 +336,7 @@ export default function ConnectionManagerDialog({
                   labelCol={{ span: 6 }}
                   wrapperCol={{ span: 18 }}
                 >
-                  <Input.Password />
+                  <Input.Password visibilityToggle={false} />
                 </Form.Item>
               </>
             )}
