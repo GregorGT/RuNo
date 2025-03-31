@@ -158,9 +158,13 @@ const ConnectionManagerDialog = ({
   // Update default port when connection type changes
   useEffect(() => {
     if (connectionType && selectedConnectionId) {
-      const defaultPort = DEFAULT_PORTS[connectionType as DatabaseType];
-      form.setFieldsValue({ port: defaultPort });
-      updateConnectionField("port", defaultPort);
+      const currentPort = form.getFieldValue("port");
+      // Only set default port if there's no port value already set
+      if (!currentPort) {
+        const defaultPort = DEFAULT_PORTS[connectionType as DatabaseType];
+        form.setFieldsValue({ port: defaultPort });
+        updateConnectionField("port", defaultPort);
+      }
     }
   }, [connectionType, selectedConnectionId, form]);
 
@@ -261,10 +265,19 @@ const ConnectionManagerDialog = ({
   const handleValuesChange = (changedValues: Partial<Connection>) => {
     if (!selectedConnectionId) return;
     setButtonState("default");
+
+    // Convert port to number if it's being changed
+    const processedChanges = {
+      ...changedValues,
+      port: changedValues.port ? Number(changedValues.port) : undefined,
+    };
+
     setState((prev) => ({
       ...prev,
       connections: prev.connections.map((conn) =>
-        conn.id === selectedConnectionId ? { ...conn, ...changedValues } : conn
+        conn.id === selectedConnectionId
+          ? { ...conn, ...processedChanges }
+          : conn
       ),
       connectionStates: {
         ...(prev.connectionStates || {}),
