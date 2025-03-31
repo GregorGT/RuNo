@@ -61,13 +61,13 @@ export default function Dropdowns() {
     setSortingEnabled(data.isSortingEnable ?? false);
     formulaStore.setState(data.formulas ?? [], true);
     tableStore.setState(data.tables ?? [], true);
-    // connectionsStore.setState(
-    //   {
-    //     connections: data.sqlConnections ?? [],
-    //     selectedConnectionId: undefined,
-    //   },
-    //   true
-    // );
+    connectionsStore.setState(
+      {
+        connections: data.sqlConnections ?? [],
+        selectedConnectionId: undefined,
+      },
+      true
+    );
   };
 
   const fileItems: MenuProps["items"] = [
@@ -126,13 +126,11 @@ export default function Dropdowns() {
               input.onchange = (e) => {
                 const target = e.target as HTMLInputElement;
                 const file: File = (target.files as FileList)[0];
-                console.log(file);
                 const reader = new FileReader();
                 reader.readAsText(file);
                 reader.onload = () => {
                   load_data(reader.result as string);
                   const tables = document.getElementsByTagName("table");
-
                   Array.from(tables).forEach((table) => {
                     table.addEventListener("click", (e) => {
                       const cell = (e.target as HTMLElement)?.closest(

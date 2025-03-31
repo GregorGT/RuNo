@@ -49,15 +49,18 @@ import HorizontalRule from "@tiptap/extension-horizontal-rule";
 //@ts-ignore
 import UniqueId from "tiptap-unique-id";
 import { final_list } from "../../helper";
-import { triggerFocus } from "antd/es/input/Input";
 import { selectedTableStore, tableAtom } from "../../state/table";
 import { getExcelColumnName } from "../../helper";
+import { ButtonState, connectionsStore } from "../../state/connection";
+import { notification } from "antd";
 
 let example = final_list;
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const [loadEditor] = useAtom(loadEditorAtom);
   const { editor } = useCurrentEditor();
-  // const [allFormula, setFormulaValues] = useAtom(formulaAtom);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [api, contextHolder] = notification.useNotification();
 
   useEffect(() => {
     if (loadEditor[editorName] && editor) {
@@ -90,6 +93,63 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 
   const load_data_to_backend = async () => {
     try {
+      // Get all connections
+      const connections = connectionsStore.getState().connections;
+      const connectedStates: Record<string, ButtonState> = {};
+      // Find all connections with lastTested status
+      let validConnections = connections.filter((conn) => conn.lastTested);
+      // Test each connection that has lastTested
+      for (const connection of validConnections) {
+        try {
+          const isConnected = await invoke("test_connection", {
+            config: connection,
+          });
+          if (isConnected) {
+            setIsConnected(true);
+            // Update connection status in store
+            connectedStates[connection.id] = "connected";
+            connectionsStore.setState((state) => ({
+              ...state,
+              connections: state.connections.map((conn) =>
+                conn.id === connection.id
+                  ? { ...conn, lastTested: new Date().toISOString() }
+                  : conn
+              ),
+            }));
+            api.success({
+              message: "Database Connected",
+              description: `Connected to ${connection.name} (${connection.type})`,
+              placement: "topRight",
+            });
+            validConnections = [connection];
+          }
+        } catch (error) {
+          console.error(`Failed to connect to ${connection.name}:`, error);
+          connectedStates[connection.id] = "failed";
+          // Update connection status to failed
+          connectionsStore.setState((state) => ({
+            ...state,
+            connections: state.connections.map((conn) =>
+              conn.id === connection.id
+                ? { ...conn, lastTested: undefined }
+                : conn
+            ),
+          }));
+        }
+      }
+      connectionsStore.setState((state) => ({
+        ...state,
+        connectionStates: connectedStates,
+      }));
+      if (!validConnections.length) {
+        api.error({
+          message: "No Valid Connections",
+          description: "Could not establish any database connections",
+          placement: "topRight",
+        });
+        // return;
+      }
+
       let top_id = "";
       editor.state.doc.descendants((node, pos) => {
         if (node.type.name === "horizontalRule") {
@@ -191,7 +251,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         margin: "20px",
       }}
     >
-
+      {contextHolder}
       <Button onClick={load_data_to_backend}>Update</Button>
       <div className="d-flex gap-2  ">
         <Select
@@ -311,26 +371,26 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
               .chain()
               .focus()
               .insertTable({ rows: 3, cols: 3, withHeaderRow: false })
-              .run()
-            
+              .run();
+
             const tables = document.getElementsByTagName("table");
 
             Array.from(tables).forEach((table) => {
               table.addEventListener("click", (e) => {
-                const cell = e.target?.closest("td, th");
+                const cell = (e.target as HTMLElement).closest("td, th");
                 if (!cell) return;
-            
-                const row = cell.parentElement;
+
+                const row = cell.parentElement as HTMLTableRowElement;
                 const rowIndex = row.rowIndex + 1;
-                const cellIndex = cell.cellIndex;
-            
+                const cellIndex = (cell as HTMLTableCellElement).cellIndex;
+
                 const columnLetter = getExcelColumnName(cellIndex + 1);
-            
+
                 const excelRef = `${columnLetter}${rowIndex}`;
-            
+
                 selectedTableStore.setState({
                   id: table.id,
-                  excelRef: excelRef
+                  excelRef: excelRef,
                 });
               });
             });

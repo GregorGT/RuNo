@@ -16,7 +16,6 @@ export let final_list = [...new Array(300)]
   .map((_, i) => get_new_list(i))
   .join("");
 
-
 export const getExcelColumnName = (colIndex: number) => {
   let columnName = "";
   while (colIndex > 0) {
@@ -25,4 +24,4 @@ export const getExcelColumnName = (colIndex: number) => {
     colIndex = Math.floor((colIndex - 1) / 26);
   }
   return columnName;
-}
+};
