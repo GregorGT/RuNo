@@ -401,13 +401,8 @@ const ConnectionManagerDialog = ({
                 onClick={handleTestConnection}
                 style={{ marginRight: 8 }}
                 loading={buttonState === "testing"}
-                disabled={buttonState === "connected"}
               >
-                {buttonState === "testing"
-                  ? "Testing..."
-                  : buttonState === "connected"
-                  ? "Connected"
-                  : "Test Connection"}
+                {buttonState === "testing" ? "Testing..." : "Test Connection"}
               </Button>
               <Button
                 danger
