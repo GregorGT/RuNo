@@ -8,149 +8,290 @@ import {
   Form,
   notification,
   Space,
-  Typography,
 } from "antd";
 import type { MenuProps } from "antd";
-import { atom } from "jotai";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState, useEffect } from "react";
-import { FileOutlined, FolderOpenOutlined } from "@ant-design/icons";
+import { FileOutlined } from "@ant-design/icons";
 import "./Database.scss";
+import {
+  connectionsAtom,
+  Connection,
+  DatabaseType,
+  CONNECTION_TYPES,
+  DEFAULT_PORTS,
+  getDefaultConnection,
+  ButtonState,
+} from "../../state/connection";
 
-const { Text } = Typography;
-type Connection = {
-  id: string;
-  name: string;
-  type: "Oracle" | "MySQL" | "PostgreSQL" | "SQLite";
-  url: string;
-  port?: number;
-  database?: string;
-  user?: string;
-  password?: string;
+const SQLiteFileExtensions = ["db", "sqlite", "sqlite3", "db3"];
+
+const ConnectionFormFields = ({
+  connectionType,
+  form,
+  onFileSelect,
+}: {
+  connectionType: DatabaseType;
+  form: any;
+  onFileSelect: () => void;
+}) => {
+  const filePath = Form.useWatch("url", form);
+
+  if (connectionType === "SQLite") {
+    return (
+      <Form.Item
+        label="File"
+        name="url"
+        rules={[{ required: true, message: "Please select a database file" }]}
+        labelCol={{ span: 6 }}
+        wrapperCol={{ span: 18 }}
+      >
+        <Space.Compact style={{ width: "100%" }}>
+          <Input
+            placeholder="Click browse to select a database file"
+            readOnly
+            value={filePath}
+            prefix={<FileOutlined />}
+            style={{ cursor: "pointer", backgroundColor: "#fafafa" }}
+            onClick={onFileSelect}
+            className="file-path-input"
+          />
+        </Space.Compact>
+        <div className="file-hint">
+          Select an SQLite database file ({SQLiteFileExtensions.join(", ")})
+        </div>
+      </Form.Item>
+    );
+  }
+
+  return (
+    <>
+      <Form.Item
+        label="URL"
+        name="url"
+        rules={[{ required: true }]}
+        labelCol={{ span: 6 }}
+        wrapperCol={{ span: 18 }}
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item
+        label="Port"
+        name="port"
+        labelCol={{ span: 6 }}
+        wrapperCol={{ span: 18 }}
+      >
+        <Input type="number" />
+      </Form.Item>
+      <Form.Item
+        label="Database"
+        name="database"
+        labelCol={{ span: 6 }}
+        wrapperCol={{ span: 18 }}
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item
+        label="User"
+        name="user"
+        labelCol={{ span: 6 }}
+        wrapperCol={{ span: 18 }}
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item
+        label="Password"
+        name="password"
+        labelCol={{ span: 6 }}
+        wrapperCol={{ span: 18 }}
+      >
+        <Input.Password
+          visibilityToggle={false}
+          placeholder={form.getFieldValue("password") ? "********" : ""}
+        />
+      </Form.Item>
+    </>
+  );
 };
 
-const connectionTypes = ["Oracle", "MySQL", "PostgreSQL", "SQLite"];
-
-// Default ports for each database type
-const defaultPorts: Record<string, number> = {
-  Oracle: 1521,
-  MySQL: 3306,
-  PostgreSQL: 5432,
-  SQLite: 0, // SQLite doesn't require a port
-};
-
-// Jotai atoms for state management
-export const connectionsAtom = atom<Connection[]>([]);
-export const selectedConnectionAtom = atom<Connection | null>(null);
-
-export default function ConnectionManagerDialog({
+const ConnectionManagerDialog = ({
   visible,
   onClose,
 }: {
   visible: boolean;
   onClose: () => void;
-}) {
-  const [connections, setConnections] = useAtom(connectionsAtom);
-  const [selectedConnection, setSelectedConnection] = useAtom(
-    selectedConnectionAtom
+}) => {
+  const [state, setState] = useAtom(connectionsAtom);
+  const {
+    connections = [],
+    selectedConnectionId,
+    connectionStates = {},
+  } = state;
+  const selectedConnection = connections.find(
+    (c) => c.id === selectedConnectionId
   );
+
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
-  const [buttonState, setButtonState] = useState<
-    "default" | "testing" | "connected" | "failed"
-  >("default");
+  const [buttonState, setButtonState] = useState<ButtonState>("default");
 
   const connectionType = Form.useWatch("type", form);
+
+  // Initialize form with selected connection or defaults
   useEffect(() => {
-    if (connectionType && defaultPorts[connectionType] !== undefined) {
-      form.setFieldsValue({ port: defaultPorts[connectionType] });
+    if (!selectedConnection) {
+      form.resetFields();
+      setButtonState("default");
+      return;
     }
-  }, [connectionType, form]);
+
+    const values = {
+      ...selectedConnection,
+      port: selectedConnection.port ?? DEFAULT_PORTS[selectedConnection.type],
+    };
+
+    form.setFieldsValue(values);
+    setButtonState(connectionStates[selectedConnection.id] || "default");
+  }, [selectedConnection, form, connectionStates]);
+
+  // Update default port when connection type changes
+  useEffect(() => {
+    if (connectionType && selectedConnectionId) {
+      const defaultPort = DEFAULT_PORTS[connectionType as DatabaseType];
+      form.setFieldsValue({ port: defaultPort });
+      updateConnectionField("port", defaultPort);
+    }
+  }, [connectionType, selectedConnectionId, form]);
+
+  const updateConnectionField = (field: string, value: any) => {
+    if (!selectedConnectionId) return;
+    setState((prev) => ({
+      ...prev,
+      connections: prev.connections.map((conn) =>
+        conn.id === selectedConnectionId ? { ...conn, [field]: value } : conn
+      ),
+    }));
+  };
+
   const handleMenuClick: MenuProps["onClick"] = (e) => {
-    const connection = connections.find((c) => c.id === e.key);
-    if (connection) {
-      setSelectedConnection(connection);
-      form.setFieldsValue(connection);
-    }
+    if (!e?.key) return;
+    setState((prev) => ({ ...prev, selectedConnectionId: e.key }));
+    setButtonState(connectionStates[e.key] || "default");
   };
 
   const handleAddConnection = () => {
-    const newConnection: Connection = {
-      id: Date.now().toString(),
-      name: "New Connection",
-      type: "MySQL",
-      url: "",
-      port: 3306,
-      database: "",
-      user: "",
-      password: "",
-    };
-    setConnections([...connections, newConnection]);
-    setSelectedConnection(newConnection);
+    const newConnection = getDefaultConnection();
+    setState((prev) => ({
+      ...prev,
+      connections: [...prev.connections, newConnection],
+      selectedConnectionId: newConnection.id,
+    }));
     form.setFieldsValue(newConnection);
+    setButtonState("default");
   };
 
   const handleTestConnection = async () => {
-    setButtonState("testing"); // Change button state to 'testing'
+    setButtonState("testing");
     try {
       const values = await form.validateFields();
       const payload =
         values.type === "SQLite"
-          ? {
-              name: values.name,
-              type: values.type,
-              url: values.url,
-            }
-          : {
-              ...values,
-              port: values.port ? Number(values.port) : undefined,
-              database: values.database ? String(values.database) : undefined,
-            };
-      console.log("payload:", payload);
+          ? { name: values.name, type: values.type, url: values.url }
+          : { ...values, port: values.port ? Number(values.port) : undefined };
+
       const success = await invoke("test_connection", { config: payload });
-      console.log("success-->", success);
+
       if (success) {
-        setButtonState("connected"); // Change button state to 'connected'
-        api.success({
-          message: "Connection successful!",
-          placement: "topRight",
-        });
+        const newState = "connected";
+        setButtonState(newState);
+        if (selectedConnectionId) {
+          setState((prev) => ({
+            ...prev,
+            connectionStates: {
+              ...(prev.connectionStates || {}),
+              [selectedConnectionId]: newState,
+            },
+          }));
+        }
+        updateLastTested();
+        showNotification("success", "Connection successful!");
       } else {
-        setButtonState("failed"); // Change button state to 'failed'
-        api.error({ message: "Connection failed!", placement: "topRight" });
+        const newState = "failed";
+        setButtonState(newState);
+        if (selectedConnectionId) {
+          setState((prev) => ({
+            ...prev,
+            connectionStates: {
+              ...(prev.connectionStates || {}),
+              [selectedConnectionId]: newState,
+            },
+          }));
+        }
+        showNotification("error", "Connection failed!");
       }
     } catch (error) {
       console.error("Connection error:", error);
-      setButtonState("failed"); // Change button state to 'failed'
-      api.error({
-        message: "Connection error." + error,
-        placement: "topRight",
-      });
+      setButtonState("failed");
+      showNotification(
+        "error",
+        `Connection error: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   };
+
+  const updateLastTested = () => {
+    if (!selectedConnectionId) return;
+    setState((prev) => ({
+      ...prev,
+      connections: prev.connections.map((conn) =>
+        conn.id === selectedConnectionId
+          ? { ...conn, lastTested: new Date().toISOString() }
+          : conn
+      ),
+    }));
+  };
+
+  const showNotification = (type: "success" | "error", message: string) => {
+    api[type]({ message, placement: "topRight" });
+  };
+
   const handleValuesChange = (changedValues: Partial<Connection>) => {
-    if (!selectedConnection) return;
-
-    // Update the selected connection object
-    const updatedConnection = { ...selectedConnection, ...changedValues };
-
-    // Update the connections array
-    setConnections((prev) =>
-      prev.map((conn) =>
-        conn.id === selectedConnection.id ? updatedConnection : conn
-      )
-    );
-
-    // Update the selected connection state
-    setSelectedConnection(updatedConnection);
+    if (!selectedConnectionId) return;
+    setButtonState("default");
+    setState((prev) => ({
+      ...prev,
+      connections: prev.connections.map((conn) =>
+        conn.id === selectedConnectionId ? { ...conn, ...changedValues } : conn
+      ),
+      connectionStates: {
+        ...(prev.connectionStates || {}),
+        [selectedConnectionId]: "default",
+      },
+    }));
   };
+
   const handleDeleteConnection = () => {
-    if (selectedConnection) {
-      setConnections(connections.filter((c) => c.id !== selectedConnection.id));
-      setSelectedConnection(null);
-      form.resetFields();
-    }
+    if (!selectedConnectionId) return;
+
+    setState((prev) => {
+      const newConnectionStates = { ...(prev.connectionStates || {}) };
+      delete newConnectionStates[selectedConnectionId];
+
+      return {
+        ...prev,
+        connections: prev.connections.filter(
+          (conn) => conn.id !== selectedConnectionId
+        ),
+        selectedConnectionId: undefined,
+        connectionStates: newConnectionStates,
+      };
+    });
+
+    form.resetFields();
+    setButtonState("default");
   };
 
   const handleFileSelect = async () => {
@@ -159,48 +300,23 @@ export default function ConnectionManagerDialog({
         multiple: false,
         directory: false,
         filters: [
-          {
-            name: "SQLite Database",
-            extensions: ["db", "sqlite", "sqlite3", "db3"],
-          },
-          {
-            name: "All Files",
-            extensions: ["*"],
-          },
+          { name: "SQLite Database", extensions: SQLiteFileExtensions },
+          { name: "All Files", extensions: ["*"] },
         ],
         title: "Select SQLite Database File",
       });
 
       if (selected && typeof selected === "string") {
         form.setFieldsValue({ url: selected });
-        api.success({
-          message: "File selected successfully",
-          description: selected,
-          placement: "topRight",
-        });
-      } else {
-        api.warning({
-          message: "No file selected",
-          placement: "topRight",
-        });
+        updateConnectionField("url", selected);
+        showNotification("success", "File selected successfully");
       }
     } catch (error) {
       console.error("Error selecting file:", error);
-      api.error({
-        message: "Failed to select file",
-        description: error instanceof Error ? error.message : String(error),
-        placement: "topRight",
-      });
+      showNotification("error", "Failed to select file");
     }
   };
-  const formatFilePath = (path: string) => {
-    if (!path) return null;
-    const parts = path.split(/[\\/]/);
-    if (parts.length <= 2) return path;
-    return `.../${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
-  };
 
-  const filePath = Form.useWatch("url", form);
   return (
     <Modal
       title="SQL Connection Manager"
@@ -256,87 +372,15 @@ export default function ConnectionManagerDialog({
               wrapperCol={{ span: 18 }}
             >
               <Select
-                options={connectionTypes.map((t) => ({ value: t, label: t }))}
+                options={CONNECTION_TYPES.map((t) => ({ value: t, label: t }))}
               />
             </Form.Item>
 
-            {connectionType === "SQLite" ? (
-              <Form.Item
-                label="File"
-                name="url"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please select a database file",
-                  },
-                ]}
-                labelCol={{ span: 6 }}
-                wrapperCol={{ span: 18 }}
-              >
-                <Space.Compact style={{ width: "100%" }}>
-                  <Input
-                    placeholder="Click browse to select a database file"
-                    readOnly
-                    value={form.getFieldValue("url")}
-                    prefix={<FileOutlined />}
-                    style={{
-                      cursor: "pointer",
-                      backgroundColor: "#fafafa",
-                    }}
-                    onClick={handleFileSelect}
-                    className="file-path-input"
-                  />
-                </Space.Compact>
-                <div className="file-hint">
-                  Select an SQLite database file (.db, .sqlite, .sqlite3, .db3)
-                </div>
-              </Form.Item>
-            ) : (
-              <>
-                <Form.Item
-                  label="URL"
-                  name="url"
-                  rules={[{ required: true }]}
-                  labelCol={{ span: 6 }}
-                  wrapperCol={{ span: 18 }}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  label="Port"
-                  name="port"
-                  labelCol={{ span: 6 }}
-                  wrapperCol={{ span: 18 }}
-                >
-                  <Input type="number" />
-                </Form.Item>
-                <Form.Item
-                  label="Database"
-                  name="database"
-                  // rules={[{ required: true }]}
-                  labelCol={{ span: 6 }}
-                  wrapperCol={{ span: 18 }}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  label="User"
-                  name="user"
-                  labelCol={{ span: 6 }}
-                  wrapperCol={{ span: 18 }}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  label="Password"
-                  name="password"
-                  labelCol={{ span: 6 }}
-                  wrapperCol={{ span: 18 }}
-                >
-                  <Input.Password />
-                </Form.Item>
-              </>
-            )}
+            <ConnectionFormFields
+              connectionType={connectionType}
+              form={form}
+              onFileSelect={handleFileSelect}
+            />
 
             <div className="button-group">
               <Button
@@ -344,11 +388,12 @@ export default function ConnectionManagerDialog({
                 onClick={handleTestConnection}
                 style={{ marginRight: 8 }}
                 loading={buttonState === "testing"}
+                disabled={buttonState === "connected"}
               >
                 {buttonState === "testing"
                   ? "Testing..."
                   : buttonState === "connected"
-                  ? "Test Connection"
+                  ? "Connected"
                   : "Test Connection"}
               </Button>
               <Button
@@ -364,4 +409,6 @@ export default function ConnectionManagerDialog({
       </div>
     </Modal>
   );
-}
+};
+
+export default ConnectionManagerDialog;

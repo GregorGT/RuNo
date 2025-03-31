@@ -2,7 +2,7 @@ import { atom } from "jotai";
 import { atomWithStore } from "jotai-zustand";
 import { createStore } from "zustand/vanilla";
 
-type allStoredFormulas = {
+export type allStoredFormulas = {
   id: string;
   data: string;
   formula: string;
