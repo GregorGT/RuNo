@@ -1056,14 +1056,15 @@ fn recursive_funcation_parser<'a>(
             }
             return final_output;
         }
+
         Rule::EVAL => {
             for inner_pair in pair.into_inner() {
                 return recursive_funcation_parser(
                     inner_pair,
                     searcher,
                     schema,
-                    formula_list,
-                    formula,
+                    formula_list.clone(),
+                    formula.clone(),
                 );
             }
             return TypeOr::None;
@@ -1275,72 +1276,44 @@ fn recursive_funcation_parser<'a>(
         }
         Rule::ROUND => {
             let mut val: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
-
-            let mut i32rnum : i32 = 2;
-            let mut counter: i32 = 0;
-            let mut oldvalue : f64 = 0.0;
-            let mut fnum: f64 = 0.0;
-
-                 for inner_pair in pair.into_inner() {
-
-
-                    counter = counter + 1;
-
-                    let ans = recursive_funcation_parser(
-                        inner_pair.clone(),
-                        searcher.clone(),
-                        schema.clone(),
-                        formula_list.clone(),
-                        formula.clone(),
-                    );
-
-        
-                    if counter == 2
-                    {
-             
-                       match ans {
-                            
-                        TypeOr::Right(value) => {
-                            fnum = (value);
-             
-                        }
-                        TypeOr::RightList(value) => {
-             
-                           fnum = value.iter().sum::<f64>();
-  
-                        }
-                        any => return TypeOr::None,
-                    
-                        
-                    };
-
-                    i32rnum  = fnum as i32;
-
-                    val = TypeOr::Right(round(oldvalue as f64, i32rnum) as f64);
-        
-                    }
-                    else {
-
-                        match ans {
-                            
-
-                            TypeOr::Right(value) => {
-                                val = TypeOr::Right(round(value as f64, i32rnum) as f64);
-                                oldvalue = value;
-                            },
-                            TypeOr::RightList(value) => {
-                                val = TypeOr::RightList(
-                                    value.iter().map(|x| round(*x as f64, i32rnum) as f64).collect(),
-                                );
-
-                                oldvalue = value.iter().sum::<f64>();
-                            }
-                            any => return TypeOr::None,
-                        };
-                }
+            let mut decimal_places = 0;
+            let mut first_param = true;
             
-                
+            for inner_pair in pair.into_inner() {
+                let ans = recursive_funcation_parser(
+                    inner_pair.clone(),
+                    searcher.clone(),
+                    schema.clone(),
+                    formula_list.clone(),
+                    formula.clone(),
+                );
+
+                if first_param {
+                    first_param = false;
+                    match ans {
+                        TypeOr::Right(value) => val = TypeOr::Right(value),
+                        TypeOr::RightList(value) => val = TypeOr::RightList(value),
+                        any => return TypeOr::None,
+                    };
+                } else {
+                    // Second parameter - decimal places
+                    if let TypeOr::Right(places) = ans {
+                        decimal_places = places as i32;
+                    }
+                }
             }
+            
+            // Apply rounding with the specified decimal places
+            match val {
+                TypeOr::Right(value) => val = TypeOr::Right(round(value as f64, decimal_places) as f64),
+                TypeOr::RightList(value) => {
+                    val = TypeOr::RightList(
+                        value.iter().map(|x| round(*x as f64, decimal_places) as f64).collect(),
+                    )
+                }
+                _ => {}
+            }
+            
             return val;
         }
         Rule::AVERAGE => {
@@ -1943,7 +1916,6 @@ fn recursive_funcation_parser<'a>(
                             }
                             _ => {}
                         }
-
                         if (is_left) {
                             left_answer = ans;
                             is_left = false;
@@ -2082,6 +2054,7 @@ fn recursive_funcation_parser<'a>(
             }
             return TypeOr::Right(total);
         }
+
         Rule::COMPARATOR_SIGN => {
             // NO NEED TO IMPLIMENT IT HERE
             return TypeOr::None;

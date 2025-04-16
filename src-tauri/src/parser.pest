@@ -5,7 +5,7 @@ WHITESPACE      = _{ " " }
 FINDING_PATTREN =  { (!"\"" ~ ANY)* }
 IS_LOCAL        =  { "!" }
 EVAL_PATTREN    =  { IS_LOCAL{,1} ~ "\"" ~ FINDING_PATTREN ~ "\"" }
-CHAIN_PATTREN   =  { EVAL_PATTREN ~ ("." ~ EVAL_PATTREN)* }
+CHAIN_PATTREN   =  { EVAL_PATTREN ~ ("," ~ EVAL_PATTREN)* }
 EVAL            =  { "EVAL(" ~ CHAIN_PATTREN+ ~ ")" }
 EVAL_TABLE      =  { "EVAL_TABLE(" ~ (EVAL_PATTREN ~ ("," ~ EVAL_PATTREN)*) ~ ")" }
 SUM             =  { "SUM(" ~ WHITESPACE* ~ ((number | Fn | EVAL_TABLE) ~ WHITESPACE* ~ ","*)+ ~ ")" }
@@ -34,7 +34,7 @@ AVERAGE = { "AVERAGE(" ~ WHITESPACE* ~ ((number | EVAL) ~ WHITESPACE* ~ ","*)+ ~
 // DONE
 TRIM = { "TRIM(" ~ WHITESPACE* ~ ((text | EVAL) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
 // DONE
-ROUND = { "ROUND(" ~ WHITESPACE* ~ (number | EVAL) ~ WHITESPACE* ~ ","* ~ WHITESPACE* ~ number* ~ WHITESPACE* ~ ")" }
+ROUND = { "ROUND(" ~ WHITESPACE* ~ (number | EVAL) ~ WHITESPACE* ~ ("," ~ WHITESPACE* ~ (number | EVAL)){,1} ~ WHITESPACE* ~ ")" }
 // DONE
 IFERROR = { "IFERROR(" ~ Fn ~ "){" ~ WHITESPACE* ~ Fn ~ WHITESPACE* ~ "}ELSE{" ~ WHITESPACE* ~ Fn ~ WHITESPACE* ~ "}" }
 
