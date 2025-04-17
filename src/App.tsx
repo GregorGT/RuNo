@@ -4,6 +4,7 @@ import Entries from "./components/Entries";
 import Header from "./components/Header";
 import TabComponent from "./components/TabComponent";
 
+// test commit
 function App() {
   return (
     <div className="home">
