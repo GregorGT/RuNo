@@ -9,7 +9,7 @@ CHAIN_PATTREN   =  { EVAL_PATTREN ~ ("," ~ EVAL_PATTREN)* }
 EVAL            =  { "EVAL(" ~ CHAIN_PATTREN+ ~ ")" }
 EVAL_TABLE      =  { "EVAL_TABLE(" ~ (EVAL_PATTREN ~ ("," ~ EVAL_PATTREN)*) ~ ")" }
 SUM             =  { "SUM(" ~ WHITESPACE* ~ ((number | Fn | EVAL_TABLE) ~ WHITESPACE* ~ ","*)+ ~ ")" }
-MUL             =  { "MUL(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
+MUL             =  { "MUL(" ~ WHITESPACE* ~ ((number | EVAL | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
 DIV             =  { "DIV(" ~ WHITESPACE* ~ ((number | Fn) ~ WHITESPACE* ~ ","*)+ ~ ")" }
 // 
 COMPARATOR_SIGN =  { "="  | "<=" | ">=" | ">"| "<" }
@@ -34,7 +34,7 @@ AVERAGE = { "AVERAGE(" ~ WHITESPACE* ~ ((number | EVAL) ~ WHITESPACE* ~ ","*)+ ~
 // DONE
 TRIM = { "TRIM(" ~ WHITESPACE* ~ ((text | EVAL) ~ WHITESPACE* ~ ","*)+ ~ WHITESPACE* ~ ")" }
 // DONE
-ROUND = { "ROUND(" ~ WHITESPACE* ~ (number | EVAL) ~ WHITESPACE* ~ ("," ~ WHITESPACE* ~ (number | EVAL)){,1} ~ WHITESPACE* ~ ")" }
+ROUND = { "ROUND(" ~ WHITESPACE* ~ (number | EVAL | Fn) ~ WHITESPACE* ~ ("," ~ WHITESPACE* ~ (number | EVAL)){,1} ~ WHITESPACE* ~ ")" }
 // DONE
 IFERROR = { "IFERROR(" ~ Fn ~ "){" ~ WHITESPACE* ~ Fn ~ WHITESPACE* ~ "}ELSE{" ~ WHITESPACE* ~ Fn ~ WHITESPACE* ~ "}" }
 

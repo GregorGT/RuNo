@@ -474,7 +474,24 @@ fn parse_string(
     schema: Schema,
     formula_list: Vec<html::formula>,
 ) -> tantivy::Result<TypeOr<String, f64, NaiveDateTime>> {
-    let pairs = MyParser::parse(Rule::Fn, formula.formula.as_str()).unwrap();
+    let pairs = match MyParser::parse(Rule::Fn, formula.formula.as_str()) {
+        Ok(pairs) => pairs,
+        Err(err) => {
+            println!("Error parsing formula '{}': {:?}", formula.formula, err);
+            unsafe {
+                // Set formula as error
+                let mut formula_list = FORMULA_LIST_CELL.clone();
+                formula_list.iter_mut().for_each(|x| {
+                    if x.id == formula.id {
+                        x.data = TypeOr::Error;
+                    }
+                });
+                FORMULA_LIST_CELL = formula_list;
+            }
+            return Ok(TypeOr::Error);
+        }
+    };
+    
     let mut ans: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
     unsafe {
         // set current formula to in process
@@ -505,8 +522,6 @@ fn parse_string(
 
             FORMULA_LIST_CELL = formula_list;
         }
-        // println!("Final: {:?}", ans);
-        // println!("Formula List: {:?}", formula);
     }
 
     Ok(TypeOr::None)
@@ -518,7 +533,14 @@ fn parse_string_in_cell(
     schema: Schema,
     formula_list: Vec<html::formula>,
 ) -> TypeOr<String, f64, NaiveDateTime> {
-    let pairs = MyParser::parse(Rule::Fn, formula.formula.as_str()).unwrap();
+    let pairs = match MyParser::parse(Rule::Fn, formula.formula.as_str()) {
+        Ok(pairs) => pairs,
+        Err(err) => {
+            println!("Error parsing formula in cell '{}': {:?}", formula.formula, err);
+            return TypeOr::Error;
+        }
+    };
+    
     let mut ans: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
 
     for pair in pairs {
@@ -1061,8 +1083,8 @@ fn recursive_funcation_parser<'a>(
             for inner_pair in pair.into_inner() {
                 return recursive_funcation_parser(
                     inner_pair,
-                    searcher,
-                    schema,
+                    searcher.clone(),
+                    schema.clone(),
                     formula_list.clone(),
                     formula.clone(),
                 );
