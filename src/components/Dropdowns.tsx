@@ -21,10 +21,17 @@ import {
 } from "../state/formula";
 import ConnectionManagerDialog from "./DatabaseConnection/ConnectionManagerDialog";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { connectionsStore } from "../state/connection";
 import { RuNoFile } from "../state/fileTypes";
-export default function Dropdowns() {
+
+import { SITE_URL } from "./utils/consts";
+
+interface DropdownProps {
+  showModal: () => void,
+}
+
+const Dropdowns: React.FC<DropdownProps> = (props) => {
   const tables = useAtomValue(tableAtom);
   // const [editorState, setState] = useAtom(editorStateAtom);
   // const [_, loadEditor] = useAtom(loadEditorAtom);
@@ -91,6 +98,16 @@ export default function Dropdowns() {
     { key: 1, label: "About" },
     { key: 2, label: "Donate" },
     { key: 3, label: "Contact" },
+    {
+      key: 4,
+      label: "Purchase License",
+      onClick: () => window.open(SITE_URL, '_blank')
+    },
+    {
+      key: 5,
+      label: "Register License",
+      onClick: props.showModal
+    }
   ];
 
   const [api, contextHolder] = notification.useNotification();
@@ -170,7 +187,11 @@ export default function Dropdowns() {
       <Dropdown menu={{ items: editItems }} placement="bottomLeft">
         <span>Edit</span>
       </Dropdown>
-      <Dropdown menu={{ items: infoItems }} placement="bottomLeft">
+      <Dropdown
+        menu={{
+          items: infoItems,
+        }}
+        placement="bottomLeft">
         <span>Info</span>
       </Dropdown>
       <ConnectionManagerDialog
@@ -180,3 +201,5 @@ export default function Dropdowns() {
     </div>
   );
 }
+
+export default Dropdowns

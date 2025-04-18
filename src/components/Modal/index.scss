@@ -1,0 +1,78 @@
+.register-license-modal {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  position: absolute;
+  z-index: 1;
+
+  .register-license-form {
+    display: flex;
+    flex-direction: column;
+    width: 70%;
+    border-radius: 8px;
+    padding: 20px 15px;
+    background-color: white;
+    margin-top: 100px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    gap: 12px;
+  }
+
+  .modal-header {
+    border-bottom: 1px solid lightgray;
+  }
+
+  .modal-content {
+    margin-top: 10px;
+
+    label {
+      font-size: 0.85rem;
+      color: rgb(114, 109, 109);
+    }
+
+    .license-inputs {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+    }
+
+    .license-part-input {
+      width: 24%;
+      text-align: center;
+      font-size: 0.9rem;
+      padding: 6px 10px;
+      margin-top: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+
+      &:focus {
+        outline: none;
+        box-shadow: none;
+        border-color: #009688; // Optional custom focus style
+      }
+    }
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+
+    button {
+      padding: 6px 13px;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+
+      &:first-of-type {
+        background-color: #ccc;
+      }
+
+      &:last-of-type {
+        background-color: teal;
+        color: white;
+      }
+    }
+  }
+}
