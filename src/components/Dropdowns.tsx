@@ -28,7 +28,7 @@ import { RuNoFile } from "../state/fileTypes";
 import { SITE_URL } from "./utils/consts";
 
 interface DropdownProps {
-  showModal: () => void,
+  showDialog: () => void,
 }
 
 const Dropdowns: React.FC<DropdownProps> = (props) => {
@@ -106,7 +106,7 @@ const Dropdowns: React.FC<DropdownProps> = (props) => {
     {
       key: 5,
       label: "Register License",
-      onClick: props.showModal
+      onClick: props.showDialog
     }
   ];
 

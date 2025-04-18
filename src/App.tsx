@@ -5,7 +5,7 @@ import Dropdowns from "./components/Dropdowns";
 import Entries from "./components/Entries";
 import Header from "./components/Header";
 import TabComponent from "./components/TabComponent";
-import RegisterLicenseModal from "./components/Modal/RegisterLicense";
+import RegisterLicenseDialog from "./components/Dialog/RegisterLicense";
 
 function App() {
   const [bRegisterLicense, setBRegisterLicense] = useState(false);
@@ -14,14 +14,14 @@ function App() {
     <div className="home">
       {
         bRegisterLicense &&
-        <RegisterLicenseModal
-          closeModal={() => setBRegisterLicense(false)}
+        <RegisterLicenseDialog
+          closeDialog={() => setBRegisterLicense(false)}
           onSubmit={alert}
         />
       }
       <Header />
       <Dropdowns
-        showModal={
+        showDialog={
           () => setBRegisterLicense(true)
         }
       />

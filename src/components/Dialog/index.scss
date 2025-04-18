@@ -1,4 +1,4 @@
-.register-license-modal {
+.register-license-dialog {
   display: flex;
   width: 100%;
   justify-content: center;
@@ -17,11 +17,11 @@
     gap: 12px;
   }
 
-  .modal-header {
+  .dialog-header {
     border-bottom: 1px solid lightgray;
   }
 
-  .modal-content {
+  .dialog-content {
     margin-top: 10px;
 
     label {

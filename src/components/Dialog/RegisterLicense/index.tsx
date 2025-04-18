@@ -3,12 +3,12 @@ import Header from '../Layout/header';
 import Footer from '../Layout/footer';
 import '../index.scss';
 
-interface RegisterLicenseModalProps {
-  closeModal: () => void;
+interface RegisterLicenseDialogProps {
+  closeDialog: () => void;
   onSubmit: (form: { name: string; email: string; licenseKey: string }) => void;
 }
 
-const RegisterLicenseModal: React.FC<RegisterLicenseModalProps> = (props) => {
+const RegisterLicenseDialog: React.FC<RegisterLicenseDialogProps> = (props) => {
   const [keyParts, setKeyParts] = useState(['', '', '', '']);
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -44,10 +44,10 @@ const RegisterLicenseModal: React.FC<RegisterLicenseModalProps> = (props) => {
   }, []);
 
   return (
-    <div className="register-license-modal">
+    <div className="register-license-dialog">
       <div className="register-license-form">
-        <Header className="modal-header" text="Register License" />
-        <div className='modal-content'>
+        <Header className="dialog-header" text="Register License" />
+        <div className='dialog-content'>
           <label>
             Fill in the 4x4 Code values that were provided to you via e-mail after the software was purchased and press on register to register the software.
             <div className="license-inputs">
@@ -69,7 +69,7 @@ const RegisterLicenseModal: React.FC<RegisterLicenseModalProps> = (props) => {
         </div>
         <Footer
           actionText="Register"
-          onClose={props.closeModal}
+          onClose={props.closeDialog}
           onSubmit={() => alert(`Submitted license key: ${licenseKey}`)}
         />
       </div>
@@ -77,4 +77,4 @@ const RegisterLicenseModal: React.FC<RegisterLicenseModalProps> = (props) => {
   );
 };
 
-export default RegisterLicenseModal;
+export default RegisterLicenseDialog;
