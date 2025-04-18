@@ -94,19 +94,11 @@ export default function Dropdowns() {
     { key: 1, label: "About" },
     { key: 2, label: "Donate" },
     { key: 3, label: "Contact" },
-    { key: 4, label: "Purchase License" },
+    { 
+      key: 4, 
+      label: "Purchase License",
+      onClick: () =>  window.open(SITE_URL, '_blank')},
   ];
-
-  const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
-    switch (key) {
-      case "4":
-        window.open(SITE_URL, '_blank')
-        break;
-    
-      default:
-        break;
-    }
-  };
 
   const [api, contextHolder] = notification.useNotification();
   const showNotificaiton = (message: string) => {
@@ -188,7 +180,6 @@ export default function Dropdowns() {
       <Dropdown
         menu={{
           items: infoItems,
-          onClick: handleMenuClick,
         }}
         placement="bottomLeft">
         <span>Info</span>
