@@ -21,13 +21,17 @@ import {
 } from "../state/formula";
 import ConnectionManagerDialog from "./DatabaseConnection/ConnectionManagerDialog";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { connectionsStore } from "../state/connection";
 import { RuNoFile } from "../state/fileTypes";
 
 import { SITE_URL } from "./utils/consts";
 
-export default function Dropdowns() {
+interface DropdownProps {
+  showModal: () => void,
+}
+
+const Dropdowns: React.FC<DropdownProps> = (props) => {
   const tables = useAtomValue(tableAtom);
   // const [editorState, setState] = useAtom(editorStateAtom);
   // const [_, loadEditor] = useAtom(loadEditorAtom);
@@ -94,10 +98,16 @@ export default function Dropdowns() {
     { key: 1, label: "About" },
     { key: 2, label: "Donate" },
     { key: 3, label: "Contact" },
-    { 
-      key: 4, 
+    {
+      key: 4,
       label: "Purchase License",
-      onClick: () =>  window.open(SITE_URL, '_blank')},
+      onClick: () => window.open(SITE_URL, '_blank')
+    },
+    {
+      key: 5,
+      label: "Register License",
+      onClick: props.showModal
+    }
   ];
 
   const [api, contextHolder] = notification.useNotification();
@@ -191,3 +201,5 @@ export default function Dropdowns() {
     </div>
   );
 }
+
+export default Dropdowns
