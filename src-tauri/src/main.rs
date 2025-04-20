@@ -6,6 +6,7 @@ mod command;
 mod error;
 mod models;
 mod database;
+mod trial;
 #[macro_use]
 extern crate pest_derive;
 extern crate html5ever;
@@ -16,6 +17,7 @@ use command::assign_entry_id;
 use command::clear_entry_id;
 use command::run_command;
 use database::test_connection;
+use trial::is_trial_valid;
 // use std::path::PathBuf;
 // use std::process;
 
@@ -37,7 +39,8 @@ fn main() {
             run_command,
             assign_entry_id,
             clear_entry_id,
-            test_connection
+            test_connection,
+            is_trial_valid
         ])
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
