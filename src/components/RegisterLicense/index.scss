@@ -1,27 +1,12 @@
-.register-license-modal {
+.register-license-dialog {
   display: flex;
   width: 100%;
-  justify-content: center;
-  position: absolute;
-  z-index: 1;
 
-  .register-license-form {
-    display: flex;
-    flex-direction: column;
-    width: 70%;
-    border-radius: 8px;
-    padding: 20px 15px;
-    background-color: white;
-    margin-top: 100px;
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-    gap: 12px;
-  }
-
-  .modal-header {
+  .dialog-header {
     border-bottom: 1px solid lightgray;
   }
 
-  .modal-content {
+  .dialog-content {
     margin-top: 10px;
 
     label {
@@ -56,22 +41,32 @@
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    margin-top: 16px;
+    margin-top: 25px;
 
     button {
-      padding: 6px 13px;
-      font-size: 0.9rem;
+      padding: 5px 12px;
+      font-size: 0.8rem;
       border: none;
-      border-radius: 4px;
+      border-radius: 5px;
       cursor: pointer;
 
       &:first-of-type {
-        background-color: #ccc;
+        background-color: white;
+        border: 1px solid lightgray;
+
+        &:hover {
+          border-color: rgb(91, 162, 219);
+          color: rgb(91, 162, 219);
+        }
       }
 
       &:last-of-type {
-        background-color: teal;
+        background-color: rgb(29, 118, 228);
         color: white;
+
+        &:hover {
+          background-color: rgb(54, 136, 236);
+        }
       }
     }
   }

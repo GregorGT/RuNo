@@ -1,30 +1,22 @@
-import { useState } from "react";
+import { useEffect } from 'react';
 
 import "./App.scss";
 import Dropdowns from "./components/Dropdowns";
 import Entries from "./components/Entries";
 import Header from "./components/Header";
 import TabComponent from "./components/TabComponent";
-import RegisterLicenseModal from "./components/Modal/RegisterLicense";
+
+import { invoke } from "@tauri-apps/api/core";
 
 function App() {
-  const [bRegisterLicense, setBRegisterLicense] = useState(false);
+  useEffect(() => {
+    invoke('initialize_trial_file');
+  }, [])
 
   return (
     <div className="home">
-      {
-        bRegisterLicense &&
-        <RegisterLicenseModal
-          closeModal={() => setBRegisterLicense(false)}
-          onSubmit={alert}
-        />
-      }
       <Header />
-      <Dropdowns
-        showModal={
-          () => setBRegisterLicense(true)
-        }
-      />
+      <Dropdowns />
       <div className="content">
         <Entries />
         <TabComponent />

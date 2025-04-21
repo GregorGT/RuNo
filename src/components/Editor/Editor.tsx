@@ -29,7 +29,7 @@ import {
   Select,
 } from "antd";
 import { useAtom, useAtomValue } from "jotai";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useContext } from "react";
 import { v4 } from "uuid";
 import { editorKeys, editorStateAtom } from "../../state/editor";
 import {
@@ -53,6 +53,8 @@ import { selectedTableStore, tableAtom } from "../../state/table";
 import { getExcelColumnName } from "../../helper";
 import { ButtonState, connectionsStore } from "../../state/connection";
 import { notification } from "antd";
+
+import { isTrialValid } from "../utils/license";
 
 let example = final_list;
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
@@ -92,6 +94,15 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   }, [editor]);
 
   const load_data_to_backend = async () => {
+    if (await isTrialValid()) {
+      api.warning({
+        message: "Trial expired",
+        description: "Please purchase a license to continue.",
+        placement: "topRight"
+      });
+      return;
+    }
+
     try {
       // Get all connections
       const connections = connectionsStore.getState().connections;

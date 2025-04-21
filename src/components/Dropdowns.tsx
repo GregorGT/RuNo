@@ -20,18 +20,15 @@ import {
   sortingFnAtom,
 } from "../state/formula";
 import ConnectionManagerDialog from "./DatabaseConnection/ConnectionManagerDialog";
+import RegisterLicenseDialog from "./RegisterLicense/RegisterLicenseDialog";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { connectionsStore } from "../state/connection";
 import { RuNoFile } from "../state/fileTypes";
 
 import { SITE_URL } from "./utils/consts";
 
-interface DropdownProps {
-  showModal: () => void,
-}
-
-const Dropdowns: React.FC<DropdownProps> = (props) => {
+const Dropdowns = () => {
   const tables = useAtomValue(tableAtom);
   // const [editorState, setState] = useAtom(editorStateAtom);
   // const [_, loadEditor] = useAtom(loadEditorAtom);
@@ -41,8 +38,9 @@ const Dropdowns: React.FC<DropdownProps> = (props) => {
   const [sortingFn, setSortingFn] = useAtom(sortingFnAtom);
   const [filterEnabled, setFilterEnabled] = useAtom(isFilterEnable);
   const [sortingEnabled, setSortingEnabled] = useAtom(isSortingEnable);
-  const [isConnectionDialogVisible, setConnectionDialogVisible] =
-    useState(false);
+  const [isConnectionDialogVisible, setConnectionDialogVisible] = useState(false);
+  const [isRegisterLicenseDialogvisible, setRegisterLicenseDialogVisible] = useState(false);
+
   const save_data = (): RuNoFile => {
     return {
       editorData: getEditorValue.fn(),
@@ -106,7 +104,7 @@ const Dropdowns: React.FC<DropdownProps> = (props) => {
     {
       key: 5,
       label: "Register License",
-      onClick: props.showModal
+      onClick: () => setRegisterLicenseDialogVisible(true)
     }
   ];
 
@@ -194,6 +192,10 @@ const Dropdowns: React.FC<DropdownProps> = (props) => {
         placement="bottomLeft">
         <span>Info</span>
       </Dropdown>
+      <RegisterLicenseDialog
+        visible={isRegisterLicenseDialogvisible}
+        onClose={() => setRegisterLicenseDialogVisible(false)}
+      />
       <ConnectionManagerDialog
         visible={isConnectionDialogVisible}
         onClose={() => setConnectionDialogVisible(false)}

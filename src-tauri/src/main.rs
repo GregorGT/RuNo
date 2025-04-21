@@ -3,9 +3,10 @@
 
 mod api;
 mod command;
-mod error;
-mod models;
 mod database;
+mod error;
+mod license;
+mod models;
 #[macro_use]
 extern crate pest_derive;
 extern crate html5ever;
@@ -16,6 +17,7 @@ use command::assign_entry_id;
 use command::clear_entry_id;
 use command::run_command;
 use database::test_connection;
+use license::{write_license_file, is_trial_valid, initialize_trial_file};
 // use std::path::PathBuf;
 // use std::process;
 
@@ -37,12 +39,13 @@ fn main() {
             run_command,
             assign_entry_id,
             clear_entry_id,
-            test_connection
+            test_connection,
+            is_trial_valid,
+            write_license_file,
+            initialize_trial_file
         ])
         .plugin(tauri_plugin_dialog::init())
-        .setup(|app| {
-             Ok(())
-          })
+        .setup(|app| Ok(()))
         //.plugin(tauri_plugin_fs::init())
         .run(tauri::generate_context!())
         // .setup(|app| {
