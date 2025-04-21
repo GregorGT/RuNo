@@ -2,11 +2,11 @@ use hex::encode;
 use hmac::{Hmac, Mac};
 use hostname::get;
 use sha2::Sha256;
-use std::env;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
+use dirs_next::data_dir;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -32,7 +32,7 @@ fn generate_license_content(machine_name: &str) -> String {
 }
 
 fn verify_license() -> bool {
-    let mut path: PathBuf = PathBuf::from(env::temp_dir());
+    let mut path: PathBuf = data_dir().unwrap();
     path.push(LICENSE_FILE_NAME);
 
     if let Ok(content) = fs::read_to_string(path) {
@@ -52,8 +52,9 @@ fn hash_timestamp(timestamp: u64) -> String {
 }
 
 /// Create the trial file if it doesn't exist, with the hashed current timestamp.
-fn initialize_trial_file() -> Result<(), String> {
-    let mut file_path = PathBuf::from(env::temp_dir());
+#[tauri::command]
+pub fn initialize_trial_file() -> Result<(), String> {
+    let mut file_path = data_dir().unwrap();
     file_path.push(TRIAL_FILE_NAME);
 
     if !file_path.exists() {
@@ -74,7 +75,7 @@ fn initialize_trial_file() -> Result<(), String> {
 
 #[tauri::command]
 pub fn write_license_file() -> Result<bool, String> {
-    let mut path = PathBuf::from(env::temp_dir());
+    let mut path = data_dir().unwrap();
     path.push(LICENSE_FILE_NAME);
 
     let machine_name = get_machine_name();
@@ -97,9 +98,7 @@ pub fn is_trial_valid() -> Result<bool, String> {
         return Ok(false);
     }
 
-    initialize_trial_file()?; // Ensure the file exists
-
-    let mut file_path = PathBuf::from(env::temp_dir());
+    let mut file_path = data_dir().unwrap();
     file_path.push(TRIAL_FILE_NAME);
 
     let mut content = String::new();

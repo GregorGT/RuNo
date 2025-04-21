@@ -26,10 +26,9 @@ const RegisterLicenseDialog = ({
 
   const handleChange = (index: number, value: string) => {
     const newParts = [...keyParts];
-    newParts[index] = value.slice(0, 4); // Limit to 4 characters
+    newParts[index] = value.slice(0, 4);
     setKeyParts(newParts);
 
-    // Auto move to next input if 4 chars are entered
     if (value.length === 4 && index < 3) {
       inputsRef.current[index + 1]?.focus();
     }
@@ -71,12 +70,12 @@ const RegisterLicenseDialog = ({
   const registerLicense = async () => {
     if (!licenseKey.match(LICENSE_PATTERN)) {
       api.warning({
-        message: "Please input valid licensekey",
+        message: "Please input valid license key",
         placement: "topRight"
       })
       return;
     }
-
+    
     fetch(`${SITE_URL}/license/register`, {
       method: 'post',
       headers: {
