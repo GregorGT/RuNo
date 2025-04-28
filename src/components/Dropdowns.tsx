@@ -99,7 +99,7 @@ const Dropdowns = () => {
     {
       key: 4,
       label: "Purchase License",
-      onClick: () => window.open(SITE_URL, '_blank')
+      onClick: () => window.open(`${SITE_URL}/purchase`, '_blank')
     },
     {
       key: 5,

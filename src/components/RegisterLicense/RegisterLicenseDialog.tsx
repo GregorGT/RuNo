@@ -20,7 +20,9 @@ const RegisterLicenseDialog = ({
   onClose: () => void;
 }) => {
   const [keyParts, setKeyParts] = useState(['', '', '', '']);
-  const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
+  const [email, setEmail] = useState('');
+  const licenseInputsRef = useRef<Array<HTMLInputElement | null>>([]);
+  const emailInputRef = useRef(null);
 
   const [api, contextHolder] = notification.useNotification();
 
@@ -30,7 +32,7 @@ const RegisterLicenseDialog = ({
     setKeyParts(newParts);
 
     if (value.length === 4 && index < 3) {
-      inputsRef.current[index + 1]?.focus();
+      licenseInputsRef.current[index + 1]?.focus();
     }
   };
 
@@ -44,15 +46,11 @@ const RegisterLicenseDialog = ({
       setKeyParts(parts);
 
       // Optional: focus last input
-      inputsRef.current[3]?.focus();
+      licenseInputsRef.current[3]?.focus();
     }
   };
 
   const licenseKey = keyParts.join('-');
-
-  useEffect(() => {
-    inputsRef.current[0]?.focus();
-  }, []);
 
   const handleRegisteredLicense = async () => {
     invoke('write_license_file')
@@ -68,6 +66,15 @@ const RegisterLicenseDialog = ({
   }
 
   const registerLicense = async () => {
+    if (!email) {
+      api.warning({
+        message: 'No email address',
+        placement: 'topRight'
+      });
+      emailInputRef.current?.focus();
+      return;
+    }
+
     if (!licenseKey.match(LICENSE_PATTERN)) {
       api.warning({
         message: "Please input valid license key",
@@ -75,21 +82,21 @@ const RegisterLicenseDialog = ({
       })
       return;
     }
-    
+
     fetch(`${SITE_URL}/license/register`, {
       method: 'post',
       headers: {
         "Content-type": "application/json"
       },
-      body: JSON.stringify({ licenseKey })
+      body: JSON.stringify({ email, licenseKey })
     })
       .then((res) => res.json())
       .then((res) => {
         if (res.status === HTTP_SUCCESS) {
           handleRegisteredLicense();
         } else {
-          api.warning({
-            message: res.message,
+          api.error({
+            message: res.message ? res.message : "Something went wrong, please try again.",
             placement: 'topRight'
           })
         }
@@ -116,24 +123,35 @@ const RegisterLicenseDialog = ({
         <div className="register-license-form">
           <Header className="dialog-header" text="Register License" />
           <div className='dialog-content'>
-            <label>
-              Fill in the 4x4 Code values that were provided to you via e-mail after the software was purchased and press on register to register the software.
-              <div className="license-inputs">
-                {keyParts.map((part, index) => (
-                  <input
-                    key={index}
-                    type="text"
-                    value={part}
-                    ref={(el) => (inputsRef.current[index] = el)}
-                    onChange={(e) => handleChange(index, e.target.value)}
-                    onPaste={handlePaste}
-                    maxLength={4}
-                    className="license-part-input"
-                    required
-                  />
-                ))}
-              </div>
-            </label>
+            <p className='description'>
+              Fill in the email address and 4x4 Code values that were provided to you via e-mail after the software was purchased and press on register to register the software.
+            </p>
+            <div>
+              <input
+                type="email"
+                autoFocus
+                ref={emailInputRef}
+                className='email-input'
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder='E-mail'
+              />
+            </div>
+            <div className="license-inputs">
+              {keyParts.map((part, index) => (
+                <input
+                  key={index}
+                  type="text"
+                  value={part}
+                  ref={(el) => (licenseInputsRef.current[index] = el)}
+                  onChange={(e) => handleChange(index, e.target.value)}
+                  onPaste={handlePaste}
+                  maxLength={4}
+                  className="license-part-input"
+                  required
+                />
+              ))}
+            </div>
           </div>
           <Footer
             actionText="Register"
