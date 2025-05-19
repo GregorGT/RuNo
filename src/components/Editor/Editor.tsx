@@ -84,6 +84,13 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const tables = useAtomValue(tableAtom);
   const [_, setEditorExportFunction] = useAtom(exportEditorFunction);
   useEffect(() => {
+    // Create editor_styles element if it doesn't exist
+    if (!document.getElementById("editor_styles")) {
+      const styleElement = document.createElement("style");
+      styleElement.id = "editor_styles";
+      document.head.appendChild(styleElement);
+    }
+    
     setEditorExportFunction({
       fn: () => editor.getHTML(),
       load: (data) => {
@@ -206,7 +213,13 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         return;
       }
       
-      // Update editor content with processed formulas
+      // Clear any existing styles before updating editor
+      const editorStyles = document.getElementById("editor_styles");
+      if (editorStyles) {
+        editorStyles.innerHTML = "";
+      }
+      
+      // Update editor content with processed formulas - use setContent only once
       editor.commands.setContent(return_data?.parsed_text, false);
 
       const formulas = return_data?.formula_list;
@@ -217,25 +230,26 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         const cssList = return_data.filtered;
         console.log(cssList);
         // css list contains ids to be hidden
-        document.getElementById("editor_styles")!.innerHTML = cssList
-          .map((id) => `[id="${id}"]{display: none;}`)
-          .join("\n");
+        const editorStyles = document.getElementById("editor_styles");
+        if (editorStyles) {
+          editorStyles.innerHTML = cssList
+            .map((id) => `[id="${id}"]{display: none;}`)
+            .join("\n");
+        }
 
-        formulaStore.setState(
-          [
-            ...formula.map((item) => {
-              const newItem = formulas.find((r: any) => r.id === item.id);
-              if (!newItem) {
-                return item;
-              }
-              return {
-                ...item,
-                data: newItem.data,
-              };
-            }),
-          ],
-          true
-        );
+        // Update formulas with new data, avoid duplicating entries
+        const updatedFormulas = formula.map((item) => {
+          const newItem = formulas.find((r: any) => r.id === item.id);
+          if (!newItem) {
+            return item;
+          }
+          return {
+            ...item,
+            data: newItem.data,
+          };
+        });
+        
+        formulaStore.setState(updatedFormulas, true);
 
         // focus back to the editor
         editor.commands.focus();

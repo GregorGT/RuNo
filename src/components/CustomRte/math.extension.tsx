@@ -21,27 +21,31 @@ export default Node.create({
       formula: {
         default: "",
         parseHTML(element) {
-          console.log("THS", this);
-          let id = v4();
-          if (false) {
-            console.log("formulaStore.getState()", formulaStore.getState());
-            let lid = element.getAttribute("id") ?? id;
-            if (formulaStore.getState().find((f) => f.id === lid)) {
-              lid = id;
+          console.log("Parsing formula attribute:", element.getAttribute("formula"));
+          // Get the formula attribute from the element
+          const formulaAttr = element.getAttribute("formula") || "";
+          const id = element.getAttribute("id") || v4();
+          
+          // Ensure the formula is added to the store when parsing HTML
+          setTimeout(() => {
+            const existingFormula = formulaStore.getState().find(f => f.id === id);
+            if (!existingFormula && id) {
+              formulaStore.setState(
+                [
+                  ...formulaStore.getState(),
+                  {
+                    id: id,
+                    formula: formulaAttr,
+                    data: element.getAttribute("data") || "",
+                  },
+                ],
+                true
+              );
+              console.log("Added formula to store:", id, formulaAttr);
             }
-            formulaStore.setState(
-              [
-                ...(formulaStore.getState() ?? []),
-                {
-                  id: lid,
-                  formula: element.getAttribute("formula") || "",
-                  data: element.getAttribute("data") || "",
-                },
-              ],
-              true
-            );
-          }
-          return element.getAttribute("formula") || "";
+          }, 0);
+          
+          return formulaAttr;
         },
       },
       value: {
@@ -82,19 +86,8 @@ export default Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const id = HTMLAttributes.id;
-    let content = "";
-    
-    // Get the calculated value from the formula store
-    if (id) {
-      const formula = formulaStore.getState().find(f => f.id === id);
-      if (formula && formula.data) {
-        content = String(formula.data);
-      }
-    }
-    
-    // Return the formula tag with its content including the calculated value
-    return ["formula", mergeAttributes(HTMLAttributes), content];
+    // Return the formula tag WITHOUT adding content directly
+    return ["formula", mergeAttributes(HTMLAttributes)];
   },
 
   addNodeView() {

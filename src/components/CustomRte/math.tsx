@@ -14,9 +14,19 @@ export default (props: any) => {
   const allFormulas = useAtomValue(formulaAtom);
   const [data, setData] = useState("");
   const selectedFormulaId = useAtomValue(selectedFormulaIdAtom);
+  
   const askFormula = () => {
+    // Set the selected formula id in the store
     selectedFormulaIdStore.setState(currentId);
+    
+    // Dispatch a custom event to notify that a formula was clicked
+    // This will be used by TabComponent to switch to the Value tab
+    const event = new CustomEvent('formulaClicked', { 
+      detail: { formulaId: currentId } 
+    });
+    document.dispatchEvent(event);
   };
+  
   /// ON mount if all formula is empty then we will add a new formula
   const isCurrentSelected = currentId !== selectedFormulaIdStore.getState();
 

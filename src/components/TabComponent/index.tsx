@@ -1,6 +1,4 @@
-import { useState } from "react";
-import Tab from "react-bootstrap/Tab";
-import Tabs from "react-bootstrap/Tabs";
+import { useState, useEffect } from "react";
 import "../Components.scss";
 import Filter from "./Filter";
 import Sorting from "./Sorting";
@@ -16,43 +14,62 @@ export default function TabComponent() {
     { eventKey: "table", content: <Table />, title: "Table" },
   ];
 
+  // Add event listener for formula clicks to switch to Value tab
+  useEffect(() => {
+    const handleFormulaClick = () => {
+      setActiveTab("value");
+    };
+
+    // Listen for the custom event fired when a formula is clicked
+    document.addEventListener('formulaClicked', handleFormulaClick);
+
+    // Clean up the event listener when component unmounts
+    return () => {
+      document.removeEventListener('formulaClicked', handleFormulaClick);
+    };
+  }, []);
+
+  // Function to render the active content
+  const renderContent = () => {
+    const activeContent = Contents.find(item => item.eventKey === activeTab);
+    return activeContent ? activeContent.content : null;
+  };
+
   return (
     <div className="right-side">
       <div className="tab-component"></div>
       <div className="tab-component">
         <div className="buttons">
           <button
-            className={`header-button ${activeTab == "filter" && "active"}`}
+            className={`header-button ${activeTab === "filter" ? "active" : ""}`}
             onClick={() => setActiveTab("filter")}
           >
             Filter
           </button>
           <button
-            className={`header-button ${activeTab == "sorting" && "active"}`}
+            className={`header-button ${activeTab === "sorting" ? "active" : ""}`}
             onClick={() => setActiveTab("sorting")}
           >
             Sorting
           </button>
           <button
-            className={`header-button ${activeTab == "value" && "active"}`}
+            className={`header-button ${activeTab === "value" ? "active" : ""}`}
             onClick={() => setActiveTab("value")}
           >
             Value
           </button>
           <button
-            className={`header-button ${activeTab == "table" && "active"}`}
+            className={`header-button ${activeTab === "table" ? "active" : ""}`}
             onClick={() => setActiveTab("table")}
           >
             Table
           </button>
         </div>
-        <Tabs activeKey={activeTab} className="mb-3">
-          {Contents.map((item) => (
-            <Tab key={item.eventKey} eventKey={item.eventKey} title={item.title}>
-              {item.content}
-            </Tab>
-          ))}
-        </Tabs>
+        
+        {/* Render content based on active tab */}
+        <div className="tab-content">
+          {renderContent()}
+        </div>
       </div>
     </div>
   );

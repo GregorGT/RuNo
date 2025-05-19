@@ -474,6 +474,21 @@ fn parse_string(
     schema: Schema,
     formula_list: Vec<html::formula>,
 ) -> tantivy::Result<TypeOr<String, f64, NaiveDateTime>> {
+    // Skip parsing if formula is empty or literally "Error"
+    if formula.formula.trim().is_empty() || formula.formula.trim() == "Error" {
+        unsafe {
+            // Set formula as error
+            let mut formula_list = FORMULA_LIST_CELL.clone();
+            formula_list.iter_mut().for_each(|x| {
+                if x.id == formula.id {
+                    x.data = TypeOr::Error;
+                }
+            });
+            FORMULA_LIST_CELL = formula_list;
+        }
+        return Ok(TypeOr::Error);
+    }
+    
     let pairs = match MyParser::parse(Rule::Fn, formula.formula.as_str()) {
         Ok(pairs) => pairs,
         Err(err) => {
@@ -2012,7 +2027,7 @@ fn recursive_funcation_parser<'a>(
                             (left_answer.clone(), right_answer.clone())
                         {
                             if left_list > right_list {
-                                total += 1.0;
+                                total += left_list;
                             }
                         } else {
                             return TypeOr::None;
@@ -2030,7 +2045,7 @@ fn recursive_funcation_parser<'a>(
                             (left_answer.clone(), right_answer.clone())
                         {
                             if left_list < right_list {
-                                total += 1.0;
+                                total += left_list;
                             }
                         } else {
                             return TypeOr::None;
@@ -2048,7 +2063,7 @@ fn recursive_funcation_parser<'a>(
                             (left_answer.clone(), right_answer.clone())
                         {
                             if left_list >= right_list {
-                                total += 1.0;
+                                total += left_list;
                             }
                         } else {
                             return TypeOr::None;
@@ -2066,7 +2081,7 @@ fn recursive_funcation_parser<'a>(
                             (left_answer.clone(), right_answer.clone())
                         {
                             if left_list <= right_list {
-                                total += 1.0;
+                                total += left_list;
                             }
                         } else {
                             return TypeOr::None;
