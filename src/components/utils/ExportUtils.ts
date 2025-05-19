@@ -22,9 +22,18 @@ const preprocessHtmlForExport = (html: string): string => {
       if (id) {
         const formula = allFormulas.find(f => f.id === id);
         if (formula && formula.data) {
-          // Add a space and the formula value after the formula content
-          const textValue = ` ${formula.data}`;
-          element.textContent = (element.textContent || '') + textValue;
+          // Get current text content
+          const currentText = element.textContent || '';
+          
+          // Replace the formula element with a span that contains both parts
+          // Using non-breaking space (\u00A0) to force them to stay on same line in RTF
+          const span = document.createElement('span');
+          span.innerHTML = `${currentText}\u00A0${formula.data}`;
+          
+          // Replace the formula element with our new span
+          if (element.parentNode) {
+            element.parentNode.replaceChild(span, element);
+          }
         }
       }
     });
