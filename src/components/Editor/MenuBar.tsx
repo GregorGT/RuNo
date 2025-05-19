@@ -159,9 +159,9 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
       fn: () => editor.getHTML(),
       load: async (data: string) => {
         try {
-          if (window.__TAURI__ && typeof invoke === "function") {
+          // if (window.__TAURI__ && typeof invoke === "function") {
             await invoke("clear_entry_id");
-          }
+          // }
           editor.commands.setContent(data);
         } catch (error) {
           console.error("Error in load function:", error);
@@ -274,22 +274,30 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
         </Button>
         <Button 
           icon={<ExportOutlined />}
-          onClick={() => {
-            // Import the exportToRTF function
-            import("../utils/ExportUtils").then(async ({ exportToRTF }) => {
-              try {
-                const htmlContent = editor.getHTML();
-                const success = await exportToRTF(htmlContent);
-                if (success) {
-                  message.success("Successfully exported to RTF");
+          onClick={async () => {
+            try {
+              // First ensure all formulas are calculated
+              await loadDataToBackend();
+              
+              // Import the exportToRTF function
+              import("../utils/ExportUtils").then(async ({ exportToRTF }) => {
+                try {
+                  const htmlContent = editor.getHTML();
+                  const success = await exportToRTF(htmlContent);
+                  if (success) {
+                    message.success("Successfully exported to RTF");
+                  }
+                } catch (err) {
+                  console.error("Error exporting to RTF:", err);
                 }
-              } catch (err) {
-                console.error("Error exporting to RTF:", err);
-              }
-            }).catch(err => {
-              console.error("Error importing exportToRTF:", err);
-              message.error("Error importing RTF export function");
-            });
+              }).catch(err => {
+                console.error("Error importing exportToRTF:", err);
+                message.error("Error importing RTF export function");
+              });
+            } catch (error) {
+              console.error("Error calculating formulas before export:", error);
+              message.error("Error calculating formulas before export");
+            }
           }}
         >
           Export to RTF

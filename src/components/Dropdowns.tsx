@@ -91,6 +91,7 @@ const Dropdowns = () => {
             // Import the exportToRTF function
             import("./utils/ExportUtils").then(async ({ exportToRTF }) => {
               try {
+                // First ensure we get the latest HTML content with calculated formulas
                 const success = await exportToRTF(htmlContent);
                 if (success) {
                   api.success({

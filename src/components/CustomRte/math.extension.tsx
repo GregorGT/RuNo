@@ -3,7 +3,7 @@ import { ReactNodeViewRenderer } from "@tiptap/react";
 
 import { v4 } from "uuid";
 import { formulaStore } from "../../state/formula.js";
-import Component from "./math.jsx";
+import Component from "./math.tsx";
 export default Node.create({
   name: "mathComponent",
   group: "inline",
@@ -82,7 +82,19 @@ export default Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ["formula", mergeAttributes(HTMLAttributes)];
+    const id = HTMLAttributes.id;
+    let content = "";
+    
+    // Get the calculated value from the formula store
+    if (id) {
+      const formula = formulaStore.getState().find(f => f.id === id);
+      if (formula && formula.data) {
+        content = String(formula.data);
+      }
+    }
+    
+    // Return the formula tag with its content including the calculated value
+    return ["formula", mergeAttributes(HTMLAttributes), content];
   },
 
   addNodeView() {
