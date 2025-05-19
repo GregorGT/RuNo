@@ -54,10 +54,13 @@ fn hash_timestamp(timestamp: u64) -> String {
 /// Create the trial file if it doesn't exist, with the hashed current timestamp.
 #[tauri::command]
 pub fn initialize_trial_file() -> Result<(), String> {
+    println!("initialize_trial_file");
     let mut file_path = data_dir().unwrap();
     file_path.push(TRIAL_FILE_NAME);
 
+    println!("File path resolved to: {:?}", file_path);
     if !file_path.exists() {
+        println!("Trial file does not exist, creating...");
         let start_time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -69,7 +72,13 @@ pub fn initialize_trial_file() -> Result<(), String> {
         let mut file = fs::File::create(file_path).expect("Trial date file create failed");
         file.write_all(content.as_bytes())
             .expect("Trial date write failed");
+
+        println!("Trial file created with content: {}", content);
+    } else {
+        println!("Trial file already exists, skipping creation");
     }
+
+    println!("initialize_trial_file completed successfully");
     Ok(())
 }
 

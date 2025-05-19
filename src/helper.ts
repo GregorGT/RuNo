@@ -25,3 +25,10 @@ export const getExcelColumnName = (colIndex: number) => {
   }
   return columnName;
 };
+
+export const welcome_text = `
+<h1>Welcome to RuNo!</h1>
+<p>Runo allows you to create documents with embedded formulas and database connections.</p>
+<p>To learn more about how to use Runo, check out our documentation.</p>
+<p>To start using Runo, simply type in the editor and use the toolbar to format your text.</p>
+`;

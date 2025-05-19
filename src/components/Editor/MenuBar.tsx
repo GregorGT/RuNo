@@ -24,6 +24,7 @@ import {
 import {
   BoldOutlined,
   CalculatorOutlined,
+  ExportOutlined,
   HighlightOutlined,
   ItalicOutlined,
   RedoOutlined,
@@ -267,9 +268,33 @@ const MenuBar = memo(({ editorName }: MenuBarProps) => {
   return (
     <div className="d-flex flex-col gap-2" style={{ margin: "20px" }}>
       {error && <div style={{ color: "red" }}>{error}</div>}
-      <Button onClick={loadDataToBackend} loading={loading} disabled={loading}>
-        Update
-      </Button>
+      <div className="d-flex gap-2">
+        <Button onClick={loadDataToBackend} loading={loading} disabled={loading}>
+          Update
+        </Button>
+        <Button 
+          icon={<ExportOutlined />}
+          onClick={() => {
+            // Import the exportToRTF function
+            import("../utils/ExportUtils").then(async ({ exportToRTF }) => {
+              try {
+                const htmlContent = editor.getHTML();
+                const success = await exportToRTF(htmlContent);
+                if (success) {
+                  message.success("Successfully exported to RTF");
+                }
+              } catch (err) {
+                console.error("Error exporting to RTF:", err);
+              }
+            }).catch(err => {
+              console.error("Error importing exportToRTF:", err);
+              message.error("Error importing RTF export function");
+            });
+          }}
+        >
+          Export to RTF
+        </Button>
+      </div>
       <div className="d-flex gap-2  ">
         <Select
           style={{ fontSize: 10 }}

@@ -1,4 +1,4 @@
-number          =  { ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+){,1} }
+number          =  { "-"* ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+){,1} }
 text_val        =  { (!"\"" ~ ANY)* }
 text            =  { "\"" ~ text_val ~ "\"" }
 WHITESPACE      = _{ " " }
