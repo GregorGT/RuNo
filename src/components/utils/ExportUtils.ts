@@ -28,7 +28,7 @@ const preprocessHtmlForExport = (html: string): string => {
           // Replace the formula element with a span that contains both parts
           // Using non-breaking space (\u00A0) to force them to stay on same line in RTF
           const span = document.createElement('span');
-          span.innerHTML = `${currentText}\u00A0${formula.data}`;
+          span.innerHTML = `${currentText} ${formula.data}`;
           
           // Replace the formula element with our new span
           if (element.parentNode) {
