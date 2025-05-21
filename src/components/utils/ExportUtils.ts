@@ -53,38 +53,101 @@ const preprocessHtmlForExport = (html: string): string => {
 export const exportToRTF = async (html: string): Promise<boolean> => {
   try {
     // Preprocess HTML to include formula values
-    const processedHtml = preprocessHtmlForExport(html);
+    let processedHtml = preprocessHtmlForExport(html);
+
+    const START = "[[BG:";
+    const END   = "]]";
     
+    // 1) Pre-process HTML: wrap every element with inline bg-color
+    processedHtml = processedHtml.replace(
+      /<([a-z]+)([^>]*)\sstyle="([^"]*?)background-color:\s*([^;"']+)[^"]*"([^>]*)>([^<]*)<\/\1>/gi,
+      (m: string, tag: string, before: string, styles: string, color: string, after: string, innerText: string) => {
+        // strip out only the bg rule
+        const cleanStyles = styles
+          .split(";")
+          .filter((s: string) => !/background-color/i.test(s))
+          .join(";");
+        const styleAttr = cleanStyles ? ` style="${cleanStyles}"` : "";
+        // wrap the inner text with markers
+        return `<${tag}${before}${styleAttr}${after}>` +
+               `${START}${color}${END}` +
+               innerText +
+               `${START}END${END}` +
+               `</${tag}>`;
+      }
+    );
+
     // Dynamically import the html-to-rtf-browser library
-    const HtmlToRtfBrowserModule = await import('html-to-rtf-browser');
+    const HtmlToRtfBrowserModule = await import("html-to-rtf-browser");
     const HtmlToRtfBrowser = HtmlToRtfBrowserModule.default;
     const htmlToRtf = new HtmlToRtfBrowser();
-    
+
     // Convert HTML to RTF
-    const rtf = htmlToRtf.convertHtmlToRtf(processedHtml);
-    
+    let rtf = htmlToRtf.convertHtmlToRtf(processedHtml);
+    // 2. Gather all the colors you marked in the RTF
+    //    We used "[[BG:COLOR]]" and "[[BG:END]]" markers in the HTML pre-processor.
+
+    const colorRegex = /\[\[BG:([^\]]+)\]\]/g;
+    const colors: string[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = colorRegex.exec(rtf)) !== null) {
+      const c = m[1];
+      if (c !== "END" && !colors.includes(c)) {
+        colors.push(c);
+      }
+    }
+
+    // 3. Inject those colors into the RTF color table
+    rtf = rtf.replace(
+      /\\colortbl;([^}]*)}/,
+      (full: string, existing: string) => {
+        const entries = colors.map(c => {
+          // strip leading "#" if present, parse hex
+          const hex = c.replace(/^#/, "");
+          const [r, g, b] = hex.match(/.{2}/g)?.map((h: string) => parseInt(h, 16)) || [0, 0, 0];
+          return `\\red${r}\\green${g}\\blue${b};`;
+        }).join("");
+        return `\\colortbl;${existing}${entries}}`;
+      }
+    );
+
+    // 4. Wrap each marked run in \highlight…\highlight0
+    colors.forEach((c, idx) => {
+      // RTF color-table indices start at 1 (0 is default)
+      const colorIndex = /* count your original colors */ 1 + idx;
+      // build a regex to find the run between [[BG:C]] and [[BG:END]]
+      const runRegex = new RegExp(
+        `\\[\\[BG:${c}\\]\\]([\\s\\S]*?)\\[\\[BG:END\\]\\]`,
+        "g"
+      );
+      rtf = rtf.replace(
+        runRegex,
+        `\\highlight${colorIndex} $1\\highlight0`
+      );
+    });
+
     // Create a Blob from the RTF content
     const blob = new Blob([rtf], { type: "application/rtf;charset=utf-8" });
-    
+
     // Create a download link and trigger download
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = "document.rtf";
-    
+
     // Add the link to the document, click it, and remove it
     document.body.appendChild(link);
     link.click();
-    
+
     // Clean up
     setTimeout(() => {
       URL.revokeObjectURL(link.href);
       document.body.removeChild(link);
     }, 100);
-    
+
     return true;
   } catch (error) {
     console.error("Error exporting to RTF:", error);
     message.error("Failed to export document to RTF format");
     return false;
   }
-}; 
+};
