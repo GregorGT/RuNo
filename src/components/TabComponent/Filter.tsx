@@ -1,5 +1,4 @@
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
 import { filterFnAtom, isFilterEnable } from "../../state/formula";
 
 const Filter = () => {
@@ -16,7 +15,7 @@ const Filter = () => {
             className="radio-input"
             type="checkbox"
             value="option2"
-            checked
+            defaultChecked
           />
         </div>
         <div className="flex items-center">
@@ -47,7 +46,7 @@ const Filter = () => {
                 checked={isChecked}
                 type="checkbox"
                 value="option1"
-                onClick={() => setIsChecked(!isChecked)}
+                onChange={() => setIsChecked(!isChecked)}
               />
             </div>
           </div>

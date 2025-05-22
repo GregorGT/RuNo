@@ -84,6 +84,13 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
   const tables = useAtomValue(tableAtom);
   const [_, setEditorExportFunction] = useAtom(exportEditorFunction);
   useEffect(() => {
+    // Create editor_styles element if it doesn't exist
+    if (!document.getElementById("editor_styles")) {
+      const styleElement = document.createElement("style");
+      styleElement.id = "editor_styles";
+      document.head.appendChild(styleElement);
+    }
+    
     setEditorExportFunction({
       fn: () => editor.getHTML(),
       load: (data) => {
@@ -104,63 +111,68 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
     }
 
     try {
-      // Get all connections
+      // Get all connections but don't block formula processing if they fail
+      let hasConnectionError = false;
       const connections = connectionsStore.getState().connections;
-      const connectedStates: Record<string, ButtonState> = {};
-      // Find all connections with lastTested status
-      let validConnections = connections.filter((conn) => conn.lastTested);
-      // Test each connection that has lastTested
-      for (const connection of validConnections) {
+      
+      // Only try to connect to databases if there are connections configured
+      if (connections.length > 0) {
         try {
-          const isConnected = await invoke("test_connection", {
-            config: connection,
-          });
-          if (isConnected) {
-            setIsConnected(true);
-            // Update connection status in store
-            connectedStates[connection.id] = "connected";
-            connectionsStore.setState((state) => ({
-              ...state,
-              connections: state.connections.map((conn) =>
-                conn.id === connection.id
-                  ? { ...conn, lastTested: new Date().toISOString() }
-                  : conn
-              ),
-            }));
-            api.success({
-              message: "Database Connected",
-              description: `Connected to ${connection.name} (${connection.type})`,
-              placement: "topRight",
-            });
-            validConnections = [connection];
+          const connectedStates: Record<string, ButtonState> = {};
+          // Find all connections with lastTested status
+          let validConnections = connections.filter((conn) => conn.lastTested);
+          
+          for (const connection of validConnections) {
+            try {
+              const isConnected = await invoke("test_connection", {
+                config: connection,
+              });
+              if (isConnected) {
+                setIsConnected(true);
+                // Update connection status in store
+                connectedStates[connection.id] = "connected";
+                connectionsStore.setState((state) => ({
+                  ...state,
+                  connections: state.connections.map((conn) =>
+                    conn.id === connection.id
+                      ? { ...conn, lastTested: new Date().toISOString() }
+                      : conn
+                  ),
+                }));
+                api.success({
+                  message: "Database Connected",
+                  description: `Connected to ${connection.name} (${connection.type})`,
+                  placement: "topRight",
+                });
+              }
+            } catch (error) {
+              console.error(`Failed to connect to ${connection.name}:`, error);
+              connectedStates[connection.id] = "failed";
+              hasConnectionError = true;
+            }
           }
-        } catch (error) {
-          console.error(`Failed to connect to ${connection.name}:`, error);
-          connectedStates[connection.id] = "failed";
-          // Update connection status to failed
+          
+          // Update connection states in store
           connectionsStore.setState((state) => ({
             ...state,
-            connections: state.connections.map((conn) =>
-              conn.id === connection.id
-                ? { ...conn, lastTested: undefined }
-                : conn
-            ),
+            connectionStates: connectedStates,
           }));
+          
+          // Show warning but continue with formula processing
+          if (hasConnectionError) {
+            api.warning({
+              message: "Some Connections Failed",
+              description: "Database connections not available, basic formulas will still be processed",
+              placement: "topRight",
+            });
+          }
+        } catch (error) {
+          console.error("Error handling connections:", error);
+          // Continue with formula processing despite connection errors
         }
       }
-      connectionsStore.setState((state) => ({
-        ...state,
-        connectionStates: connectedStates,
-      }));
-      if (!validConnections.length) {
-        api.error({
-          message: "No Valid Connections",
-          description: "Could not establish any database connections",
-          placement: "topRight",
-        });
-        // return;
-      }
 
+      // Process formulas regardless of connection status
       let top_id = "";
       editor.state.doc.descendants((node, pos) => {
         if (node.type.name === "horizontalRule") {
@@ -175,9 +187,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         }
       });
 
-      ///
-      console.log(editor.getHTML());
-      console.log("loading data to backend");
+      console.log("Processing formulas in editor content");
       const return_data = (await invoke("run_command", {
         input: editor.getHTML(),
         sorting: sortingEnabled ? sortingFn : "",
@@ -188,7 +198,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
 
       //@ts-ignore
       if (typeof return_data?.is_error === "boolean" && return_data.is_error) {
-        console.log("error", return_data);
+        console.log("Error in formula processing:", return_data);
         return;
       }
       if (
@@ -202,8 +212,14 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       ) {
         return;
       }
-      console.log(return_data.parsed_text);
-      console.log(return_data);
+      
+      // Clear any existing styles before updating editor
+      const editorStyles = document.getElementById("editor_styles");
+      if (editorStyles) {
+        editorStyles.innerHTML = "";
+      }
+      
+      // Update editor content with processed formulas - use setContent only once
       editor.commands.setContent(return_data?.parsed_text, false);
 
       const formulas = return_data?.formula_list;
@@ -214,31 +230,37 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         const cssList = return_data.filtered;
         console.log(cssList);
         // css list contains ids to be hidden
-        document.getElementById("editor_styles")!.innerHTML = cssList
-          .map((id) => `[id="${id}"]{display: none;}`)
-          .join("\n");
+        const editorStyles = document.getElementById("editor_styles");
+        if (editorStyles) {
+          editorStyles.innerHTML = cssList
+            .map((id) => `[id="${id}"]{display: none;}`)
+            .join("\n");
+        }
 
-        formulaStore.setState(
-          [
-            ...formula.map((item) => {
-              const newItem = formulas.find((r: any) => r.id === item.id);
-              if (!newItem) {
-                return item;
-              }
-              return {
-                ...item,
-                data: newItem.data,
-              };
-            }),
-          ],
-          true
-        );
+        // Update formulas with new data, avoid duplicating entries
+        const updatedFormulas = formula.map((item) => {
+          const newItem = formulas.find((r: any) => r.id === item.id);
+          if (!newItem) {
+            return item;
+          }
+          return {
+            ...item,
+            data: newItem.data,
+          };
+        });
+        
+        formulaStore.setState(updatedFormulas, true);
 
         // focus back to the editor
         editor.commands.focus();
       }
     } catch (e) {
-      console.log(e);
+      console.error("Error processing formulas:", e);
+      api.error({
+        message: "Formula Processing Error",
+        description: "There was an error processing the formulas",
+        placement: "topRight",
+      });
     }
   };
   const [loadingData, setLoadingData] = useState(false);

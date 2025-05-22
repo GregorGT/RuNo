@@ -79,7 +79,47 @@ const Dropdowns = () => {
     { key: 1, label: "Load" },
     { key: 2, label: "Save" },
     { key: 3, label: "Exit" },
-    { key: 4, label: "Export" },
+    { 
+      key: 4, 
+      label: "Export", 
+      children: [
+        {
+          key: "export-rtf",
+          label: "Export to RTF",
+          onClick: () => {
+            const htmlContent = getEditorValue.fn();
+            // Import the exportToRTF function
+            import("./utils/ExportUtils").then(async ({ exportToRTF }) => {
+              try {
+                // First ensure we get the latest HTML content with calculated formulas
+                const success = await exportToRTF(htmlContent);
+                if (success) {
+                  api.success({
+                    message: "RTF Export Successful",
+                    description: "Document has been exported to RTF format",
+                    placement: "topRight",
+                  });
+                }
+              } catch (error) {
+                console.error("Error during RTF export:", error);
+                api.error({
+                  message: "RTF Export Failed",
+                  description: "There was an error exporting to RTF format",
+                  placement: "topRight",
+                });
+              }
+            }).catch(error => {
+              console.error("Error importing RTF export function:", error);
+              api.error({
+                message: "RTF Export Failed",
+                description: "Failed to load export functionality",
+                placement: "topRight",
+              });
+            });
+          }
+        }
+      ]
+    },
     { key: 5, label: "Import" },
   ];
   const editItems: MenuProps["items"] = [
