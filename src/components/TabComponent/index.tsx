@@ -56,7 +56,7 @@ export default function TabComponent() {
             className={`header-button ${activeTab === "value" ? "active" : ""}`}
             onClick={() => setActiveTab("value")}
           >
-            Value
+            Formula
           </button>
           <button
             className={`header-button ${activeTab === "table" ? "active" : ""}`}
