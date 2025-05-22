@@ -1,3 +1,4 @@
+use dirs_next::data_dir;
 use hex::encode;
 use hmac::{Hmac, Mac};
 use hostname::get;
@@ -6,7 +7,6 @@ use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
-use dirs_next::data_dir;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -124,10 +124,23 @@ pub fn is_trial_valid() -> Result<bool, String> {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    let elapsed_days = (now - start_time) / 86400;
-    println!(
-        "Trial period {} days remain",
+
+    let elapsed_days = if now > start_time {
+        (now - start_time) / 86400
+    } else {
+        0
+    };
+
+    let remaining_days = if TRIAL_DURATION_DAYS > elapsed_days {
         TRIAL_DURATION_DAYS - elapsed_days
-    );
+    } else {
+        0
+    };
+
+    if remaining_days > 0 {
+        println!("Trial period {} days remain", remaining_days);
+    } else {
+        println!("Trial period expired",);
+    }
     Ok(elapsed_days > TRIAL_DURATION_DAYS)
 }
