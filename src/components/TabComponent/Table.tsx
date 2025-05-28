@@ -1,6 +1,7 @@
 import { useAtomValue, useAtom } from "jotai";
 import { tableAtom, tableStore, selectedTableAtom } from "../../state/table";
 import { useEffect, useState, useRef } from "react";
+import { TABLE_SIZE } from "../utils/consts";
 import _ from "lodash";
 
 const Table = () => {
@@ -84,27 +85,28 @@ const Table = () => {
           Always Update
           <input
             className="radio-input"
-            type="checkbox"
-            value="option2"
-            defaultChecked
+            type="radio"
+            name="table-size"
+            value={TABLE_SIZE.ALWAYS_UPDATE}
           />
         </div>
         <div className="flex items-center mx-3">
           Init and Update once
           <input
             className="radio-input"
-            type="checkbox"
-            value="option2"
-            disabled
+            type="radio"
+            name="table-size"
+            value={TABLE_SIZE.UPDATE_ONCE}
           />
         </div>
         <div className="flex items-center mx-3">
           Do nothing
           <input
             className="radio-input"
-            type="checkbox"
-            value="option2"
-            disabled
+            type="radio"
+            name="table-size"
+            value={TABLE_SIZE.DO_NOTHING}
+            defaultChecked
           />
         </div>
       </div>
