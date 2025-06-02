@@ -90,7 +90,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       styleElement.id = "editor_styles";
       document.head.appendChild(styleElement);
     }
-    
+
     setEditorExportFunction({
       fn: () => editor.getHTML(),
       load: (data) => {
@@ -114,14 +114,14 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       // Get all connections but don't block formula processing if they fail
       let hasConnectionError = false;
       const connections = connectionsStore.getState().connections;
-      
+
       // Only try to connect to databases if there are connections configured
       if (connections.length > 0) {
         try {
           const connectedStates: Record<string, ButtonState> = {};
           // Find all connections with lastTested status
           let validConnections = connections.filter((conn) => conn.lastTested);
-          
+
           for (const connection of validConnections) {
             try {
               const isConnected = await invoke("test_connection", {
@@ -151,13 +151,13 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
               hasConnectionError = true;
             }
           }
-          
+
           // Update connection states in store
           connectionsStore.setState((state) => ({
             ...state,
             connectionStates: connectedStates,
           }));
-          
+
           // Show warning but continue with formula processing
           if (hasConnectionError) {
             api.warning({
@@ -188,6 +188,19 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       });
 
       console.log("Processing formulas in editor content");
+      if (connections.length && tables.length) {
+        tables.forEach(table => {
+          table.connection = {}
+
+          const match = table.sqlFormula?.match(/SQL\("([^"]+)"/);
+          if (match) {
+            console.log("matchend name", match)
+            const connectionName = match[1];
+            const foundConnection = connections.find(conn => conn.name.trim().toLowerCase() === connectionName.trim().toLowerCase())
+            if (foundConnection) table.connection = { ...foundConnection }
+          }
+        })
+      }
       const return_data = (await invoke("run_command", {
         input: editor.getHTML(),
         sorting: sortingEnabled ? sortingFn : "",
@@ -212,13 +225,13 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       ) {
         return;
       }
-      
+
       // Clear any existing styles before updating editor
       const editorStyles = document.getElementById("editor_styles");
       if (editorStyles) {
         editorStyles.innerHTML = "";
       }
-      
+
       // Update editor content with processed formulas - use setContent only once
       editor.commands.setContent(return_data?.parsed_text, false);
 
@@ -248,7 +261,7 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
             data: newItem.data,
           };
         });
-        
+
         formulaStore.setState(updatedFormulas, true);
 
         // focus back to the editor

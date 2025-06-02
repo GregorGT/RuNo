@@ -31,6 +31,7 @@
     "@types/uuid": "^9.0.8",
     "antd": "^5.11.1",
     "bootstrap": "^5.3.2",
+    "fflate": "^0.8.2",
     "html-to-rtf-browser": "^1.6.1",
     "jotai": "^2.6.1",
     "jotai-zustand": "^0.3.0",
