@@ -4,6 +4,7 @@
 mod api;
 mod command;
 mod database;
+// mod sql;
 mod error;
 mod license;
 mod models;
@@ -13,9 +14,7 @@ extern crate html5ever;
 extern crate markup5ever_rcdom as rcdom;
 extern crate pest;
 
-use command::assign_entry_id;
-use command::clear_entry_id;
-use command::run_command;
+use command::{assign_entry_id, clear_entry_id, run_command};
 use database::test_connection;
 use license::{write_license_file, is_trial_valid, initialize_trial_file};
 // use std::path::PathBuf;

@@ -3939,6 +3939,7 @@ dependencies = [
 name = "runo"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "chrono",
  "dateparser",
  "dirs 5.0.1",
