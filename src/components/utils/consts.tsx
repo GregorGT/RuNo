@@ -9,3 +9,6 @@ export const TABLE_SIZE = {
 
 export const SQL_FORMULA_PATTERN = /^SQL\("([^"]+)",\s*"([^"]+)"\)$/;
 export const SQL_CELL_PATTERN = /^SQL_Cell\((\d+),\s*(\d+)\)$/;
+
+export const MINGLE_KEY = "RuNo2025!";
+export const ENCRYPTION_KEY = "dsaKJGGOIAVFQWERIUOPILKJHGFDDAYXCVV12345678990qwrzqtwghdsavjgqwambbcyxs"
