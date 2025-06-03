@@ -27,7 +27,7 @@ import { connectionsStore } from "../state/connection";
 import { RuNoFile } from "../state/fileTypes";
 
 import { SITE_URL } from "./utils/consts";
-import { unmingle, unzipToString, uint8ToBase64, base64ToUint8, mingle, zipString } from "./utils/obfuscate";
+import { unmingle, unzipToString, uint8ToBase64, base64ToUint8, mingle, zipString, encryptData, decryptData } from "./utils/obfuscate";
 
 const Dropdowns = () => {
   const tables = useAtomValue(tableAtom);
@@ -43,6 +43,16 @@ const Dropdowns = () => {
   const [isRegisterLicenseDialogvisible, setRegisterLicenseDialogVisible] = useState(false);
 
   const save_data = (): RuNoFile => {
+    const connections = connectionsStore.getState().connections.map(con => {
+      // Encrypt password
+      if (con.password) {
+        return {
+          ...con,
+          password: encryptData(con.password)
+        }
+      }
+      return con;
+    })
     return {
       editorData: getEditorValue.fn(),
       filter: filterValue,
@@ -51,8 +61,8 @@ const Dropdowns = () => {
       isFilterEnable: filterEnabled,
       isSortingEnable: sortingEnabled,
       formulas: formulaStore.getState(),
-      tables: tables,
-      sqlConnections: connectionsStore.getState().connections,
+      tables,
+      sqlConnections: connections,
     };
   };
 
@@ -85,6 +95,17 @@ const Dropdowns = () => {
     setSortingEnabled(data.isSortingEnable ?? false);
     formulaStore.setState(data.formulas ?? [], true);
     tableStore.setState(data.tables ?? [], true);
+
+    data.sqlConnections = data.sqlConnections?.map(con => {
+      // Decrypt password
+      if (con.password) {
+        return {
+          ...con,
+          password: decryptData(con.password)
+        }
+      }
+      return con;
+    })
     connectionsStore.setState(
       {
         connections: data.sqlConnections ?? [],
@@ -230,13 +251,6 @@ const Dropdowns = () => {
           items: fileItems,
           onClick: async (e) => {
             if (e.key === "2") {
-              // const mypath = path.join(
-              //   `${await downloadDir()}`,
-              //   `export-${new Date().getTime()}.json`
-              // );
-              // await writeTextFile(await mypath, JSON.stringify(save_data()), {
-              //   baseDir: BaseDirectory.AppConfig,
-              // });
               const mypath = await saveFile()
               showNotificaiton(`File Saved as ${await mypath}`);
             }
