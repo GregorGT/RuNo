@@ -41,9 +41,9 @@ const Table = () => {
 
     const updatedTables = tables.some((table) => table.id === id)
       ? tables.map((table) =>
-        table.id === id ? { ...table, name: updatedName, sqlFormula: formulaValue, tableSze: tableSize } : table
+        table.id === id ? { ...table, name: updatedName, sqlFormula: formulaValue, tableSize } : table
       )
-      : [...tables, { id, name: updatedName, sqlFormula: formulaValue, tableSze: tableSize }];
+      : [...tables, { id, name: updatedName, sqlFormula: formulaValue, tableSize }];
 
     tableStore.setState(_.cloneDeep(updatedTables), true);
   };
@@ -54,9 +54,9 @@ const Table = () => {
 
     const updatedTables = tables.some(table => table.id === id)
       ? tables.map(table =>
-        table.id === id ? { ...table, name: tableName, sqlFormula: newFormula, tableSze: tableSize } : table
+        table.id === id ? { ...table, name: tableName, sqlFormula: newFormula, tableSize } : table
       )
-      : [...tables, { id, name: tableName, sqlFormula: newFormula, tableSze: tableSize }];
+      : [...tables, { id, name: tableName, sqlFormula: newFormula, tableSize }];
 
     tableStore.setState(_.cloneDeep(updatedTables), true);
   };
@@ -64,15 +64,13 @@ const Table = () => {
   const handleTableSizeChange = (value: TableSize) => {
     setTableSize(value);
 
-    // If "Init and Update once" is selected, we'll update the table size once
-    // and then automatically set it to "Do nothing"
-    const newSize = value === TABLE_SIZE.UPDATE_ONCE ? TABLE_SIZE.DO_NOTHING : value;
+    const newSize = value;
 
     const updatedTables = tables.some(table => table.id === id)
       ? tables.map(table =>
-        table.id === id ? { ...table, name: tableName, sqlFormula: formulaValue, tableSze: newSize } : table
+        table.id === id ? { ...table, name: tableName, sqlFormula: formulaValue, tableSize: newSize } : table
       )
-      : [...tables, { id, name: tableName, sqlFormula: formulaValue, tableSze: newSize }];
+      : [...tables, { id, name: tableName, sqlFormula: formulaValue, tableSize: newSize }];
 
     tableStore.setState(_.cloneDeep(updatedTables), true);
   };
@@ -106,7 +104,7 @@ const Table = () => {
               className="p-1"
               value={formulaValue}
               onChange={handleFormulaChange}
-              placeholder="Enter your SQL formula here (e.g., SQL('MySQLConnection', 'SELECT * FROM TABLE X WHERE DATA > 2025 LIMIT 10'))"
+              placeholder='Enter your SQL formula here (e.g., SQL("MySQLConnection", "SELECT * FROM TABLE X WHERE DATA > 2025 LIMIT 10"))'
               style={{
                 width: '100%',
                 minHeight: '100px',
@@ -125,6 +123,7 @@ const Table = () => {
                 type="radio"
                 name="table-size"
                 value={TABLE_SIZE.ALWAYS_UPDATE}
+                checked={tables.find(table => table.id === id)?.tableSize === TABLE_SIZE.ALWAYS_UPDATE}
                 onChange={() => handleTableSizeChange(TABLE_SIZE.ALWAYS_UPDATE)}
               />
             </div>
@@ -135,6 +134,7 @@ const Table = () => {
                 type="radio"
                 name="table-size"
                 value={TABLE_SIZE.UPDATE_ONCE}
+                checked={tables.find(table => table.id === id)?.tableSize === TABLE_SIZE.UPDATE_ONCE}
                 onChange={() => handleTableSizeChange(TABLE_SIZE.UPDATE_ONCE)}
               />
             </div>
@@ -145,6 +145,7 @@ const Table = () => {
                 type="radio"
                 name="table-size"
                 value={TABLE_SIZE.DO_NOTHING}
+                checked={tables.find(table => table.id === id)?.tableSize === TABLE_SIZE.DO_NOTHING}
                 onChange={() => handleTableSizeChange(TABLE_SIZE.DO_NOTHING)}
                 defaultChecked
               />

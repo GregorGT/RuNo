@@ -55,6 +55,7 @@ import { ButtonState, connectionsStore } from "../../state/connection";
 import { notification } from "antd";
 
 import { isTrialValid } from "../utils/license";
+import { TABLE_SIZE } from "../utils/consts";
 
 let example = final_list;
 const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
@@ -190,11 +191,8 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
       console.log("Processing formulas in editor content");
       if (connections.length && tables.length) {
         tables.forEach(table => {
-          table.connection = {}
-
           const match = table.sqlFormula?.match(/SQL\("([^"]+)"/);
           if (match) {
-            console.log("matchend name", match)
             const connectionName = match[1];
             const foundConnection = connections.find(conn => conn.name.trim().toLowerCase() === connectionName.trim().toLowerCase())
             if (foundConnection) table.connection = { ...foundConnection }
@@ -208,6 +206,13 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
         filter: filterEnabled ? filterFn : "",
         tables: tables,
       })) as unknown;
+
+      tables.map(table => {
+        if (table.tableSize === TABLE_SIZE.UPDATE_ONCE) {
+          table.tableSize = TABLE_SIZE.DO_NOTHING;
+        }
+        return table
+      })
 
       //@ts-ignore
       if (typeof return_data?.is_error === "boolean" && return_data.is_error) {

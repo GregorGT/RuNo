@@ -45,6 +45,9 @@ DATE = {"DATE(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
 NUMBER = { "NUMBER(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
 TEXT = { "TEXT(" ~ WHITESPACE* ~ text ~ ("," ~ text)* ~ WHITESPACE* ~ ")"}
 
+SQL_CELL = { "SQL_Cell(" ~ WHITESPACE* ~ number ~ WHITESPACE* ~ "," ~ WHITESPACE* ~ number ~ WHITESPACE* ~ "," ~ WHITESPACE* ~ text ~ WHITESPACE* ~ ")" }
 
-Fn = { EVAL | SUM | MUL | COUNT | LEN | TYPE | CONCAT | IF | MIN | MAX | AVERAGE | TRIM | ROUND | IFERROR | SUMIF | COUNTIF | DATE | NUMBER | TEXT | DIV | EVAL_TABLE }
+SQL = { "SQL(" ~ WHITESPACE* ~ text ~ WHITESPACE* ~ "," ~ WHITESPACE* ~ text ~ WHITESPACE* ~ ")" }
+
+Fn = { EVAL | SUM | MUL | COUNT | LEN | TYPE | CONCAT | IF | MIN | MAX | AVERAGE | TRIM | ROUND | IFERROR | SUMIF | COUNTIF | DATE | NUMBER | TEXT | DIV | EVAL_TABLE | SQL | SQL_CELL }
 
