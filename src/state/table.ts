@@ -1,13 +1,14 @@
 import { atomWithStore } from "jotai-zustand";
 import { createStore } from "zustand/vanilla";
 import { TABLE_SIZE } from "../components/utils/consts";
+import { Connection } from "./connection";
 
 interface TableData {
   id: string;
   name?: string;
   sqlFormula?: string;
   tableSize?: TableSize;
-  connection?: object,
+  connection?: Connection,
 }
 
 interface SelectedTable {
@@ -21,14 +22,7 @@ export const selectedTableStore = createStore<SelectedTable>(() => ({
   excelRef: "",
 }));
 
-// export const tableStore = createStore<{ id: string; name: string }[]>(() => []);
-// export const selectedTableStore = createStore<{ id: string; excelRef: string }>(() => ({
-//   id: "",
-//   excelRef: "",
-// }));
-
 export const tableAtom = atomWithStore(tableStore);
 export const selectedTableAtom = atomWithStore(selectedTableStore);
-
 
 export type TableSize = typeof TABLE_SIZE[keyof typeof TABLE_SIZE];

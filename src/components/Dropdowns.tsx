@@ -126,7 +126,6 @@ const Dropdowns = () => {
       reader.readAsText(file);
       reader.onload = () => {
         const base64 = reader.result as string;
-        console.log(base64)
         const mingled = base64ToUint8(base64);
         const zipped = unmingle(mingled);
         const json = unzipToString(zipped);

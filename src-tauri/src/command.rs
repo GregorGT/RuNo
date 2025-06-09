@@ -44,12 +44,19 @@ mod utils;
 use applicationdialogs::msg_box;
 use applicationdirs::get_application_db_directory;
 
+use crate::database::{execute_query, extract_sql_query, test_connection};
+
 static mut FORMULA_LIST_CELL: Vec<html::formula> = vec![];
 static mut TABLE_LIST_CELL: Vec<html::table> = vec![];
 pub static mut ORIGINAL_DOC_ID_LIST: LinkedList<list_ids> = LinkedList::new();
 //
 const LENGTH: i32 = 1;
+use html::TableSize;
+use once_cell::sync::Lazy;
 
+// Table cache: table_id -> (table_data, table_size)
+pub static TABLE_CACHE: Lazy<Mutex<HashMap<String, (Vec<serde_json::Value>, TableSize)>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug, serde::Serialize, PartialEq, PartialOrd)]
 pub struct return_data {
@@ -146,7 +153,6 @@ Entries  buffer
 
 */
 
-
 #[tauri::command]
 pub fn run_command(
     input: String,
@@ -155,23 +161,22 @@ pub fn run_command(
     filter: String,
     tables: Option<Vec<html::table>>,
 ) -> return_data {
-    let result =
-        panic::catch_unwind(
-            || match main_command(input.clone(), sorting, sorting_up, filter, tables) {
-                Ok(data) => data,
-                Err(err) => {
-                    println!("Error: {:?}", err);
-                    return return_data {
-                        formula_list: vec![],
-                        sorted: "".to_string(),
-                        filtered: vec![],
-                        parsed_text: "".to_string(),
-                        is_error: true,
-                        tables: vec![].into(),
-                    };
-                }
-            },
-        );
+    let result = panic::catch_unwind(|| {
+        match main_command(input.clone(), sorting, sorting_up, filter, tables) {
+            Ok(data) => data,
+            Err(err) => {
+                println!("Error: {:?}", err);
+                return return_data {
+                    formula_list: vec![],
+                    sorted: "".to_string(),
+                    filtered: vec![],
+                    parsed_text: "".to_string(),
+                    is_error: true,
+                    tables: vec![].into(),
+                };
+            }
+        }
+    });
     if result.is_err() {
         // msgbox::create("Error", "Error in the formula", IconType::Error);
         applicationdialogs::msg_box("Error in formula".to_string());
@@ -199,7 +204,84 @@ pub fn main_command(
     filter: String,
     tables: Option<Vec<html::table>>,
 ) -> Result<return_data> {
-    let SINGLE_LINE_EXAMPLE: &str = input.as_str();
+
+    // --- SQL Table Handling ---
+    let mut full_table_results: Vec<(String, Vec<serde_json::Value>)> = vec![];
+    let mut updated_html = input.clone();
+
+    if let Some(tables) = &tables {
+        for table in tables {
+            if let (Some(sql_formula), Some(conn)) = (&table.sql_formula, &table.connection) {
+                let sql_query = extract_sql_query(sql_formula);
+                let table_id = table.id.clone();
+                let mut cache = TABLE_CACHE.lock().unwrap();
+                let table_size = table
+                    .table_size
+                    .clone()
+                    .unwrap_or(TableSize::AlwaysUpdate);
+
+                // Try to connect before running query
+                let is_connected = tauri::async_runtime::block_on(test_connection(conn.clone()));
+                if !is_connected {
+                    // If connection fails, skip update for this table
+                    continue;
+                }
+
+                let mut results = vec![];
+
+                if table_size == TableSize::DoNothing {
+                    if !cache.contains_key(&table_id) {
+                        // Detect current table size in the document
+                        let (current_rows, current_cols) =
+                            get_table_size_from_html(&updated_html, &table_id);
+
+                        // Cache is empty, so run the query ONCE to populate it
+                        let results =
+                            tauri::async_runtime::block_on(execute_query(conn, &sql_query))
+                                .unwrap_or_default();
+
+                        // Generate new table HTML with SQL_Cell formulas, but only for current size
+                        let new_table_html = generate_sql_cell_table_html_limited(
+                            &table_id,
+                            &results,
+                            current_rows,
+                            current_cols,
+                        );
+
+                        // Replace the table in the document
+                        updated_html =
+                            replace_table_html(&updated_html, &table_id, &new_table_html);
+
+                        cache.insert(
+                            table_id.clone(),
+                            (results.clone(), TableSize::DoNothing),
+                        );
+                        full_table_results.push((table_id.clone(), results));
+                    } else if let Some((results, _)) = cache.get(&table_id) {
+                        // Cache already has data, just use it
+                        full_table_results.push((table_id.clone(), results.clone()));
+                    }
+                } else {
+                    results = tauri::async_runtime::block_on(execute_query(conn, &sql_query))
+                        .unwrap_or_default();
+                    // Overwrite table in HTML with SQL_Cell formulas
+                    let new_table_html = generate_sql_cell_table_html(&table_id, &results);
+                    updated_html = replace_table_html(&updated_html, &table_id, &new_table_html);
+                    // Update cache
+                    let new_mode = if table_size == TableSize::UpdateOnce {
+                        TableSize::DoNothing
+                    } else {
+                        table_size.clone()
+                    };
+                    cache.insert(table_id.clone(), (results.clone(), new_mode));
+                    full_table_results.push((table_id.clone(), results));
+                }
+            }
+        }
+    }
+    // --- End SQL Table Handling ---
+
+    let SINGLE_LINE_EXAMPLE: &str = &updated_html.as_str();
 
     let mut sorting_fn = if sorting.clone().trim() == "" {
         r#"EVAL(!"ID: {NUMBER}")"#.to_string()
@@ -217,7 +299,6 @@ pub fn main_command(
 
     let parsed_data: html::parse_html_return =
         html::parse_html(SINGLE_LINE_EXAMPLE.repeat(LENGTH as usize).as_str());
-
     unsafe {
         TABLE_DATA_LIST = parsed_data.table_list.clone();
     }
@@ -468,6 +549,107 @@ pub fn main_command(
 #[grammar = "./parser.pest"]
 struct MyParser;
 
+fn get_table_size_from_html(document: &str, table_id: &str) -> (usize, usize) {
+    use scraper::{Html, Selector};
+    let fragment = Html::parse_fragment(document);
+    let selector = Selector::parse(&format!("table[id=\"{}\"]", table_id)).unwrap();
+    if let Some(table) = fragment.select(&selector).next() {
+        let rows: Vec<_> = table.select(&Selector::parse("tr").unwrap()).collect();
+        let row_count = rows.len();
+        let col_count = rows
+            .get(0)
+            .map(|row| row.select(&Selector::parse("td").unwrap()).count())
+            .unwrap_or(0);
+        (row_count, col_count)
+    } else {
+        (0, 0)
+    }
+}
+
+fn generate_sql_cell_table_html_limited(
+    table_id: &str,
+    data: &[serde_json::Value],
+    max_rows: usize,
+    max_cols: usize,
+) -> String {
+    let mut html = format!("<table id=\"{}\"><tbody>", table_id);
+    for i in 0..max_rows {
+        html += "<tr>";
+        if let Some(obj) = data.get(i).and_then(|row| row.as_object()) {
+            for j in 0..max_cols {
+                if let Some((_, value)) = obj.iter().nth(j) {
+                    let data_type = if value.is_number() {
+                        "NUMBER"
+                    } else if value.is_string()
+                        && value
+                            .as_str()
+                            .unwrap()
+                            .parse::<chrono::NaiveDateTime>()
+                            .is_ok()
+                    {
+                        "DATE"
+                    } else {
+                        "TEXT"
+                    };
+                    html += &format!(
+                        "<td><p><formula id=\"{}_{}_{}\" formula=\"SQL_Cell({}, {}, &quot;{}&quot;)\"></formula></p></td>",
+                        table_id, i + 1, j + 1, j + 1, i + 1, data_type
+                    );
+                } else {
+                    html += "<td></td>";
+                }
+            }
+        } else {
+            for _ in 0..max_cols {
+                html += "<td></td>";
+            }
+        }
+        html += "</tr>";
+    }
+    html += "</tbody></table>";
+    html
+}
+
+fn generate_sql_cell_table_html(table_id: &str, data: &[serde_json::Value]) -> String {
+    let mut html = format!("<table id=\"{}\"><tbody>", table_id);
+    for (i, row) in data.iter().enumerate() {
+        html += "<tr>";
+        if let Some(obj) = row.as_object() {
+            for (j, (col_name, value)) in obj.iter().enumerate() {
+                let data_type = if value.is_number() {
+                    "NUMBER"
+                } else if value.is_string()
+                    && value
+                        .as_str()
+                        .unwrap()
+                        .parse::<chrono::NaiveDateTime>()
+                        .is_ok()
+                {
+                    "DATE"
+                } else {
+                    "TEXT"
+                };
+                html += &format!(
+                    "<td><p><formula table_id={} id=\"{}_{}_{}\" formula='SQL_Cell({}, {}, &quot;{}&quot;)'></formula></p></td>",
+                    table_id, table_id, i + 1, j + 1, j + 1, i + 1, data_type
+                );
+            }
+        }
+        html += "</tr>";
+    }
+    html += "</tbody></table>";
+    html
+}
+
+fn replace_table_html(document: &str, table_id: &str, new_table_html: &str) -> String {
+    let re = regex::Regex::new(&format!(
+        r#"<table[^>]*id=["']{}["'][^>]*>.*?</table>"#,
+        regex::escape(table_id)
+    ))
+    .unwrap();
+    re.replace(document, new_table_html).to_string()
+}
+
 fn parse_string(
     formula: html::formula,
     searcher: Searcher,
@@ -488,7 +670,7 @@ fn parse_string(
         }
         return Ok(TypeOr::Error);
     }
-    
+
     let pairs = match MyParser::parse(Rule::Fn, formula.formula.as_str()) {
         Ok(pairs) => pairs,
         Err(err) => {
@@ -506,7 +688,7 @@ fn parse_string(
             return Ok(TypeOr::Error);
         }
     };
-    
+
     let mut ans: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
     unsafe {
         // set current formula to in process
@@ -551,11 +733,14 @@ fn parse_string_in_cell(
     let pairs = match MyParser::parse(Rule::Fn, formula.formula.as_str()) {
         Ok(pairs) => pairs,
         Err(err) => {
-            println!("Error parsing formula in cell '{}': {:?}", formula.formula, err);
+            println!(
+                "Error parsing formula in cell '{}': {:?}",
+                formula.formula, err
+            );
             return TypeOr::Error;
         }
     };
-    
+
     let mut ans: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
 
     for pair in pairs {
@@ -671,11 +856,11 @@ fn column_to_number(col: &str) -> u32 {
 fn extract_column_and_row(reference: &str) -> (u32, u32) {
     // Find where the first digit appears to separate column and row
     let column_end = reference.chars().position(|c| c.is_digit(10)).unwrap();
-    
+
     // Separate column (letters) and row (digits)
     let column = &reference[0..column_end];
     let row: u32 = reference[column_end..].parse().unwrap();
-    
+
     // Convert the column part into a number
     let column_number = column_to_number(column);
 
@@ -702,12 +887,12 @@ fn recursive_funcation_parser<'a>(
         Rule::EVAL_TABLE => {
             // Vector to store the extracted patterns
             let mut patterns: Vec<String> = Vec::new();
-            
+
             // Default values for table name, range, and value type
             let mut table_name: Option<String> = None;
             let mut range = "";
             let mut value_type = "";
-        
+
             // Iterate through inner pairs to extract patterns
             for inner_pair in pair.into_inner() {
                 for eval_pair in inner_pair.into_inner() {
@@ -724,7 +909,7 @@ fn recursive_funcation_parser<'a>(
                 table_name = Some(patterns[0].to_string());
                 range = patterns[1].as_str();
                 value_type = patterns[2].as_str();
-            
+
                 unsafe {
                     if let Some(table_id) = TABLE_LIST_CELL
                         .iter()
@@ -737,7 +922,7 @@ fn recursive_funcation_parser<'a>(
             } else if patterns.len() == 2 {
                 range = patterns[0].as_str();
                 value_type = patterns[1].as_str();
-            
+
                 unsafe {
                     if let Some(ref table_id) = formula.table_id {
                         table_data = TABLE_DATA_LIST.iter().find(|p| &p.id == table_id);
@@ -746,12 +931,12 @@ fn recursive_funcation_parser<'a>(
             } else {
                 return TypeOr::Error;
             }
-            
+
             let positions: Vec<&str> = range.split(":").collect();
 
             let mut rows: Vec<u32> = vec![];
             let mut cols: Vec<u32> = vec![];
-            
+
             for position in &positions {
                 let (column_number, row_number) = extract_column_and_row(*position);
                 rows.push(row_number);
@@ -764,7 +949,7 @@ fn recursive_funcation_parser<'a>(
             let mut string_vals: Vec<String> = Vec::new();
             let mut number_vals: Vec<f64> = Vec::new();
             let mut date_vals: Vec<NaiveDateTime> = Vec::new();
-        
+
             unsafe {
                 for i in cols[0]..=cols[1] {
                     for j in rows[0]..=rows[1] {
@@ -775,12 +960,21 @@ fn recursive_funcation_parser<'a>(
                                 // Now you can work with the `data` HashMap
                                 if let Some(cell) = data.get(&(j as usize - 1, i as usize - 1)) {
                                     let mut cell_data = cell.clone();
-                                    if let Some(cell_formula) = formula_list.iter().find(|p| p.id == *cell) {
-                                        cell_data = parse_string_in_cell(cell_formula.clone(), searcher.clone(), schema.clone(), formula_list.clone()).to_string();
+                                    if let Some(cell_formula) =
+                                        formula_list.iter().find(|p| p.id == *cell)
+                                    {
+                                        cell_data = parse_string_in_cell(
+                                            cell_formula.clone(),
+                                            searcher.clone(),
+                                            schema.clone(),
+                                            formula_list.clone(),
+                                        )
+                                        .to_string();
                                     }
                                     match value_type {
                                         "NUMBER" => {
-                                            let re = Regex::new(r"[-+]?\d*\.?\d+(e[-+]?\d+)?").unwrap();
+                                            let re =
+                                                Regex::new(r"[-+]?\d*\.?\d+(e[-+]?\d+)?").unwrap();
 
                                             if let Some(mat) = re.find(&cell_data) {
                                                 if let Ok(num) = mat.as_str().parse::<f64>() {
@@ -802,7 +996,7 @@ fn recursive_funcation_parser<'a>(
                         }
                     }
                 }
-                    
+
                 if !number_vals.is_empty() {
                     TypeOr::RightList(number_vals)
                 } else if !date_vals.is_empty() {
@@ -1315,7 +1509,7 @@ fn recursive_funcation_parser<'a>(
             let mut val: TypeOr<String, f64, NaiveDateTime> = TypeOr::None;
             let mut decimal_places = 0;
             let mut first_param = true;
-            
+
             for inner_pair in pair.into_inner() {
                 let ans = recursive_funcation_parser(
                     inner_pair.clone(),
@@ -1339,18 +1533,23 @@ fn recursive_funcation_parser<'a>(
                     }
                 }
             }
-            
+
             // Apply rounding with the specified decimal places
             match val {
-                TypeOr::Right(value) => val = TypeOr::Right(round(value as f64, decimal_places) as f64),
+                TypeOr::Right(value) => {
+                    val = TypeOr::Right(round(value as f64, decimal_places) as f64)
+                }
                 TypeOr::RightList(value) => {
                     val = TypeOr::RightList(
-                        value.iter().map(|x| round(*x as f64, decimal_places) as f64).collect(),
+                        value
+                            .iter()
+                            .map(|x| round(*x as f64, decimal_places) as f64)
+                            .collect(),
                     )
                 }
                 _ => {}
             }
-            
+
             return val;
         }
         Rule::AVERAGE => {
@@ -2096,12 +2295,113 @@ fn recursive_funcation_parser<'a>(
             // NO NEED TO IMPLIMENT IT HERE
             return TypeOr::None;
         }
+
+        Rule::SQL_CELL => {
+            // SQL_Cell(col, row, type)
+            let mut args = pair.into_inner();
+            let col = args
+                .next()
+                .and_then(|p| p.as_str().parse::<usize>().ok())
+                .unwrap_or(1);
+            let row = args
+                .next()
+                .and_then(|p| p.as_str().parse::<usize>().ok())
+                .unwrap_or(1);
+            let value_type = args
+                .next()
+                .map(|p| p.as_str().trim_matches('\"').to_uppercase())
+                .unwrap_or("TEXT".to_string());
+            // Find the table_id from the formula context or pass it as an argument if needed
+            let table_id = formula.id.split('_').next().unwrap_or_default().to_string();
+
+            let cache = TABLE_CACHE.lock().unwrap();
+            if let Some((table_data, _)) = cache.get(&table_id) {
+                if let Some(row_obj) = table_data.get(row - 1) {
+                    if let Some(obj_map) = row_obj.as_object() {
+                        if let Some((_, value)) = obj_map.iter().nth(col - 1) {
+                            match value_type.as_str() {
+                                "NUMBER" => {
+                                    if let Some(num) = value.as_f64() {
+                                        return TypeOr::Right(num);
+                                    }
+                                }
+                                "DATE" => {
+                                    if let Some(date_str) = value.as_str() {
+                                        if let Ok(date) = parse(date_str) {
+                                            return TypeOr::DateValue(get_date(date.naive_utc()));
+                                        }
+                                    }
+                                }
+                                _ => {
+                                    if let Some(s) = value.as_str() {
+                                        return TypeOr::Left(s.to_string());
+                                    } else {
+                                        return TypeOr::Left(value.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            TypeOr::None
+        }
+
+        Rule::SQL => {
+            let mut args = pair.into_inner();
+            let conn_name = args
+                .next()
+                .map(|p| p.as_str().trim_matches('\"').to_string())
+                .unwrap_or_default();
+            let sql_query = args
+                .next()
+                .map(|p| p.as_str().trim_matches('\"').to_string())
+                .unwrap_or_default();
+            // Find the connection config by name (from your tables or a global list)
+            let conn = find_connection_by_name(&conn_name); // Implement this helper
+            if let Some(conn) = conn {
+                let is_connected = tauri::async_runtime::block_on(test_connection(conn.clone()));
+                if is_connected {
+                    let results = tauri::async_runtime::block_on(execute_query(conn, &sql_query))
+                        .unwrap_or_default();
+                    // Only support 1D vector
+                    let mut vec = vec![];
+                    for row in results {
+                        if let Some(obj) = row.as_object() {
+                            for (_k, v) in obj {
+                                if let Some(s) = v.as_str() {
+                                    vec.push(s.to_string());
+                                } else if let Some(n) = v.as_f64() {
+                                    vec.push(n.to_string());
+                                }
+                            }
+                        }
+                    }
+                    return TypeOr::LeftList(vec);
+                }
+            }
+            TypeOr::None
+        }
+
         rule => {
             println!("Unreachable Rule {:?}", rule);
             println!("Unreachable Rule {:?}", pair.as_str());
             return TypeOr::None;
         }
     }
+}
+
+fn find_connection_by_name<'a>(name: &str) -> Option<&'a crate::database::ConnectionConfig> {
+    unsafe {
+        for table in &TABLE_LIST_CELL {
+            if let Some(conn) = &table.connection {
+                if table.name.as_ref().map(|n| n == name).unwrap_or(false) || conn.name == name {
+                    return Some(conn);
+                }
+            }
+        }
+    }
+    None
 }
 
 fn replace_list_from_string(list: Vec<String>, string: &str) -> String {

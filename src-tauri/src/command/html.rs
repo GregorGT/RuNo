@@ -1,9 +1,8 @@
-use std::collections::{HashMap, LinkedList};
 use std::borrow::{Borrow, BorrowMut};
+use std::collections::{HashMap, LinkedList};
 use std::default::Default;
 use std::{clone, io, result, vec};
 
-use serde::{Deserialize};
 use crate::command::{TypeOr, ORIGINAL_DOC_ID_LIST};
 use chrono::NaiveDateTime;
 use html5ever::parse_document;
@@ -12,10 +11,13 @@ use html5ever::tendril::TendrilSink;
 use rcdom::{Handle, Node, NodeData, RcDom, SerializableHandle};
 use scraper::html;
 use scraper::{Html, Selector};
+use serde::Deserialize;
 use tauri::utils::html::NodeRef;
 use uuid::Uuid;
 
 use super::ENTRY_IDS;
+
+use crate::database::ConnectionConfig;
 
 #[derive(Debug, serde::Serialize, PartialEq, Clone)]
 pub struct TableData {
@@ -35,19 +37,23 @@ fn parse_table_data(html: &str) -> Vec<TableData> {
         let mut table_data: HashMap<(usize, usize), String> = HashMap::new();
 
         let mut table_id = String::new();
-        
+
         if let Some(id) = table.value().attr("id") {
             table_id = id.to_string();
         }
 
         // Iterate through the rows (<tr>) within the table's body (<tbody>)
-        for (i, row) in table.select(&Selector::parse("tbody tr").unwrap()).enumerate() {
+        for (i, row) in table
+            .select(&Selector::parse("tbody tr").unwrap())
+            .enumerate()
+        {
             for (j, td) in row.select(&Selector::parse("td").unwrap()).enumerate() {
-                let cell_text = td.select(&Selector::parse("p formula").unwrap())
-                .next()
-                .and_then(|formula| formula.value().attr("id"))
-                .map(|data| data.to_string())
-                .unwrap_or_else(|| td.text().collect::<Vec<_>>().join(" ").trim().to_string());            
+                let cell_text = td
+                    .select(&Selector::parse("p formula").unwrap())
+                    .next()
+                    .and_then(|formula| formula.value().attr("id"))
+                    .map(|data| data.to_string())
+                    .unwrap_or_else(|| td.text().collect::<Vec<_>>().join(" ").trim().to_string());
                 table_data.insert((i, j), cell_text);
             }
         }
@@ -61,7 +67,6 @@ fn parse_table_data(html: &str) -> Vec<TableData> {
 
     tables_data
 }
-
 
 fn walk(
     handle: &Handle,
@@ -86,7 +91,8 @@ fn walk(
             ..
         } => {
             if &*name.local == "table" {
-                current_table_id = attrs.borrow()
+                current_table_id = attrs
+                    .borrow()
                     .iter()
                     .find(|attr| &*attr.name.local == "id")
                     .map(|attr| attr.value.to_string());
@@ -119,7 +125,11 @@ fn walk(
                 let mut table_id: Option<String> = None;
 
                 if formula.contains("EVAL_TABLE") {
-                    table_id = Some(current_table_id.clone().unwrap_or_else(|| "None".to_string()));
+                    table_id = Some(
+                        current_table_id
+                            .clone()
+                            .unwrap_or_else(|| "None".to_string()),
+                    );
                 }
 
                 formula_list.push(formula {
@@ -130,7 +140,7 @@ fn walk(
                     data: TypeOr::NotCalculated,
                     isSorting: false,
                     isFilter: false,
-                    table_id: table_id
+                    table_id: table_id,
                 });
 
                 return vec![id.to_string()];
@@ -150,7 +160,14 @@ fn walk(
 
     let mut result: Vec<String> = vec![];
     for child in node.children.borrow().iter() {
-        result.append(&mut walk(child, is_p, formula_list, line, entry, current_table_id.clone()));
+        result.append(&mut walk(
+            child,
+            is_p,
+            formula_list,
+            line,
+            entry,
+            current_table_id.clone(),
+        ));
     }
 
     if is_p && result.len() > 0 {
@@ -170,10 +187,55 @@ pub struct formula {
     pub table_id: Option<String>,
 }
 
+#[derive(Debug, Clone, serde::Serialize, Deserialize, PartialEq, PartialOrd)]
+#[serde(try_from = "i32", into = "i32")]
+pub enum TableSize {
+    AlwaysUpdate = 1,
+    UpdateOnce = 2,
+    DoNothing = 3,
+}
+
+impl TryFrom<i32> for TableSize {
+    type Error = String;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(TableSize::AlwaysUpdate),
+            2 => Ok(TableSize::UpdateOnce),
+            3 => Ok(TableSize::DoNothing),
+            _ => Err(format!("Invalid TableSize value: {}", value)),
+        }
+    }
+}
+
+impl From<TableSize> for i32 {
+    fn from(size: TableSize) -> Self {
+        size as i32
+    }
+}
+
 #[derive(Debug, serde::Serialize, PartialEq, PartialOrd, Deserialize, Clone)]
+#[serde[rename_all = "camelCase"]]
 pub struct table {
     pub id: String,
     pub name: Option<String>,
+    pub sql_formula: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_table_size")]
+    pub table_size: Option<TableSize>,
+    pub connection: Option<ConnectionConfig>,
+}
+
+fn deserialize_table_size<'de, D>(deserializer: D) -> Result<Option<TableSize>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value: Option<i32> = Option::deserialize(deserializer)?;
+    match value {
+        Some(v) => TableSize::try_from(v)
+            .map(Some)
+            .map_err(serde::de::Error::custom),
+        None => Ok(None),
+    }
 }
 
 impl Clone for formula {
@@ -186,7 +248,7 @@ impl Clone for formula {
             data: self.data.clone(),
             isSorting: self.isSorting,
             isFilter: self.isFilter,
-            table_id: self.table_id.clone()
+            table_id: self.table_id.clone(),
         }
     }
 }
@@ -196,6 +258,8 @@ pub struct entry_data {
     pub entry: u64,
     pub ids: Vec<String>,
 }
+
+#[derive(Debug)]
 pub struct parse_html_return {
     pub parsed_text: Vec<entry_data>,
     pub formula_list: Vec<formula>,
@@ -213,7 +277,7 @@ pub fn convert_to_sorting_formula(formula: String, entry_no: u64) -> formula {
         data: TypeOr::NotCalculated,
         isSorting: true,
         isFilter: false,
-        table_id: None
+        table_id: None,
     };
 }
 pub fn convert_to_filter_formula(formula: String, entry_no: u64) -> formula {
@@ -225,7 +289,7 @@ pub fn convert_to_filter_formula(formula: String, entry_no: u64) -> formula {
         data: TypeOr::NotCalculated,
         isSorting: false,
         isFilter: true,
-        table_id: None
+        table_id: None,
     };
 }
 
@@ -304,7 +368,7 @@ pub fn extract_all_ids_recursive(
                         ids: ll,
                         entry: index as u64,
                     }
-                })
+                });
             } else {
                 for attr in attrs.borrow().iter() {
                     if attr.name.local.to_lowercase() == "id" {
@@ -404,7 +468,14 @@ pub fn parse_html(html: &str) -> parse_html_return {
             let mut line = 0;
             let dom =
                 parse_document(RcDom::default(), Default::default()).one(tag.concat().to_string());
-            let final_data = walk(&dom.document, false, &mut formula_list, &mut line, entry, None);
+            let final_data = walk(
+                &dom.document,
+                false,
+                &mut formula_list,
+                &mut line,
+                entry,
+                None,
+            );
             index_data.push(final_data);
 
             table_list.extend(parse_table_data(&tag.concat().to_string()));
