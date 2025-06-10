@@ -263,6 +263,8 @@ fn sqlite_rows_to_json(rows: Vec<sqlx::sqlite::SqliteRow>) -> Vec<serde_json::Va
                         .map(serde_json::Value::from)
                         .or_else(|_| row.try_get::<f64, _>(i).map(Value::from))
                         .or_else(|_| row.try_get::<i64, _>(i).map(Value::from))
+                        .or_else(|_| row.try_get::<u64, _>(i).map(Value::from))
+                        .or_else(|_| row.try_get::<u32, _>(i).map(Value::from))
                         .unwrap_or(serde_json::Value::Null)
                 });
                 map.insert(column.name().to_string(), value);
@@ -299,6 +301,8 @@ fn mysql_rows_to_json(rows: Vec<sqlx::mysql::MySqlRow>) -> Vec<Value> {
                         .map(Value::from)
                         .or_else(|_| row.try_get::<f64, _>(i).map(Value::from))
                         .or_else(|_| row.try_get::<i64, _>(i).map(Value::from))
+                        .or_else(|_| row.try_get::<u64, _>(i).map(Value::from))
+                        .or_else(|_| row.try_get::<u32, _>(i).map(Value::from))
                         .or_else(|_| {
                             row.try_get::<chrono::NaiveDateTime, _>(i)
                                 .map(|dt| Value::from(dt.to_string()))
