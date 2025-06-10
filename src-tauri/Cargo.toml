@@ -46,7 +46,7 @@ rand = "0.8.5"
 tauri-plugin-dialog = "2"
 dirs = "5.0.1"
 tauri-plugin-fs = "2"
-sqlx = { version = "0.8.3", features = ["sqlite", "mysql", "postgres", "runtime-tokio", "tls-native-tls"] }
+sqlx = { version = "0.8.3", features = ["sqlite", "mysql", "postgres", "runtime-tokio", "tls-native-tls", "chrono"] }
 tokio = { version = "1", features = ["full"] }
 oracle = "0.6.3"
 hostname = "0.3" 
