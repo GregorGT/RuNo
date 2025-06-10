@@ -263,11 +263,13 @@ const MenuBar = ({ editorName }: { editorName: keyof typeof editorKeys }) => {
           }
           return {
             ...item,
+            formula: newItem.formula,
             data: newItem.data,
           };
         });
 
         formulaStore.setState(updatedFormulas, true);
+        console.log("updated formula ", updatedFormulas)
 
         // focus back to the editor
         editor.commands.focus();

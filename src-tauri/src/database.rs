@@ -232,79 +232,37 @@ fn sqlite_rows_to_json(rows: Vec<sqlx::sqlite::SqliteRow>) -> Vec<serde_json::Va
             for i in 0..row.len() {
                 let column = row.columns().get(i).unwrap();
                 let type_info = column.type_info().to_string();
+                println!(
+                    "[sqlite] column name {} and type is {:?}",
+                    column.name(),
+                    type_info
+                );
+                // let value = row
+                //     .try_get::<String, _>(i)
+                //     .map(Value::from)
+                //     .or_else(|_| row.try_get::<f64, _>(i).map(Value::from))
+                //     .or_else(|_| row.try_get::<i64, _>(i).map(Value::from))
+                //     .unwrap_or(Value::Null);
+
                 let value = match type_info.as_str() {
-                    "INTEGER" => row
-                        .try_get::<i64, _>(i)
-                        .map(serde_json::Value::from)
-                        .unwrap_or_default(),
+                    "INTEGER" => row.try_get::<i64, _>(i).ok().map(serde_json::Value::from),
                     "TEXT" => row
-                        .try_get::<String, _>(i)
-                        .map(serde_json::Value::from)
-                        .unwrap_or_default(),
-                    "REAL" => row
-                        .try_get::<f64, _>(i)
-                        .map(serde_json::Value::from)
-                        .unwrap_or_default(),
-                    _ => serde_json::Value::Null,
-                };
-                map.insert(column.name().to_string(), value);
-            }
-            serde_json::Value::Object(map)
-        })
-        .collect()
-}
-
-fn mysql_rows_to_json(rows: Vec<sqlx::mysql::MySqlRow>) -> Vec<serde_json::Value> {
-    rows.into_iter()
-        .map(|row| {
-            let mut map = serde_json::Map::new();
-            for i in 0..row.len() {
-                let column = row.columns().get(i).unwrap();
-                let type_info = column.type_info().to_string();
-                let value = match type_info.as_str() {
-                    "INT" | "BIGINT" => row
-                        .try_get::<i64, _>(i)
-                        .map(serde_json::Value::from)
-                        .unwrap_or_default(),
-                    "VARCHAR" | "TEXT" => row
-                        .try_get::<String, _>(i)
-                        .map(serde_json::Value::from)
-                        .unwrap_or_default(),
-                    "FLOAT" | "DOUBLE" => row
-                        .try_get::<f64, _>(i)
-                        .map(serde_json::Value::from)
-                        .unwrap_or_default(),
-                    _ => serde_json::Value::Null,
-                };
-                map.insert(column.name().to_string(), value);
-            }
-            serde_json::Value::Object(map)
-        })
-        .collect()
-}
-
-fn postgres_rows_to_json(rows: Vec<PgRow>) -> Vec<serde_json::Value> {
-    rows.into_iter()
-        .map(|row| {
-            let mut map = serde_json::Map::new();
-            for i in 0..row.len() {
-                let column = row.columns().get(i).unwrap();
-                let value = match column.type_info().name() {
-                    "INT4" => row.try_get::<i32, _>(i).ok().map(serde_json::Value::from),
-                    "INT8" => row.try_get::<i64, _>(i).ok().map(serde_json::Value::from),
-                    "VARCHAR" | "TEXT" => row
                         .try_get::<String, _>(i)
                         .ok()
                         .map(serde_json::Value::from),
-                    "FLOAT4" => row.try_get::<f32, _>(i).ok().map(serde_json::Value::from),
-                    "FLOAT8" => row.try_get::<f64, _>(i).ok().map(serde_json::Value::from),
-                    "BOOL" => row.try_get::<bool, _>(i).ok().map(serde_json::Value::from),
+                    "REAL" => row.try_get::<f64, _>(i).map(serde_json::Value::from).ok(),
+                    "DATETIME" | "DATE" | "TIMESTAMP" => row
+                        .try_get::<String, _>(i)
+                        .ok()
+                        .map(serde_json::Value::from),
                     _ => None,
                 }
                 .unwrap_or_else(|| {
                     // Ultimate fallback - try to get as text
                     row.try_get::<String, _>(i)
                         .map(serde_json::Value::from)
+                        .or_else(|_| row.try_get::<f64, _>(i).map(Value::from))
+                        .or_else(|_| row.try_get::<i64, _>(i).map(Value::from))
                         .unwrap_or(serde_json::Value::Null)
                 });
                 map.insert(column.name().to_string(), value);
@@ -314,7 +272,96 @@ fn postgres_rows_to_json(rows: Vec<PgRow>) -> Vec<serde_json::Value> {
         .collect()
 }
 
-fn oracle_rows_to_json(rows: Vec<Result<oracle::Row, oracle::Error>>) -> Vec<serde_json::Value> {
+fn mysql_rows_to_json(rows: Vec<sqlx::mysql::MySqlRow>) -> Vec<Value> {
+    rows.into_iter()
+        .map(|row| {
+            let mut map = serde_json::Map::new();
+            for i in 0..row.len() {
+                let column = row.columns().get(i).unwrap();
+                let type_info = column.type_info().to_string();
+                println!(
+                    "[mysql] column name {} and type is {:?}",
+                    column.name(),
+                    type_info
+                );
+                let value = match type_info.as_str() {
+                    "INT" | "BIGINT" => row.try_get::<i64, _>(i).ok().map(Value::from),
+                    "VARCHAR" | "TEXT" => row.try_get::<String, _>(i).ok().map(Value::from),
+                    "FLOAT" | "DOUBLE" => row.try_get::<f64, _>(i).ok().map(Value::from),
+                    "DATE" | "DATETIME" | "TIMESTAMP" => {
+                        row.try_get::<String, _>(i).ok().map(Value::from)
+                    }
+                    _ => None,
+                }
+                .unwrap_or_else(|| {
+                    // Ultimate fallback - try to get as text
+                    row.try_get::<String, _>(i)
+                        .map(Value::from)
+                        .or_else(|_| row.try_get::<f64, _>(i).map(Value::from))
+                        .or_else(|_| row.try_get::<i64, _>(i).map(Value::from))
+                        .or_else(|_| {
+                            row.try_get::<chrono::NaiveDateTime, _>(i)
+                                .map(|dt| Value::from(dt.to_string()))
+                        })
+                        .or_else(|_| {
+                            row.try_get::<chrono::NaiveDate, _>(i)
+                                .map(|dt| Value::from(dt.to_string()))
+                        })
+                        .unwrap_or(Value::Null)
+                });
+                map.insert(column.name().to_string(), value);
+            }
+            serde_json::Value::Object(map)
+        })
+        .collect()
+}
+
+fn postgres_rows_to_json(rows: Vec<PgRow>) -> Vec<Value> {
+    rows.into_iter()
+        .map(|row| {
+            let mut map = serde_json::Map::new();
+            for i in 0..row.len() {
+                let column = row.columns().get(i).unwrap();
+                println!(
+                    "[postgres] column name {} and type is {:?}",
+                    column.name(),
+                    column.type_info()
+                );
+                let value = match column.type_info().name() {
+                    "INT4" => row.try_get::<i32, _>(i).ok().map(Value::from),
+                    "INT8" => row.try_get::<i64, _>(i).ok().map(Value::from),
+                    "VARCHAR" | "TEXT" => row.try_get::<String, _>(i).ok().map(Value::from),
+                    "FLOAT4" => row.try_get::<f32, _>(i).ok().map(Value::from),
+                    "FLOAT8" => row.try_get::<f64, _>(i).ok().map(Value::from),
+                    "BOOL" => row.try_get::<bool, _>(i).ok().map(Value::from),
+                    "DATE" | "TIMESTAMP" | "TIMESTAMPTZ" => {
+                        row.try_get::<String, _>(i).ok().map(Value::from)
+                    }
+                    _ => None,
+                }
+                .unwrap_or_else(|| {
+                    row.try_get::<String, _>(i)
+                        .map(Value::from)
+                        .or_else(|_| row.try_get::<f64, _>(i).map(Value::from))
+                        .or_else(|_| row.try_get::<i64, _>(i).map(Value::from))
+                        .or_else(|_| {
+                            row.try_get::<chrono::NaiveDateTime, _>(i)
+                                .map(|dt| Value::from(dt.to_string()))
+                        })
+                        .or_else(|_| {
+                            row.try_get::<chrono::NaiveDate, _>(i)
+                                .map(|dt| Value::from(dt.to_string()))
+                        })
+                        .unwrap_or(Value::Null)
+                });
+                map.insert(column.name().to_string(), value);
+            }
+            serde_json::Value::Object(map)
+        })
+        .collect()
+}
+
+fn oracle_rows_to_json(rows: Vec<Result<oracle::Row, oracle::Error>>) -> Vec<Value> {
     rows.into_iter()
         .filter_map(|row_result| {
             row_result.ok().map(|row| {
