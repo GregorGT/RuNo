@@ -559,83 +559,6 @@ fn get_table_size_from_html(document: &str, table_id: &str) -> (usize, usize) {
     }
 }
 
-// fn generate_sql_cell_table_html_limited(
-//     table_id: &str,
-//     data: &[serde_json::Value],
-//     max_rows: usize,
-//     max_cols: usize,
-// ) -> String {
-//     let mut html = format!("<table id=\"{}\"><tbody>", table_id);
-//     for i in 0..max_rows {
-//         html += "<tr>";
-//         if let Some(obj) = data.get(i).and_then(|row| row.as_object()) {
-//             for j in 0..max_cols {
-//                 if let Some((_, value)) = obj.iter().nth(j) {
-//                     let data_type = if value.is_number() {
-//                         "NUMBER"
-//                     } else if value.is_string()
-//                         && value
-//                             .as_str()
-//                             .unwrap()
-//                             .parse::<chrono::NaiveDateTime>()
-//                             .is_ok()
-//                     {
-//                         "DATE"
-//                     } else {
-//                         "TEXT"
-//                     };
-//                     html += &format!(
-//                         "<td><p><formula id=\"{}_{}_{}\" formula=\"SQL_Cell({}, {}, &quot;{}&quot;)\"></formula></p></td>",
-//                         table_id, i + 1, j + 1, j + 1, i + 1, data_type
-//                     );
-//                 } else {
-//                     html += "<td></td>";
-//                 }
-//             }
-//         } else {
-//             for _ in 0..max_cols {
-//                 html += "<td></td>";
-//             }
-//         }
-//         html += "</tr>";
-//     }
-//     html += "</tbody></table>";
-//     html
-// }
-
-// fn generate_sql_cell_table_html(table_id: &str, data: &[serde_json::Value]) -> String {
-//     let mut html = format!("<table id=\"{}\"><tbody>", table_id);
-//     let column_types = get_colun_types(data);
-//     for (i, row) in data.iter().enumerate() {
-//         html += "<tr>";
-//         if let Some(obj) = row.as_object() {
-//             for (j, (col_name, value)) in obj.iter().enumerate() {
-//                 let data_type = if value.is_number() {
-//                     "NUMBER"
-//                 } else if value.is_string()
-//                     && value
-//                         .as_str()
-//                         .unwrap()
-//                         .parse::<chrono::NaiveDateTime>()
-//                         .is_ok()
-//                 {
-//                     "DATE"
-//                 } else {
-//                     "TEXT"
-//                 };
-//                 html += &format!(
-//                     "<td><p><formula table_id={} id=\"{}_{}_{}\" formula='SQL_Cell({}, {}, &quot;{}&quot;)'></formula></p></td>",
-//                     table_id, table_id, i + 1, j + 1, j + 1, i + 1, data_type
-//                 );
-//             }
-//         }
-//         html += "</tr>";
-//     }
-//     html += "</tbody></table>";
-//     html
-// }
-
-// ... existing code ...
 fn get_column_types(data: &[serde_json::Value]) -> Vec<&'static str> {
     // Try to infer column types from the first non-null row
     if let Some(row) = data.iter().find_map(|row| row.as_object()) {
@@ -715,7 +638,6 @@ fn generate_sql_cell_table_html(table_id: &str, data: &[serde_json::Value]) -> S
     html += "</tbody></table>";
     html
 }
-// ... existing code ...
 
 fn replace_table_html(document: &str, table_id: &str, new_table_html: &str) -> String {
     let re = regex::Regex::new(&format!(
