@@ -16,7 +16,7 @@ use std::collections::{HashMap, LinkedList};
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 use std::time::Instant;
 
-use chrono::{NaiveDateTime, NaiveTime};
+use chrono::{NaiveDateTime, NaiveTime, NaiveDate};
 use dateparser::parse;
 use pest::iterators::Pair;
 use pest::Parser;
@@ -568,8 +568,8 @@ fn get_column_types(data: &[serde_json::Value]) -> Vec<&'static str> {
                     "NUMBER"
                 } else if value.is_string() {
                     let s = value.as_str().unwrap();
-                    if chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").is_ok()
-                        || chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").is_ok()
+                    if NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").is_ok()
+                        || NaiveDate::parse_from_str(s, "%Y-%m-%d").is_ok()
                         || dateparser::parse(s).is_ok()
                     {
                         "DATE"
@@ -2355,33 +2355,55 @@ fn recursive_funcation_parser<'a>(
             let mut args = pair.into_inner();
             let conn_name = args
                 .next()
-                .map(|p| p.as_str().trim_matches('\"').to_string())
+                .map(|p| p.as_str().trim_matches('"').to_string())
                 .unwrap_or_default();
             let sql_query = args
                 .next()
-                .map(|p| p.as_str().trim_matches('\"').to_string())
+                .map(|p| p.as_str().trim_matches('"').to_string())
                 .unwrap_or_default();
-            // Find the connection config by name (from your tables or a global list)
-            let conn = find_connection_by_name(&conn_name); // Implement this helper
+            let conn = find_connection_by_name(&conn_name);
             if let Some(conn) = conn {
                 let is_connected = tauri::async_runtime::block_on(test_connection(conn.clone()));
                 if is_connected {
                     let results = tauri::async_runtime::block_on(execute_query(conn, &sql_query))
                         .unwrap_or_default();
-                    // Only support 1D vector
-                    let mut vec = vec![];
+                    let mut numbers = vec![];
+                    let mut strings = vec![];
+                    let mut dates = vec![];
                     for row in results {
                         if let Some(obj) = row.as_object() {
                             for (_k, v) in obj {
-                                if let Some(s) = v.as_str() {
-                                    vec.push(s.to_string());
-                                } else if let Some(n) = v.as_f64() {
-                                    vec.push(n.to_string());
+                                if let Some(n) = v.as_f64() {
+                                    numbers.push(n);
+                                } else if let Some(s) = v.as_str() {
+                                    if let Ok(date) = dateparser::parse(s) {
+                                        dates.push(get_date(date.naive_utc()));
+                                    } else {
+                                        strings.push(s.to_string());
+                                    }
                                 }
                             }
                         }
                     }
-                    return TypeOr::LeftList(vec);
+                    if !numbers.is_empty() {
+                        if numbers.len() == 1 {
+                            return TypeOr::Right(numbers[0]);
+                        } else {
+                            return TypeOr::RightList(numbers);
+                        }
+                    } else if !dates.is_empty() {
+                        if dates.len() == 1 {
+                            return TypeOr::DateValue(dates[0]);
+                        } else {
+                            return TypeOr::DateList(dates);
+                        }
+                    } else if !strings.is_empty() {
+                        if strings.len() == 1 {
+                            return TypeOr::Left(strings[0].clone());
+                        } else {
+                            return TypeOr::LeftList(strings);
+                        }
+                    }
                 }
             }
             TypeOr::None
