@@ -303,8 +303,10 @@ fn mysql_rows_to_json(rows: Vec<sqlx::mysql::MySqlRow>) -> Vec<Value> {
                         .map(Value::from)
                         .or_else(|_| row.try_get::<f64, _>(i).map(Value::from))
                         .or_else(|_| row.try_get::<i64, _>(i).map(Value::from))
+
                         .or_else(|_| row.try_get::<u64, _>(i).map(Value::from))
                         .or_else(|_| row.try_get::<u32, _>(i).map(Value::from))
+
                         .or_else(|_| {
                             row.try_get::<chrono::NaiveDateTime, _>(i)
                                 .map(|dt| Value::from(dt.to_string()))
