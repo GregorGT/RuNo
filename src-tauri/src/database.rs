@@ -1,9 +1,11 @@
+use regex::bytes;
 // use tauri::command;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::mysql::MySqlPool;
 use sqlx::postgres::PgPool;
 use sqlx::sqlite::SqlitePool;
+use sqlx::MySql;
 use sqlx::{postgres::PgRow, Column, Row, TypeInfo};
 
 // use oracle::Connection;
@@ -237,13 +239,6 @@ fn sqlite_rows_to_json(rows: Vec<sqlx::sqlite::SqliteRow>) -> Vec<serde_json::Va
                     column.name(),
                     type_info
                 );
-                // let value = row
-                //     .try_get::<String, _>(i)
-                //     .map(Value::from)
-                //     .or_else(|_| row.try_get::<f64, _>(i).map(Value::from))
-                //     .or_else(|_| row.try_get::<i64, _>(i).map(Value::from))
-                //     .unwrap_or(Value::Null);
-
                 let value = match type_info.as_str() {
                     "INTEGER" => row.try_get::<i64, _>(i).ok().map(serde_json::Value::from),
                     "TEXT" => row
@@ -265,7 +260,6 @@ fn sqlite_rows_to_json(rows: Vec<sqlx::sqlite::SqliteRow>) -> Vec<serde_json::Va
                         .or_else(|_| row.try_get::<i64, _>(i).map(Value::from))
                         .or_else(|_| row.try_get::<u64, _>(i).map(Value::from))
                         .or_else(|_| row.try_get::<u32, _>(i).map(Value::from))
-
                         .unwrap_or(serde_json::Value::Null)
                 });
                 map.insert(column.name().to_string(), value);
@@ -291,8 +285,15 @@ fn mysql_rows_to_json(rows: Vec<sqlx::mysql::MySqlRow>) -> Vec<Value> {
                     "INT" | "BIGINT" => row.try_get::<i64, _>(i).ok().map(Value::from),
                     "VARCHAR" | "TEXT" => row.try_get::<String, _>(i).ok().map(Value::from),
                     "FLOAT" | "DOUBLE" => row.try_get::<f64, _>(i).ok().map(Value::from),
-                    "DATE" | "DATETIME" | "TIMESTAMP" => {
-                        row.try_get::<String, _>(i).ok().map(Value::from)
+                    "DATE" | "DATETIME" => row
+                        .try_get::<chrono::NaiveDateTime, _>(i)
+                        .ok()
+                        .map(|dt| Value::from(dt.to_string())),
+                    "TIMESTAMP" => {
+                        row.try_get_raw(i)
+                            .ok()
+                            .and_then(decode_mysql_timestamp)
+                            .map(Value::from)
                     }
                     _ => None,
                 }
@@ -389,4 +390,27 @@ fn oracle_rows_to_json(rows: Vec<Result<oracle::Row, oracle::Error>>) -> Vec<Val
             })
         })
         .collect()
+}
+
+fn decode_mysql_timestamp(value: sqlx::mysql::MySqlValueRef<'_>) -> Option<String> {
+    let bytes: Vec<u8> = sqlx::decode::Decode::<MySql>::decode(value).ok()?;
+
+    if bytes.len() < 7 {
+        println!("[DEBUG] Unexpected TIMESTAMP length: {:?}", bytes.len());
+        return None;
+    }
+
+    let year = u16::from_le_bytes([bytes[1], bytes[2]]);
+    let month = bytes[3];
+    let day = bytes[4];
+    let hour = bytes[5];
+    let minute = bytes[6];
+    let second = bytes[7];
+
+    let dt = chrono::NaiveDateTime::parse_from_str(
+        &format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}", year, month, day, hour, minute, second),
+        "%Y-%m-%d %H:%M:%S",
+    ).ok()?;
+
+    Some(dt.to_string())
 }
