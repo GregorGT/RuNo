@@ -1316,6 +1316,16 @@ fn recursive_funcation_parser<'a>(
                             final_sum += i;
                         }
                     }
+                    TypeOr::Left(value) => {
+                        let number: f64 = value.parse().unwrap();
+                        final_sum += number
+                    }
+                    TypeOr::LeftList(value) => {
+                        for i in value {
+                            let number: f64 = i.parse().unwrap();
+                            final_sum += number;
+                        }
+                    }
                     any => return TypeOr::None,
                 }
             }
