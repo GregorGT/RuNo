@@ -118,17 +118,22 @@ const Dropdowns = () => {
   const loadFile = () => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = ".runo";
+    input.accept = ".scd,.runo,.json";
     input.onchange = (e) => {
       const target = e.target as HTMLInputElement;
       const file: File = (target.files as FileList)[0];
       const reader = new FileReader();
       reader.readAsText(file);
       reader.onload = () => {
-        const base64 = reader.result as string;
-        const mingled = base64ToUint8(base64);
-        const zipped = unmingle(mingled);
-        const json = unzipToString(zipped);
+        let json = "";
+        if(file.name.toUpperCase().endsWith(".JSON")) {
+          json = reader.result as string;
+        } else {
+          const base64 = reader.result as string;
+          const mingled = base64ToUint8(base64);
+          const zipped = unmingle(mingled);
+          json = unzipToString(zipped);
+        }
         load_data(json);
         const tables = document.getElementsByTagName("table");
         Array.from(tables).forEach((table) => {
