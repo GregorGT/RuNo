@@ -208,6 +208,39 @@ const Dropdowns = () => {
               });
             });
           }
+        },
+        {
+          key: "export-html",
+          label: "Export to HTML",
+          onClick: () => {
+            const htmlContent = getEditorValue.fn();
+            import("./utils/ExportUtils").then(async ({ exportToHTML }) => {
+              try {
+                const success = await exportToHTML(htmlContent);
+                if (success) {
+                  api.success({
+                    message: "HTML Export Successful",
+                    description: "Document has been exported to HTML format",
+                    placement: "topRight",
+                  });
+                }
+              } catch (error) {
+                console.error("Error during HTML export:", error);
+                api.error({
+                  message: "HTML Export Failed",
+                  description: "There was an error exporting to HTML format",
+                  placement: "topRight",
+                });
+              }
+            }).catch(error => {
+              console.error("Error importing HTML export function:", error);
+              api.error({
+                message: "HTML Export Failed",
+                description: "Failed to load export functionality",
+                placement: "topRight",
+              });
+            });
+          }
         }
       ]
     },

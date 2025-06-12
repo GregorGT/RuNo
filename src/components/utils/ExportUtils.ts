@@ -185,3 +185,36 @@ export const exportToRTF = async (html: string): Promise<boolean> => {
     return false;
   }
 };
+
+/**
+ * Exports HTML content to HTML file (with formula values)
+ * @param html The HTML content to convert to HTML file
+ * @returns Promise that resolves to a boolean indicating success or failure
+ */
+export const exportToHTML = async (html: string): Promise<boolean> => {
+  try {
+    // Preprocess HTML to include formula values
+    let processedHtml = preprocessHtmlForExport(html);
+
+    // Create a Blob from the HTML content
+    const blob = new Blob([processedHtml], { type: "text/html;charset=utf-8" });
+
+    // Create a download link and trigger download
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "document.html";
+
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(link.href);
+      document.body.removeChild(link);
+    }, 100);
+
+    return true;
+  } catch (error) {
+    console.error("Error exporting to HTML:", error);
+    return false;
+  }
+};
